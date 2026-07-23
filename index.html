@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GingaPass Capoeira Team — Protótipo</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -65,7 +65,7 @@
     border-radius:0 0 16px 16px;
     z-index:20;
   }
-  @media (display-mode: standalone) {
+  @media (display-mode: standalone), (max-width: 480px) {
     body{padding:0;}
     .phone{
       width:100%;
@@ -77,6 +77,12 @@
       box-shadow:none;
     }
     .notch{display:none;}
+    .topbar{
+      padding-top:calc(38px + env(safe-area-inset-top));
+    }
+    .tabbar{
+      padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    }
   }
   .topbar{
     background:var(--navy-900);
@@ -543,6 +549,7 @@
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
       <button class="btn" onclick="fazerLogin()" type="button">Entrar</button>
+      <p id="syncStatus" style="font-size:11px;color:#B9CBDD;margin-top:10px;">Sincronizando com a nuvem...</p>
     </div>
   </div>
 
@@ -951,6 +958,91 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
+  authDomain: "gingapass-app.firebaseapp.com",
+  projectId: "gingapass-app",
+  storageBucket: "gingapass-app.firebasestorage.app",
+  messagingSenderId: "562987770081",
+  appId: "1:562987770081:web:3654b9f0f9e1a6767817a0"
+};
+
+let dbCollection = null;
+let firebaseSynced = false;
+
+function _setLocal(chave, valor){
+  window.localStorage.setItem(chave, valor);
+}
+
+function setDado(chave, valor){
+  _setLocal(chave, valor);
+  if(dbCollection){
+    dbCollection.doc(chave).set({value: valor, atualizado: Date.now()}).catch(function(e){
+      console.error('Erro ao sincronizar com a nuvem:', e);
+    });
+  }
+}
+
+function iniciarFirebase(tentativas){
+  tentativas = tentativas || 0;
+  if(typeof firebase === 'undefined'){
+    if(tentativas < 10){
+      setTimeout(function(){ iniciarFirebase(tentativas + 1); }, 300);
+      return;
+    }
+    console.error('Firebase não carregou (provavelmente um bloqueador de anúncios/rastreadores). O app vai funcionar só localmente, sem sincronizar entre aparelhos.');
+    const statusEl = document.getElementById('syncStatus');
+    if(statusEl) statusEl.textContent = 'Sem conexão com a nuvem — verifique se há bloqueador de anúncios ativo.';
+    firebaseSynced = true;
+    seedContas();
+    return;
+  }
+  try{
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+    dbCollection = db.collection('gingapass');
+
+    const statusEl = document.getElementById('syncStatus');
+
+    dbCollection.get().then(function(snapshot){
+      snapshot.forEach(function(doc){
+        const data = doc.data();
+        if(data && typeof data.value === 'string'){
+          _setLocal(doc.id, data.value);
+        }
+      });
+      firebaseSynced = true;
+      if(statusEl) statusEl.style.display = 'none';
+      seedContas();
+    }).catch(function(e){
+      console.error('Erro ao carregar dados da nuvem:', e);
+      firebaseSynced = true;
+      if(statusEl) statusEl.style.display = 'none';
+      seedContas();
+    });
+
+    dbCollection.onSnapshot(function(snapshot){
+      let mudou = false;
+      snapshot.docChanges().forEach(function(change){
+        const data = change.doc.data();
+        if(data && typeof data.value === 'string'){
+          _setLocal(change.doc.id, data.value);
+          mudou = true;
+        }
+      });
+      if(mudou && typeof currentRole !== 'undefined' && currentRole){
+        aplicarPermissoes();
+      }
+    });
+  } catch(e){
+    console.error('Firebase não pôde ser iniciado, o app vai funcionar só localmente:', e);
+    firebaseSynced = true;
+  }
+}
+</script>
 <script>
 let currentRole = null;
 let currentUser = null;
@@ -958,10 +1050,10 @@ let selectedRole = 'aluno';
 
 function seedContas(){
   if(!localStorage.getItem('gingapass_academias_contas')){
-    localStorage.setItem('gingapass_academias_contas', JSON.stringify([]));
+    setDado('gingapass_academias_contas', JSON.stringify([]));
   }
   if(!localStorage.getItem('gingapass_alunos_contas')){
-    localStorage.setItem('gingapass_alunos_contas', JSON.stringify([]));
+    setDado('gingapass_alunos_contas', JSON.stringify([]));
   }
 }
 
@@ -972,6 +1064,10 @@ function setRole(role){
 }
 
 function fazerLogin(){
+  if(!firebaseSynced){
+    alert('Aguarde a sincronização com a nuvem terminar (poucos segundos) e tente de novo.');
+    return;
+  }
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
 
@@ -1105,7 +1201,7 @@ function criarAcessoAcademia(){
     return;
   }
   contas.push({nome, user, senha});
-  localStorage.setItem('gingapass_academias_contas', JSON.stringify(contas));
+  setDado('gingapass_academias_contas', JSON.stringify(contas));
 
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const existente = rede.findIndex(a => a.nome === nome);
@@ -1115,12 +1211,12 @@ function criarAcessoAcademia(){
   } else {
     rede.push(entrada);
   }
-  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
 
   const cfgAtual = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
   if(!cfgAtual || !cfgAtual.nucleo || !cfgAtual.professor){
     const novoCfg = Object.assign({}, cfgAtual || {}, {nucleo: nome, professor: professor});
-    localStorage.setItem('gingapass_config_geral', JSON.stringify(novoCfg));
+    setDado('gingapass_config_geral', JSON.stringify(novoCfg));
   }
 
   document.getElementById('novaAcademiaNome').value = '';
@@ -1164,7 +1260,7 @@ function revogarAcademia(i){
   if(!confirm('Revogar o acesso desta academia?')) return;
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   contas.splice(i, 1);
-  localStorage.setItem('gingapass_academias_contas', JSON.stringify(contas));
+  setDado('gingapass_academias_contas', JSON.stringify(contas));
   renderAcademiasContas();
 }
 
@@ -1185,7 +1281,7 @@ function criarAcessoAluno(){
     return;
   }
   contas.push({nome, user, senha, corda, nucleo, professor, desde: new Date().getFullYear().toString()});
-  localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNome').value = '';
   document.getElementById('novoAlunoCorda').value = '';
   document.getElementById('novoAlunoNucleo').value = '';
@@ -1234,7 +1330,7 @@ function revogarAluno(i){
   if(!confirm('Revogar o acesso deste aluno?')) return;
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   contas.splice(i, 1);
-  localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunosContas();
 }
 
@@ -1271,7 +1367,7 @@ function alternarEdicaoPerfil(){
         const cfgAnterior = JSON.parse(localStorage.getItem('gingapass_config_geral') || '{}');
         cfgAnterior.nucleo = nucleo || cfgAnterior.nucleo;
         cfgAnterior.professor = professor || cfgAnterior.professor;
-        localStorage.setItem('gingapass_config_geral', JSON.stringify(cfgAnterior));
+        setDado('gingapass_config_geral', JSON.stringify(cfgAnterior));
         renderConfigGeral();
       }
     }
@@ -1282,7 +1378,7 @@ function alternarEdicaoPerfil(){
         nome, email, tel,
         foto: fotoDataUrl || perfilAnterior.foto || null
       };
-      localStorage.setItem('gingapass_perfil', JSON.stringify(perfil));
+      setDado('gingapass_perfil', JSON.stringify(perfil));
       renderPerfil();
       editCard.style.display = 'none';
       btn.textContent = 'Editar perfil';
@@ -1350,7 +1446,7 @@ function adicionarEvento(titulo, data, local, pagamento){
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const codigoCheckin = Math.random().toString(36).slice(2, 8).toUpperCase();
   eventos.push({titulo, data, local, pagamento: pagamento || '', codigoCheckin});
-  localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
+  setDado('gingapass_eventos', JSON.stringify(eventos));
   renderEventos();
   renderEventosGerenciar();
   alert('Evento publicado! Já saiu com um código de check-in próprio.');
@@ -1511,7 +1607,7 @@ function enviarAulaAdmin(){
     status: 'pendente',
     data: new Date().toLocaleDateString('pt-BR')
   });
-  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  setDado('gingapass_aulas', JSON.stringify(aulas));
   document.getElementById('aulaTituloAd').value = '';
   document.getElementById('aulaLinkAd').value = '';
   renderAulasStatusAdmin();
@@ -1534,7 +1630,7 @@ function enviarAulaMatriz(){
     status: 'aprovado',
     data: new Date().toLocaleDateString('pt-BR')
   });
-  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  setDado('gingapass_aulas', JSON.stringify(aulas));
   document.getElementById('aulaTituloMatriz').value = '';
   document.getElementById('aulaLinkMatriz').value = '';
   renderAulasPendentes();
@@ -1616,7 +1712,7 @@ function renderAulasPendentes(){
 function moderarAula(i, novoStatus){
   const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
   aulas[i].status = novoStatus;
-  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  setDado('gingapass_aulas', JSON.stringify(aulas));
   renderAulasPendentes();
   renderAulasTodas();
   renderAulas();
@@ -1651,7 +1747,7 @@ function removerAula(i){
   if(!confirm('Remover esta aula?')) return;
   const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
   aulas.splice(i, 1);
-  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  setDado('gingapass_aulas', JSON.stringify(aulas));
   renderAulasPendentes();
   renderAulasTodas();
   renderAulas();
@@ -1702,7 +1798,7 @@ function editarEvento(i){
     pagamento: pagamento.trim(),
     codigoCheckin: ev.codigoCheckin
   };
-  localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
+  setDado('gingapass_eventos', JSON.stringify(eventos));
   renderEventos();
   renderEventosGerenciar();
 }
@@ -1711,7 +1807,7 @@ function removerEvento(i){
   if(!confirm('Remover este evento?')) return;
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   eventos.splice(i, 1);
-  localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
+  setDado('gingapass_eventos', JSON.stringify(eventos));
   renderEventos();
   renderEventosGerenciar();
 }
@@ -1737,7 +1833,7 @@ function publicarFotos(galeriaId){
   }
   const salvas = JSON.parse(localStorage.getItem('gingapass_fotos') || '[]');
   const todas = salvas.concat(fotosSelecionadas);
-  localStorage.setItem('gingapass_fotos', JSON.stringify(todas));
+  setDado('gingapass_fotos', JSON.stringify(todas));
   fotosSelecionadas = [];
   renderGaleria();
   alert('Fotos publicadas!');
@@ -1760,7 +1856,7 @@ function renderGaleria(){
 function publicarContato(){
   const telefone = document.getElementById('admTelefone').value.trim();
   const instagram = document.getElementById('admInstagram').value.trim();
-  localStorage.setItem('gingapass_contato', JSON.stringify({telefone, instagram}));
+  setDado('gingapass_contato', JSON.stringify({telefone, instagram}));
   alert('Contato salvo!');
 }
 
@@ -1773,7 +1869,7 @@ function adicionarEndereco(){
   }
   const enderecos = JSON.parse(localStorage.getItem('gingapass_enderecos') || '[]');
   enderecos.push({nome, endereco});
-  localStorage.setItem('gingapass_enderecos', JSON.stringify(enderecos));
+  setDado('gingapass_enderecos', JSON.stringify(enderecos));
   document.getElementById('endNome').value = '';
   document.getElementById('endEndereco').value = '';
   renderEnderecos();
@@ -1807,7 +1903,7 @@ function removerEndereco(i){
   if(!confirm('Remover este endereço de treino?')) return;
   const enderecos = JSON.parse(localStorage.getItem('gingapass_enderecos') || '[]');
   enderecos.splice(i, 1);
-  localStorage.setItem('gingapass_enderecos', JSON.stringify(enderecos));
+  setDado('gingapass_enderecos', JSON.stringify(enderecos));
   renderEnderecos();
 }
 
@@ -1838,7 +1934,7 @@ function criarAcessoAlunoAcademia(){
   }
 
   contas.push({nome, user, senha, corda, nucleo, professor, desde: new Date().getFullYear().toString()});
-  localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNomeAd').value = '';
   document.getElementById('novoAlunoCordaAd').value = '';
   document.getElementById('novoAlunoUserAd').value = '';
@@ -1907,7 +2003,7 @@ function editarAluno(i){
   conta.professor = novoProfessor.trim();
   conta.senha = novaSenha.trim() || conta.senha;
   contas[i] = conta;
-  localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunos();
   renderAlunosContas();
   renderCheckin();
@@ -1918,7 +2014,7 @@ function excluirAlunoConta(i){
   if(!confirm('Remover este aluno? Ele perde o acesso ao app.')) return;
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   contas.splice(i, 1);
-  localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunos();
   renderAlunosContas();
   renderCheckin();
@@ -1964,17 +2060,17 @@ function alternarCheckin(user){
   const key = 'gingapass_checkin_' + dataHoje;
   const registro = JSON.parse(localStorage.getItem(key) || '{}');
   registro[user] = !registro[user];
-  localStorage.setItem(key, JSON.stringify(registro));
+  setDado(key, JSON.stringify(registro));
   renderCheckin();
 }
 
 function gerarQrHoje(){
   const dataHoje = hojeStr();
   const codigo = Math.random().toString(36).slice(2, 8).toUpperCase();
-  localStorage.setItem('gingapass_qrcode_' + dataHoje, codigo);
+  setDado('gingapass_qrcode_' + dataHoje, codigo);
 
   const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || '{}');
-  localStorage.setItem('gingapass_qrcode_meta_' + dataHoje, JSON.stringify({
+  setDado('gingapass_qrcode_meta_' + dataHoje, JSON.stringify({
     professor: cfg.professor || '',
     nucleo: cfg.nucleo || ''
   }));
@@ -1982,7 +2078,7 @@ function gerarQrHoje(){
   const dias = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
   if(!dias.includes(dataHoje)){
     dias.push(dataHoje);
-    localStorage.setItem('gingapass_dias_checkin', JSON.stringify(dias));
+    setDado('gingapass_dias_checkin', JSON.stringify(dias));
   }
   renderQrHoje();
 }
@@ -2112,12 +2208,12 @@ function validarCheckin(codigo){
   const key = 'gingapass_checkin_' + dataHoje;
   const registro = JSON.parse(localStorage.getItem(key) || '{}');
   registro[currentUser] = true;
-  localStorage.setItem(key, JSON.stringify(registro));
+  setDado(key, JSON.stringify(registro));
 
   const meta = JSON.parse(localStorage.getItem('gingapass_qrcode_meta_' + dataHoje) || '{}');
   const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
   log.push({data: dataHoje, aluno: currentUser, professor: meta.professor || '', nucleo: meta.nucleo || ''});
-  localStorage.setItem('gingapass_checkin_log', JSON.stringify(log));
+  setDado('gingapass_checkin_log', JSON.stringify(log));
 
   const comQuem = meta.professor ? (' com o Prof. ' + meta.professor + (meta.nucleo ? (' · Núcleo ' + meta.nucleo) : '')) : '';
   if(status) status.textContent = 'Presença confirmada' + comQuem + '! Bom treino 🥋';
@@ -2133,7 +2229,7 @@ function publicarMensalidade(){
     alert('Preencha o valor e o vencimento.');
     return;
   }
-  localStorage.setItem('gingapass_mensalidade', JSON.stringify({valor, vencimento, status}));
+  setDado('gingapass_mensalidade', JSON.stringify({valor, vencimento, status}));
   renderMensalidade();
   alert('Mensalidade atualizada para todos os alunos.');
 }
@@ -2164,7 +2260,7 @@ function adicionarHistorico(){
   }
   const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
   historico.unshift({mes, status});
-  localStorage.setItem('gingapass_historico', JSON.stringify(historico));
+  setDado('gingapass_historico', JSON.stringify(historico));
   document.getElementById('histMes').value = '';
   renderHistoricoGerenciar();
   renderHistoricoAluno();
@@ -2198,7 +2294,7 @@ function removerHistorico(i){
   if(!confirm('Remover este lançamento?')) return;
   const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
   historico.splice(i, 1);
-  localStorage.setItem('gingapass_historico', JSON.stringify(historico));
+  setDado('gingapass_historico', JSON.stringify(historico));
   renderHistoricoGerenciar();
   renderHistoricoAluno();
 }
@@ -2272,7 +2368,7 @@ function publicarConfigGeral(){
     alert('Preencha ao menos o núcleo e o professor.');
     return;
   }
-  localStorage.setItem('gingapass_config_geral', JSON.stringify({turma, horario, horarioLabel, nucleo, professor, frequencia}));
+  setDado('gingapass_config_geral', JSON.stringify({turma, horario, horarioLabel, nucleo, professor, frequencia}));
   renderConfigGeral();
   renderPerfil();
   alert('Configurações salvas! Já aparecem pros alunos.');
@@ -2315,7 +2411,7 @@ function adicionarAcademiaRede(){
   }
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   rede.push({nome, endereco, professor, distancia});
-  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
   document.getElementById('redeNome').value = '';
   document.getElementById('redeEndereco').value = '';
   document.getElementById('redeProfessor').value = '';
@@ -2403,7 +2499,7 @@ function editarAcademiaRede(i){
     professor: professor.trim(),
     distancia: distancia.trim()
   };
-  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
   renderRedeAcademias();
   renderAcademiasScreen();
 }
@@ -2412,7 +2508,7 @@ function removerAcademiaRede(i){
   if(!confirm('Remover esta academia da rede?')) return;
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   rede.splice(i, 1);
-  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
   renderRedeAcademias();
   renderAcademiasScreen();
 }
@@ -2442,7 +2538,7 @@ function renderAcademiasScreen(){
 function publicarAviso(){
   const texto = document.getElementById('avisoTexto').value.trim();
   if(!texto) return;
-  localStorage.setItem('gingapass_aviso', texto);
+  setDado('gingapass_aviso', texto);
   document.getElementById('avisoTexto').value = '';
   renderAviso();
   alert('Aviso publicado! Vai aparecer na tela Início dos alunos.');
@@ -2486,7 +2582,7 @@ function enviarChat(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  seedContas();
+  iniciarFirebase();
 
   function ligarFotoInput(inputId, galeriaId){
     const input = document.getElementById(inputId);
@@ -2517,8 +2613,7 @@ document.addEventListener('DOMContentLoaded', function(){
       if(e.key === 'Enter') enviarChat();
     });
   }
-});
-document.addEventListener('DOMContentLoaded', function(){
+
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }
