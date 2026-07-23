@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_20.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_23.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -550,6 +550,13 @@
       <input id="loginPass" type="password" placeholder="Senha">
       <button class="btn" onclick="fazerLogin()" type="button">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
+      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarSetupMaster();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Primeiro acesso? Criar cadastro master</a>
+      <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
+        <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="setupMasterSenha" type="password" placeholder="Senha que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <button class="btn" onclick="criarMaster()" type="button" style="background:var(--amber-500);color:var(--navy-900);">Criar cadastro master</button>
+      </div>
     </div>
   </div>
 
@@ -610,8 +617,8 @@
       <div class="status">Situação atual</div>
       <div class="amount" id="mensalidadeStatusView">Em dia</div>
       <div class="due" id="mensalidadeDueView">Próximo vencimento: 05 de agosto · R$ 120,00</div>
-      <a class="btn" id="btnPagarPix" href="file:///C:/Users/rafael.souza/Downloads/index_20.html#" target="_blank" rel="noopener" style="text-decoration:none;">Pagar com Pix</a>
-      <a class="btn" id="btnPagarCartao" href="file:///C:/Users/rafael.souza/Downloads/index_20.html#" target="_blank" rel="noopener" style="text-decoration:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</a>
+      <a class="btn" id="btnPagarPix" href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" target="_blank" rel="noopener" style="text-decoration:none;">Pagar com Pix</a>
+      <a class="btn" id="btnPagarCartao" href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" target="_blank" rel="noopener" style="text-decoration:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</a>
       <p id="pagamentoAviso" style="font-size:11.5px;color:#B9CBDD;margin:8px 0 0;display:none;">Seu professor ainda não cadastrou a forma de pagamento.</p>
     </div>
 
@@ -622,16 +629,16 @@
   <!-- PERFIL -->
   <div class="screen" id="perfil">
     <div class="profile-hero">
-      <div class="avatar" id="perfilAvatar">IR</div>
-      <h3 id="perfilNomeView">Iuri Ramos</h3>
-      <p id="perfilDesdeView">Associado desde 2022</p>
-      <span class="cord" id="perfilCordaView">Corda Verde e Amarela</span>
+      <div class="avatar" id="perfilAvatar">?</div>
+      <h3 id="perfilNomeView">Carregando...</h3>
+      <p id="perfilDesdeView">Associado desde —</p>
+      <span class="cord" id="perfilCordaView">Corda ainda não definida</span>
     </div>
     <div class="card">
       <div class="info-row"><span>Núcleo principal</span><span id="perfilNucleoView">Ainda não definido</span></div>
       <div class="info-row"><span>Professor</span><span id="perfilProfessorView">Ainda não definido</span></div>
-      <div class="info-row"><span>E-mail</span><span id="perfilEmailView">iuri.ramos@email.com</span></div>
-      <div class="info-row"><span>Telefone</span><span id="perfilTelView">(21) 99999-0000</span></div>
+      <div class="info-row"><span>E-mail</span><span id="perfilEmailView">—</span></div>
+      <div class="info-row"><span>Telefone</span><span id="perfilTelView">—</span></div>
     </div>
     <div class="card" id="perfilEditCard" style="display:none;">
       <div class="card-label">Editar dados</div>
@@ -805,6 +812,8 @@
       <input class="admin-input" id="novaAcademiaEndereco" placeholder="Endereço">
       <input class="admin-input" id="novaAcademiaProfessor" placeholder="Professor responsável">
       <input class="admin-input" id="novaAcademiaDistancia" placeholder="Distância (ex: 0,8 km) — opcional">
+      <input class="admin-input" id="novaAcademiaPix" placeholder="Chave Pix — deixe em branco pro professor preencher depois">
+      <input class="admin-input" id="novaAcademiaCartao" placeholder="Link de pagamento cartão — deixe em branco pro professor preencher depois">
       <input class="admin-input" id="novaAcademiaUser" placeholder="Usuário de acesso">
       <input class="admin-input" id="novaAcademiaSenha" placeholder="Senha de acesso">
       <button class="btn" onclick="criarAcessoAcademia()">Conceder acesso à academia</button>
@@ -1083,6 +1092,40 @@ function setRole(role){
   document.getElementById('roleAcademiaBtn').classList.toggle('active', role === 'academia');
 }
 
+function alternarSetupMaster(){
+  const box = document.getElementById('setupMasterBox');
+  const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+  if(master){
+    alert('Já existe um cadastro master (' + master.nome + '). Faça login com o usuário e senha que foram criados. Se esqueceu a senha, peça ajuda técnica pra redefinir.');
+    return;
+  }
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function criarMaster(){
+  const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+  if(master){
+    alert('Já existe um cadastro master. Não é possível criar outro por aqui.');
+    return;
+  }
+  const nome = document.getElementById('setupMasterNome').value.trim();
+  const user = document.getElementById('setupMasterUser').value.trim();
+  const senha = document.getElementById('setupMasterSenha').value.trim();
+  if(!nome || !user || !senha){
+    alert('Preencha seu nome, usuário e senha.');
+    return;
+  }
+  if(senha.length < 6){
+    alert('Use uma senha com pelo menos 6 caracteres.');
+    return;
+  }
+  setDado('gingapass_master', JSON.stringify({nome, user, senha}));
+  alert('Cadastro master criado! Guarde seu usuário e senha em lugar seguro — agora você já pode entrar com eles.');
+  document.getElementById('setupMasterBox').style.display = 'none';
+  document.getElementById('loginUser').value = user;
+  document.getElementById('loginPass').value = '';
+}
+
 function fazerLogin(){
   if(!firebaseSynced){
     alert('Aguarde a sincronização com a nuvem terminar (poucos segundos) e tente de novo.');
@@ -1091,9 +1134,10 @@ function fazerLogin(){
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
 
-  // Acesso master oculto: não aparece como opção na tela, só funciona
-  // se o usuário digitar exatamente este usuário e senha.
-  if(user === 'Admin' && pass === 'admin@123'){
+  // Acesso master: não aparece como opção de papel na tela, só funciona
+  // se o usuário digitar exatamente o usuário e senha que a matriz criou no primeiro acesso.
+  const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+  if(master && user === master.user && pass === master.senha){
     entrar('matriz');
     return;
   }
@@ -1232,6 +1276,8 @@ function criarAcessoAcademia(){
   const endereco = document.getElementById('novaAcademiaEndereco').value.trim();
   const professor = document.getElementById('novaAcademiaProfessor').value.trim();
   const distancia = document.getElementById('novaAcademiaDistancia').value.trim();
+  const pix = document.getElementById('novaAcademiaPix').value.trim();
+  const cartao = document.getElementById('novaAcademiaCartao').value.trim();
   const user = document.getElementById('novaAcademiaUser').value.trim();
   const senha = document.getElementById('novaAcademiaSenha').value.trim();
   if(!nome || !endereco || !professor || !user || !senha){
@@ -1248,7 +1294,11 @@ function criarAcessoAcademia(){
 
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const existente = rede.findIndex(a => a.nome === nome);
-  const entrada = {nome, endereco, professor, distancia};
+  const entrada = {
+    nome, endereco, professor, distancia,
+    pix: pix || (existente >= 0 ? (rede[existente].pix || '') : ''),
+    cartao: cartao || (existente >= 0 ? (rede[existente].cartao || '') : '')
+  };
   if(existente >= 0){
     rede[existente] = entrada;
   } else {
@@ -1266,13 +1316,15 @@ function criarAcessoAcademia(){
   document.getElementById('novaAcademiaEndereco').value = '';
   document.getElementById('novaAcademiaProfessor').value = '';
   document.getElementById('novaAcademiaDistancia').value = '';
+  document.getElementById('novaAcademiaPix').value = '';
+  document.getElementById('novaAcademiaCartao').value = '';
   document.getElementById('novaAcademiaUser').value = '';
   document.getElementById('novaAcademiaSenha').value = '';
   renderAcademiasContas();
   renderRedeAcademias();
   renderAcademiasScreen();
   renderConfigGeral();
-  alert('Acesso concedido! A academia já aparece na rede e nos menus de núcleo/professor. Repasse o usuário e a senha pra ela.');
+  alert('Acesso concedido! A academia já aparece na rede. Se você deixou o Pix/cartão em branco, o próprio professor pode preencher em "Forma de pagamento" no painel dele.');
 }
 
 function renderAcademiasContas(){
@@ -1383,9 +1435,12 @@ function alternarEdicaoPerfil(){
   const camposMatriz = document.getElementById('perfilCamposMatriz');
   const editando = editCard.style.display !== 'none';
   if(!editando){
-    document.getElementById('perfilNomeInput').value = document.getElementById('perfilNomeView').textContent;
-    document.getElementById('perfilEmailInput').value = document.getElementById('perfilEmailView').textContent;
-    document.getElementById('perfilTelInput').value = document.getElementById('perfilTelView').textContent;
+    const nomeAtual = document.getElementById('perfilNomeView').textContent;
+    const emailAtual = document.getElementById('perfilEmailView').textContent;
+    const telAtual = document.getElementById('perfilTelView').textContent;
+    document.getElementById('perfilNomeInput').value = (nomeAtual === 'Carregando...') ? '' : nomeAtual;
+    document.getElementById('perfilEmailInput').value = (emailAtual === '—') ? '' : emailAtual;
+    document.getElementById('perfilTelInput').value = (telAtual === '—') ? '' : telAtual;
     if(currentRole === 'matriz'){
       camposMatriz.style.display = 'block';
       populaSelectsNucleoProfessor();
@@ -1416,12 +1471,17 @@ function alternarEdicaoPerfil(){
     }
 
     const salvar = (fotoDataUrl) => {
-      const perfilAnterior = JSON.parse(localStorage.getItem('gingapass_perfil') || '{}');
+      const chave = obterChavePerfil();
+      if(!chave){
+        alert('Não foi possível identificar seu usuário. Faça login novamente.');
+        return;
+      }
+      const perfilAnterior = JSON.parse(localStorage.getItem(chave) || '{}');
       const perfil = {
         nome, email, tel,
         foto: fotoDataUrl || perfilAnterior.foto || null
       };
-      setDado('gingapass_perfil', JSON.stringify(perfil));
+      setDado(chave, JSON.stringify(perfil));
       renderPerfil();
       editCard.style.display = 'none';
       btn.textContent = 'Editar perfil';
@@ -1436,6 +1496,16 @@ function alternarEdicaoPerfil(){
       salvar(null);
     }
   }
+}
+
+function obterChavePerfil(){
+  if(currentRole === 'aluno' || currentRole === 'academia'){
+    return currentUser ? ('gingapass_perfil_' + currentUser) : null;
+  }
+  if(currentRole === 'matriz'){
+    return 'gingapass_perfil_master';
+  }
+  return null;
 }
 
 function renderPerfil(){
@@ -1469,7 +1539,8 @@ function renderPerfil(){
     if(nomeView){
       if(currentRole === 'matriz'){
         const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
-        nomeView.textContent = meuProf && meuProf.nome ? meuProf.nome : 'Matriz (administrador)';
+        const masterDados = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+        nomeView.textContent = (meuProf && meuProf.nome) ? meuProf.nome : (masterDados && masterDados.nome ? masterDados.nome : 'Matriz (administrador)');
       } else if(currentRole === 'academia'){
         const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
         const minhaAc = academiasContas.find(c => c.user === currentUser);
@@ -1478,13 +1549,17 @@ function renderPerfil(){
     }
   }
 
-  const perfil = JSON.parse(localStorage.getItem('gingapass_perfil') || 'null');
+  const chave = obterChavePerfil();
+  if(!chave) return;
+  const perfil = JSON.parse(localStorage.getItem(chave) || 'null');
   if(!perfil) return;
   if(perfil.nome && nomeView){
     nomeView.textContent = perfil.nome;
   }
-  if(perfil.email) document.getElementById('perfilEmailView').textContent = perfil.email;
-  if(perfil.tel) document.getElementById('perfilTelView').textContent = perfil.tel;
+  const emailView = document.getElementById('perfilEmailView');
+  const telView = document.getElementById('perfilTelView');
+  if(perfil.email && emailView) emailView.textContent = perfil.email;
+  if(perfil.tel && telView) telView.textContent = perfil.tel;
 
   const avatar = document.getElementById('perfilAvatar');
   if(perfil.foto){
