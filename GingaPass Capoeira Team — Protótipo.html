@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_19.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_20.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -610,8 +610,9 @@
       <div class="status">Situação atual</div>
       <div class="amount" id="mensalidadeStatusView">Em dia</div>
       <div class="due" id="mensalidadeDueView">Próximo vencimento: 05 de agosto · R$ 120,00</div>
-      <a class="btn" href="https://www.mercadopago.com.br/" target="_blank" rel="noopener" style="text-decoration:none;">Pagar com Pix</a>
-      <a class="btn" href="https://www.mercadopago.com.br/" target="_blank" rel="noopener" style="text-decoration:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</a>
+      <a class="btn" id="btnPagarPix" href="file:///C:/Users/rafael.souza/Downloads/index_20.html#" target="_blank" rel="noopener" style="text-decoration:none;">Pagar com Pix</a>
+      <a class="btn" id="btnPagarCartao" href="file:///C:/Users/rafael.souza/Downloads/index_20.html#" target="_blank" rel="noopener" style="text-decoration:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</a>
+      <p id="pagamentoAviso" style="font-size:11.5px;color:#B9CBDD;margin:8px 0 0;display:none;">Seu professor ainda não cadastrou a forma de pagamento.</p>
     </div>
 
     <p class="section-title">Histórico de pagamentos</p>
@@ -689,6 +690,9 @@
     </div>
     <div class="card" id="aulasStatusAdmin"></div>
 
+    <p class="section-title">Mensagens dos alunos</p>
+    <div class="card" id="inboxAdmin"></div>
+
     <p class="section-title">Fotos da academia</p>
     <div class="card">
       <input type="file" id="fotoInputAdmin" accept="image/*" multiple="" style="font-size:12px;margin-bottom:4px;">
@@ -701,6 +705,14 @@
       <input class="admin-input" id="admTelefone" placeholder="Telefone / WhatsApp">
       <input class="admin-input" id="admInstagram" placeholder="Link do Instagram">
       <button class="btn" onclick="publicarContato()">Salvar contato</button>
+    </div>
+
+    <p class="section-title">Forma de pagamento</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
+      <input class="admin-input" id="admPix" placeholder="Chave Pix ou link de pagamento Pix">
+      <input class="admin-input" id="admCartao" placeholder="Link de pagamento com cartão">
+      <button class="btn" onclick="publicarPagamento()">Salvar forma de pagamento</button>
     </div>
 
     <p class="section-title">Endereços de treino</p>
@@ -745,13 +757,11 @@
 
   <!-- CHAT -->
   <div class="screen" id="chat">
-    <p class="greeting" style="font-size:18px;">Fale com a academia</p>
-    <p class="subgreeting">Tire dúvidas sobre aulas, eventos ou mensalidade</p>
-    <div id="chatMessages">
-      <div class="chat-bubble bot">Oi! Sou o assistente do GingaPass. Pode perguntar sobre horários, eventos ou mensalidade 🙂</div>
-    </div>
+    <p class="greeting" style="font-size:18px;">Fale com seu professor</p>
+    <p class="subgreeting" id="chatProfessorLabel">Tire dúvidas sobre aulas, eventos ou mensalidade</p>
+    <div id="chatMessages"></div>
     <div class="chat-input-row">
-      <input id="chatInput" placeholder="Escreva sua pergunta...">
+      <input id="chatInput" placeholder="Escreva sua mensagem...">
       <button class="chat-send" onclick="enviarChat()" type="button">➤</button>
     </div>
   </div>
@@ -853,6 +863,16 @@
       <div class="gallery-grid" id="galeriaMatriz"></div>
       <button class="btn" onclick="publicarFotos(&#39;galeriaMatriz&#39;)">Publicar fotos</button>
     </div>
+
+    <p class="section-title">Meus dados de professor</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Se você também dá aula, cadastre seu nome aqui. Ele passa a aparecer pros seus alunos (no chat e como professor padrão), no lugar de um nome de exemplo.</p>
+      <input class="admin-input" id="meuNomeProfessor" placeholder="Seu nome como professor">
+      <button class="btn" onclick="salvarMeuProfessor()">Salvar meus dados</button>
+    </div>
+
+    <p class="section-title">Mensagens dos alunos</p>
+    <div class="card" id="inboxMatriz"></div>
 
     <p class="section-title">Configurações gerais</p>
     <div class="card">
@@ -1149,6 +1169,29 @@ function aplicarPermissoes(){
   renderAulasStatusAdmin();
   renderAulasPendentes();
   renderAulasTodas();
+  renderChat();
+  renderInbox('inboxAdmin');
+  renderInbox('inboxMatriz');
+  renderPagamentoAluno();
+  if(currentRole === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    if(minhaConta){
+      const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+      const pixInput = document.getElementById('admPix');
+      const cartaoInput = document.getElementById('admCartao');
+      if(minhaAcademia){
+        if(pixInput && !pixInput.value && minhaAcademia.pix) pixInput.value = minhaAcademia.pix;
+        if(cartaoInput && !cartaoInput.value && minhaAcademia.cartao) cartaoInput.value = minhaAcademia.cartao;
+      }
+    }
+  }
+  const meuProfInput = document.getElementById('meuNomeProfessor');
+  if(meuProfInput && !meuProfInput.value){
+    const dados = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    if(dados && dados.nome) meuProfInput.value = dados.nome;
+  }
 }
 
 function showScreen(id, btn){
@@ -1410,11 +1453,29 @@ function renderPerfil(){
     if(nomeView) nomeView.textContent = minhaConta.nome;
     if(nucleoView) nucleoView.textContent = minhaConta.nucleo || cfg.nucleo || 'Ainda não definido';
     if(profView) profView.textContent = minhaConta.professor || cfg.professor || 'Ainda não definido';
-    if(cordaView) cordaView.textContent = minhaConta.corda ? ('Corda ' + minhaConta.corda) : 'Corda ainda não definida';
-    if(desdeView) desdeView.textContent = minhaConta.desde ? ('Associado desde ' + minhaConta.desde) : 'Associado desde —';
+    if(cordaView){
+      cordaView.textContent = minhaConta.corda ? ('Corda ' + minhaConta.corda) : 'Corda ainda não definida';
+      cordaView.style.display = '';
+    }
+    if(desdeView){
+      desdeView.textContent = minhaConta.desde ? ('Associado desde ' + minhaConta.desde) : 'Associado desde —';
+      desdeView.style.display = '';
+    }
   } else {
     if(nucleoView) nucleoView.textContent = cfg.nucleo || 'Ainda não definido';
     if(profView) profView.textContent = cfg.professor || 'Ainda não definido';
+    if(cordaView) cordaView.style.display = 'none';
+    if(desdeView) desdeView.style.display = 'none';
+    if(nomeView){
+      if(currentRole === 'matriz'){
+        const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+        nomeView.textContent = meuProf && meuProf.nome ? meuProf.nome : 'Matriz (administrador)';
+      } else if(currentRole === 'academia'){
+        const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+        const minhaAc = academiasContas.find(c => c.user === currentUser);
+        nomeView.textContent = minhaAc ? minhaAc.nome : 'Academia';
+      }
+    }
   }
 
   const perfil = JSON.parse(localStorage.getItem('gingapass_perfil') || 'null');
@@ -1858,6 +1919,58 @@ function publicarContato(){
   const instagram = document.getElementById('admInstagram').value.trim();
   setDado('gingapass_contato', JSON.stringify({telefone, instagram}));
   alert('Contato salvo!');
+}
+
+function publicarPagamento(){
+  const pix = document.getElementById('admPix').value.trim();
+  const cartao = document.getElementById('admCartao').value.trim();
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  if(!minhaConta){
+    alert('Não identificamos sua academia. Faça login novamente.');
+    return;
+  }
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const idx = rede.findIndex(a => a.nome === minhaConta.nome);
+  if(idx >= 0){
+    rede[idx].pix = pix;
+    rede[idx].cartao = cartao;
+  } else {
+    rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
+  }
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  alert('Forma de pagamento salva! Já aparece pros seus alunos.');
+}
+
+function renderPagamentoAluno(){
+  const btnPix = document.getElementById('btnPagarPix');
+  const btnCartao = document.getElementById('btnPagarCartao');
+  const aviso = document.getElementById('pagamentoAviso');
+  if(!btnPix || currentRole !== 'aluno') return;
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const minhaAcademia = minhaConta ? rede.find(a => a.nome === minhaConta.nucleo) : null;
+
+  const pix = minhaAcademia && minhaAcademia.pix;
+  const cartao = minhaAcademia && minhaAcademia.cartao;
+
+  if(pix){
+    btnPix.href = pix;
+    btnPix.style.display = '';
+  } else {
+    btnPix.style.display = 'none';
+  }
+  if(cartao){
+    btnCartao.href = cartao;
+    btnCartao.style.display = '';
+  } else {
+    btnCartao.style.display = 'none';
+  }
+  if(aviso) aviso.style.display = (pix || cartao) ? 'none' : 'block';
 }
 
 function adicionarEndereco(){
@@ -2561,24 +2674,163 @@ function renderAviso(){
   }
 }
 
+function obterMeuNomeProfessor(){
+  if(currentRole === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    if(!minhaConta) return null;
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+    return (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+  }
+  if(currentRole === 'matriz'){
+    const dados = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    return dados && dados.nome ? dados.nome : null;
+  }
+  return null;
+}
+
+function obterMeuProfessorAluno(){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  if(minhaConta && minhaConta.professor) return minhaConta.professor;
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  return cfg && cfg.professor ? cfg.professor : null;
+}
+
+function salvarMeuProfessor(){
+  const nome = document.getElementById('meuNomeProfessor').value.trim();
+  if(!nome){
+    alert('Escreva seu nome.');
+    return;
+  }
+  setDado('gingapass_professor_matriz', JSON.stringify({nome}));
+  alert('Seus dados de professor foram salvos! Alunos criados por você agora usam esse nome como padrão.');
+}
+
+function renderChat(){
+  const container = document.getElementById('chatMessages');
+  const label = document.getElementById('chatProfessorLabel');
+  if(!container || currentRole !== 'aluno') return;
+  const meuProfessor = obterMeuProfessorAluno();
+  if(label){
+    label.textContent = meuProfessor ? ('Conversando com Prof. ' + meuProfessor) : 'Seu professor ainda não foi definido pela academia.';
+  }
+  const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
+  const minhas = todas.filter(m => m.aluno === currentUser && m.professor === meuProfessor);
+  container.innerHTML = '';
+  if(minhas.length === 0){
+    container.innerHTML = '<div class="chat-bubble bot">Envie uma mensagem pro seu professor por aqui. Ele recebe na caixa de mensagens dele e responde direto nesta conversa.</div>';
+    return;
+  }
+  minhas.forEach(m => {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble ' + (m.remetente === 'aluno' ? 'user' : 'bot');
+    bubble.textContent = m.texto;
+    container.appendChild(bubble);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
 function enviarChat(){
   const input = document.getElementById('chatInput');
   const texto = input.value.trim();
   if(!texto) return;
-  const msgs = document.getElementById('chatMessages');
-  const userBubble = document.createElement('div');
-  userBubble.className = 'chat-bubble user';
-  userBubble.textContent = texto;
-  msgs.appendChild(userBubble);
+  const meuProfessor = obterMeuProfessorAluno();
+  if(!meuProfessor){
+    alert('Você ainda não tem um professor definido. Peça pra academia configurar isso antes de mandar mensagem.');
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
+  todas.push({
+    aluno: currentUser,
+    nomeAluno: minhaConta ? minhaConta.nome : currentUser,
+    professor: meuProfessor,
+    remetente: 'aluno',
+    texto,
+    data: Date.now()
+  });
+  setDado('gingapass_chat', JSON.stringify(todas));
   input.value = '';
-  msgs.scrollTop = msgs.scrollHeight;
-  setTimeout(() => {
-    const botBubble = document.createElement('div');
-    botBubble.className = 'chat-bubble bot';
-    botBubble.textContent = 'Recebi sua pergunta! Um professor da sua unidade vai te responder em breve por aqui.';
-    msgs.appendChild(botBubble);
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 700);
+  renderChat();
+}
+
+function renderInbox(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const meuNome = obterMeuNomeProfessor();
+  if(!meuNome){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Cadastre seu nome de professor pra começar a receber mensagens.</p>';
+    return;
+  }
+  const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
+  const minhas = todas.filter(m => m.professor === meuNome);
+  const porAluno = {};
+  minhas.forEach(m => {
+    if(!porAluno[m.aluno]) porAluno[m.aluno] = {nome: m.nomeAluno, mensagens: []};
+    porAluno[m.aluno].mensagens.push(m);
+  });
+  const alunosComMsg = Object.keys(porAluno);
+  container.innerHTML = '';
+  if(alunosComMsg.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma mensagem recebida ainda.</p>';
+    return;
+  }
+  alunosComMsg.forEach(alunoUser => {
+    const grupo = porAluno[alunoUser];
+    const bloco = document.createElement('div');
+    bloco.style.cssText = 'padding:12px 0;border-bottom:1px solid #EDE3D0;';
+    const titulo = document.createElement('div');
+    titulo.style.cssText = 'font-weight:600;font-size:13px;color:var(--navy-900);margin-bottom:8px;';
+    titulo.textContent = grupo.nome;
+    bloco.appendChild(titulo);
+
+    const thread = document.createElement('div');
+    thread.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:8px;';
+    grupo.mensagens.forEach(m => {
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:85%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
+        (m.remetente === 'professor'
+          ? 'background:var(--navy-900);color:var(--cream);align-self:flex-end;'
+          : 'background:var(--cream-2);color:var(--ink);align-self:flex-start;');
+      bubble.textContent = m.texto;
+      thread.appendChild(bubble);
+    });
+    bloco.appendChild(thread);
+
+    const respRow = document.createElement('div');
+    respRow.style.cssText = 'display:flex;gap:6px;';
+    const respInput = document.createElement('input');
+    respInput.className = 'admin-input';
+    respInput.placeholder = 'Responder ' + grupo.nome + '...';
+    respInput.style.marginBottom = '0';
+    const respBtn = document.createElement('button');
+    respBtn.className = 'btn';
+    respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;';
+    respBtn.textContent = 'Enviar';
+    respBtn.onclick = () => {
+      const texto = respInput.value.trim();
+      if(!texto) return;
+      const todasAtual = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
+      todasAtual.push({
+        aluno: alunoUser,
+        nomeAluno: grupo.nome,
+        professor: meuNome,
+        remetente: 'professor',
+        texto,
+        data: Date.now()
+      });
+      setDado('gingapass_chat', JSON.stringify(todasAtual));
+      renderInbox(containerId);
+    };
+    respRow.appendChild(respInput);
+    respRow.appendChild(respBtn);
+    bloco.appendChild(respRow);
+
+    container.appendChild(bloco);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function(){
