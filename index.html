@@ -1,12 +1,20 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_6.html -->
-<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GingaPass Capoeira Team — Protótipo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./GingaPass Capoeira Team — Protótipo_files/css2" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#042C53">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GingaPass">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy-900:#042C53;
@@ -56,6 +64,19 @@
     background:var(--navy-900);
     border-radius:0 0 16px 16px;
     z-index:20;
+  }
+  @media (display-mode: standalone) {
+    body{padding:0;}
+    .phone{
+      width:100%;
+      max-width:none;
+      height:100vh;
+      height:100dvh;
+      border:none;
+      border-radius:0;
+      box-shadow:none;
+    }
+    .notch{display:none;}
   }
   .topbar{
     background:var(--navy-900);
@@ -131,7 +152,7 @@
     font-size:14px;
     line-height:1.15;
   }
-  .class-time span{
+  .class-time .sub-label{
     display:block;
     font-size:9.5px;
     font-weight:400;
@@ -516,8 +537,8 @@
       <p class="tagline">Seu app de treinos</p>
       <p>Entre com seu usuário e senha</p>
       <div class="role-toggle">
-        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
-        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Academia</button>
+        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole('aluno')" type="button">Aluno</button>
+        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole('academia')" type="button">Academia</button>
       </div>
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
@@ -544,36 +565,23 @@
     <div class="card">
       <div class="card-label">Próxima aula</div>
       <div class="class-row">
-        <div class="class-time">18:30<span>hoje</span></div>
+        <div class="class-time"><span id="proximaAulaHora">--:--</span><span id="proximaAulaLabel" class="sub-label">a definir</span></div>
         <div class="class-info" style="flex:1;margin-left:12px;">
-          <h3>Turma Adulto — Base e Ginga</h3>
-          <p>Prof. Mestre Cobra · Núcleo Botafogo</p>
+          <h3 id="proximaAulaTitulo">Turma ainda não definida</h3>
+          <p id="proximaAulaInfo">Professor e núcleo ainda não definidos</p>
         </div>
         <span class="badge">Confirmar</span>
       </div>
     </div>
 
     <div class="stat-grid">
-      <div class="stat"><b>92%</b><span>Frequência no mês</span></div>
+      <div class="stat"><b id="frequenciaView">92%</b><span>Frequência no mês</span></div>
       <div class="stat"><b>Em dia</b><span>Mensalidade</span></div>
     </div>
 
     <p class="section-title">Próximos eventos</p>
     <div class="card">
-      <div id="eventsList">
-        <div class="event-row">
-          <span class="event-dot"></span>
-          <div><h4>Batizado e Troca de Cordas</h4><p>16 de agosto · Arena Carioca</p></div>
-        </div>
-        <div class="event-row">
-          <span class="event-dot"></span>
-          <div><h4>Roda Aberta de Verão</h4><p>2 de agosto · Praia do Flamengo</p></div>
-        </div>
-        <div class="event-row">
-          <span class="event-dot"></span>
-          <div><h4>Workshop de Berimbau</h4><p>25 de julho · Núcleo Tijuca</p></div>
-        </div>
-      </div>
+      <div id="eventsList"></div>
     </div>
   </div>
 
@@ -583,30 +591,7 @@
     <p class="subgreeting">Encontre um núcleo perto de você</p>
     <div class="search-bar">🔍 Buscar por bairro ou cidade</div>
 
-    <div class="academia-card">
-      <div class="academia-thumb">CT</div>
-      <div class="academia-info">
-        <h4>Capoeira Team — Botafogo</h4>
-        <p>Rua Voluntários da Pátria, 190</p>
-        <div class="academia-meta"><span>📍 0,8 km</span><span>⭐ 4.9</span></div>
-      </div>
-    </div>
-    <div class="academia-card">
-      <div class="academia-thumb">CT</div>
-      <div class="academia-info">
-        <h4>Capoeira Team — Tijuca</h4>
-        <p>Av. Maracanã, 620</p>
-        <div class="academia-meta"><span>📍 3,4 km</span><span>⭐ 4.8</span></div>
-      </div>
-    </div>
-    <div class="academia-card">
-      <div class="academia-thumb" style="background:linear-gradient(135deg,var(--amber-500),var(--amber-700));">MB</div>
-      <div class="academia-info">
-        <h4>Mandinga Brasil (filiada)</h4>
-        <p>Rua das Laranjeiras, 45</p>
-        <div class="academia-meta"><span>📍 5,1 km</span><span>⭐ 4.7</span></div>
-      </div>
-    </div>
+    <div id="academiasRedeList"></div>
   </div>
 
   <!-- MENSALIDADE -->
@@ -623,11 +608,7 @@
     </div>
 
     <p class="section-title">Histórico de pagamentos</p>
-    <div class="card">
-      <div class="history-row"><span>Julho 2026</span><span class="ok">Pago</span></div>
-      <div class="history-row"><span>Junho 2026</span><span class="ok">Pago</span></div>
-      <div class="history-row"><span>Maio 2026</span><span class="ok">Pago</span></div>
-    </div>
+    <div class="card" id="historicoPagamentos"></div>
   </div>
 
   <!-- PERFIL -->
@@ -635,12 +616,12 @@
     <div class="profile-hero">
       <div class="avatar" id="perfilAvatar">IR</div>
       <h3 id="perfilNomeView">Iuri Ramos</h3>
-      <p>Associado desde 2022</p>
-      <span class="cord">Corda Verde e Amarela</span>
+      <p id="perfilDesdeView">Associado desde 2022</p>
+      <span class="cord" id="perfilCordaView">Corda Verde e Amarela</span>
     </div>
     <div class="card">
-      <div class="info-row"><span>Núcleo principal</span><span>Botafogo</span></div>
-      <div class="info-row"><span>Professor</span><span>Mestre Cobra</span></div>
+      <div class="info-row"><span>Núcleo principal</span><span id="perfilNucleoView">Ainda não definido</span></div>
+      <div class="info-row"><span>Professor</span><span id="perfilProfessorView">Ainda não definido</span></div>
       <div class="info-row"><span>E-mail</span><span id="perfilEmailView">iuri.ramos@email.com</span></div>
       <div class="info-row"><span>Telefone</span><span id="perfilTelView">(21) 99999-0000</span></div>
     </div>
@@ -651,6 +632,12 @@
       <input class="admin-input" id="perfilTelInput" placeholder="Telefone">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Foto de perfil</label>
       <input type="file" id="perfilFotoInput" accept="image/*" style="font-size:12px;">
+      <div id="perfilCamposMatriz" style="display:none;margin-top:12px;">
+        <label style="display:block;font-size:11px;color:var(--amber-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Padrão da rede (só a matriz edita)</label>
+        <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Isso define o núcleo/professor que aparecem na tela Início. Para editar os dados de um aluno específico, use "Editar" na lista de alunos.</p>
+        <select class="admin-input" id="perfilNucleoInput"><option value="">Selecione o núcleo...</option></select>
+        <select class="admin-input" id="perfilProfessorInput"><option value="">Selecione o professor...</option></select>
+      </div>
     </div>
     <button class="btn" id="perfilEditBtn" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="alternarEdicaoPerfil()">Editar perfil</button>
 
@@ -673,17 +660,33 @@
 
     <div class="card">
       <div class="card-label">Novo evento</div>
-      <input class="admin-input" id="evTitulo" placeholder="Nome do evento">
-      <input class="admin-input" id="evData" placeholder="Data (ex: 10 de setembro)">
-      <input class="admin-input" id="evLocal" placeholder="Local">
-      <button class="btn" onclick="publicarEvento()">Publicar evento</button>
+      <input class="admin-input" id="evTituloAdmin" placeholder="Nome do evento">
+      <input class="admin-input" id="evDataAdmin" placeholder="Data (ex: 10 de setembro)">
+      <input class="admin-input" id="evLocalAdmin" placeholder="Local">
+      <input class="admin-input" id="evPagamentoAdmin" placeholder="Link de pagamento da inscrição (opcional)">
+      <button class="btn" onclick="publicarEventoAdmin()">Publicar evento</button>
     </div>
+    <div class="card" id="eventosGerenciarAdmin"></div>
+    <div class="card" id="eventoQrBoxAdmin" style="display:none;text-align:center;">
+      <div class="card-label">QR de check-in do evento</div>
+      <div id="eventoQrImagemAdmin" style="display:flex;justify-content:center;margin-bottom:8px;"></div>
+      <p id="eventoQrTextoAdmin" style="font-family:var(--font-mono, monospace);font-size:13px;font-weight:600;color:var(--navy-900);margin:0;"></p>
+    </div>
+
+    <p class="section-title">Aulas online (link do YouTube/Vimeo)</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Vídeo de até 1 minuto. Suba como "não listado" no YouTube e cole o link aqui. Só fica visível pros alunos depois que a matriz aprovar.</p>
+      <input class="admin-input" id="aulaTituloAd" placeholder="Título da aula (ex: Ginga básica)">
+      <input class="admin-input" id="aulaLinkAd" placeholder="Link do YouTube ou Vimeo">
+      <button class="btn" onclick="enviarAulaAdmin()">Enviar para aprovação</button>
+    </div>
+    <div class="card" id="aulasStatusAdmin"></div>
 
     <p class="section-title">Fotos da academia</p>
     <div class="card">
-      <input type="file" id="fotoInput" accept="image/*" multiple="" style="font-size:12px;margin-bottom:4px;">
-      <div class="gallery-grid" id="galeria"></div>
-      <button class="btn" onclick="publicarFotos()">Publicar fotos</button>
+      <input type="file" id="fotoInputAdmin" accept="image/*" multiple style="font-size:12px;margin-bottom:4px;">
+      <div class="gallery-grid" id="galeriaAdmin"></div>
+      <button class="btn" onclick="publicarFotos('galeriaAdmin')">Publicar fotos</button>
     </div>
 
     <p class="section-title">Contato da academia</p>
@@ -704,6 +707,7 @@
     <p class="section-title">Adicionar aluno</p>
     <div class="card">
       <input class="admin-input" id="novoAlunoNomeAd" placeholder="Nome do aluno">
+      <input class="admin-input" id="novoAlunoCordaAd" placeholder="Graduação/corda (ex: Corda Verde e Amarela)">
       <input class="admin-input" id="novoAlunoUserAd" placeholder="Usuário de acesso">
       <input class="admin-input" id="novoAlunoSenhaAd" placeholder="Senha de acesso">
       <button class="btn" onclick="criarAcessoAlunoAcademia()">Adicionar aluno</button>
@@ -712,7 +716,15 @@
     <p class="section-title">Alunos cadastrados</p>
     <div class="card" id="alunosList"></div>
 
-    <p class="section-title">Check-in de hoje <span id="checkinData"></span></p>
+    <p class="section-title">QR code de check-in <span id="checkinData"></span></p>
+    <div class="card" style="text-align:center;">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Gere o código de hoje e mostre na tela pros alunos escanearem ao chegar na aula.</p>
+      <div id="qrCodeBox" style="display:flex;justify-content:center;margin-bottom:10px;"></div>
+      <p id="qrCodeTexto" style="font-family:var(--font-mono, monospace);font-size:13px;font-weight:600;color:var(--navy-900);margin:0 0 10px;"></p>
+      <button class="btn" onclick="gerarQrHoje()">Gerar novo código de hoje</button>
+    </div>
+
+    <p class="section-title">Check-in de hoje (manual)</p>
     <div class="card" id="checkinList"></div>
 
     <p class="section-title">Enviar aviso aos alunos</p>
@@ -737,6 +749,34 @@
     </div>
   </div>
 
+  <!-- CHECKIN ALUNO -->
+  <div class="screen" id="checkin">
+    <p class="greeting" style="font-size:18px;">Check-in de treino</p>
+    <p class="subgreeting">Escaneie o QR code que o professor mostrar na academia</p>
+
+    <div class="card" style="text-align:center;">
+      <video id="checkinVideo" style="width:100%;border-radius:12px;display:none;background:#000;" playsinline></video>
+      <canvas id="checkinCanvas" style="display:none;"></canvas>
+      <p id="checkinStatus" style="font-size:13px;color:var(--ink-soft);margin:8px 0;">Aponte a câmera pro QR code do professor.</p>
+      <button class="btn" id="checkinScanBtn" onclick="alternarScanner()">Escanear QR code</button>
+    </div>
+
+    <p class="section-title">Ou digite o código manualmente</p>
+    <div class="card">
+      <input class="admin-input" id="checkinCodigoManual" placeholder="Código de hoje">
+      <button class="btn" onclick="confirmarCheckinManual()">Confirmar presença</button>
+    </div>
+
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">Neste protótipo, o código só valida se o check-in e o QR forem gerados no mesmo navegador (já que não há servidor por trás). No app final, o código seria conferido por um servidor, funcionando entre o celular do professor e o do aluno normalmente.</p>
+  </div>
+
+  <!-- AULAS ONLINE -->
+  <div class="screen" id="aulas">
+    <p class="greeting" style="font-size:18px;">Aulas online</p>
+    <p class="subgreeting">Vídeos curtos aprovados pela matriz</p>
+    <div id="aulasAprovadasList"></div>
+  </div>
+
   <!-- MATRIZ -->
   <div class="screen" id="matriz">
     <p class="greeting" style="font-size:18px;">Painel matriz</p>
@@ -745,9 +785,13 @@
     <div class="card">
       <div class="card-label">Novo acesso de academia filiada</div>
       <input class="admin-input" id="novaAcademiaNome" placeholder="Nome da academia">
+      <input class="admin-input" id="novaAcademiaEndereco" placeholder="Endereço">
+      <input class="admin-input" id="novaAcademiaProfessor" placeholder="Professor responsável">
+      <input class="admin-input" id="novaAcademiaDistancia" placeholder="Distância (ex: 0,8 km) — opcional">
       <input class="admin-input" id="novaAcademiaUser" placeholder="Usuário de acesso">
       <input class="admin-input" id="novaAcademiaSenha" placeholder="Senha de acesso">
       <button class="btn" onclick="criarAcessoAcademia()">Conceder acesso à academia</button>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;">Isso já cadastra a academia na rede automaticamente — não precisa repetir em "Academias da rede".</p>
     </div>
 
     <p class="section-title">Academias com acesso</p>
@@ -756,6 +800,9 @@
     <div class="card">
       <div class="card-label">Novo acesso de aluno</div>
       <input class="admin-input" id="novoAlunoNome" placeholder="Nome do aluno">
+      <input class="admin-input" id="novoAlunoCorda" placeholder="Graduação/corda (ex: Verde e Amarela)">
+      <select class="admin-input" id="novoAlunoNucleo"><option value="">Selecione o núcleo...</option></select>
+      <select class="admin-input" id="novoAlunoProfessor"><option value="">Selecione o professor...</option></select>
       <input class="admin-input" id="novoAlunoUser" placeholder="Usuário de acesso">
       <input class="admin-input" id="novoAlunoSenha" placeholder="Senha de acesso">
       <button class="btn" onclick="criarAcessoAluno()">Conceder acesso ao aluno</button>
@@ -764,52 +811,149 @@
     <p class="section-title">Alunos com acesso</p>
     <div class="card" id="alunosContasList"></div>
 
-    <p class="section-title">Valor da mensalidade</p>
+    <p class="section-title">Aulas online (link do YouTube/Vimeo)</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Só a matriz pode alterar o valor cobrado dos alunos.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Vídeo de até 1 minuto, "não listado" no YouTube. Aulas enviadas pela matriz já entram aprovadas.</p>
+      <input class="admin-input" id="aulaTituloMatriz" placeholder="Título da aula (ex: Ginga básica)">
+      <input class="admin-input" id="aulaLinkMatriz" placeholder="Link do YouTube ou Vimeo">
+      <button class="btn" onclick="enviarAulaMatriz()">Publicar aula (já aprovada)</button>
+    </div>
+
+    <p class="section-title">Aulas pendentes de aprovação</p>
+    <div class="card" id="aulasPendentesList"></div>
+
+    <p class="section-title">Todas as aulas online</p>
+    <div class="card" id="aulasTodasList"></div>
+
+    <p class="section-title">Eventos (rede toda)</p>
+    <div class="card">
+      <input class="admin-input" id="evTituloMatriz" placeholder="Nome do evento">
+      <input class="admin-input" id="evDataMatriz" placeholder="Data (ex: 10 de setembro)">
+      <input class="admin-input" id="evLocalMatriz" placeholder="Local">
+      <input class="admin-input" id="evPagamentoMatriz" placeholder="Link de pagamento da inscrição (opcional)">
+      <button class="btn" onclick="publicarEventoMatriz()">Publicar evento</button>
+    </div>
+    <div class="card" id="eventosGerenciarMatriz"></div>
+    <div class="card" id="eventoQrBox" style="display:none;text-align:center;">
+      <div class="card-label">QR de check-in do evento</div>
+      <div id="eventoQrImagem" style="display:flex;justify-content:center;margin-bottom:8px;"></div>
+      <p id="eventoQrTexto" style="font-family:var(--font-mono, monospace);font-size:13px;font-weight:600;color:var(--navy-900);margin:0;"></p>
+    </div>
+
+    <p class="section-title">Fotos (rede toda)</p>
+    <div class="card">
+      <input type="file" id="fotoInputMatriz" accept="image/*" multiple style="font-size:12px;margin-bottom:4px;">
+      <div class="gallery-grid" id="galeriaMatriz"></div>
+      <button class="btn" onclick="publicarFotos('galeriaMatriz')">Publicar fotos</button>
+    </div>
+
+    <p class="section-title">Configurações gerais</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Isso aparece na tela Início (Próxima aula) e como padrão de núcleo/professor. Corda e "associado desde" agora são definidos por aluno, na lista de alunos.</p>
+      <input class="admin-input" id="cfgTurma" placeholder="Nome da turma (ex: Turma Adulto — Base e Ginga)">
+      <input class="admin-input" id="cfgHorario" placeholder="Horário (ex: 18:30)">
+      <input class="admin-input" id="cfgHorarioLabel" placeholder="Quando (ex: hoje, amanhã, segunda)">
+      <select class="admin-input" id="cfgNucleo"><option value="">Selecione o núcleo...</option></select>
+      <select class="admin-input" id="cfgProfessor"><option value="">Selecione o professor...</option></select>
+      <input class="admin-input" id="cfgFrequencia" placeholder="Frequência no mês (ex: 92%)">
+      <button class="btn" onclick="publicarConfigGeral()">Salvar configurações</button>
+    </div>
+
+    <p class="section-title">Academias da rede</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Use isto só para listar uma academia sem dar acesso de login a ela ainda. Se você já concedeu acesso acima, ela já está aqui.</p>
+    <div class="card">
+      <input class="admin-input" id="redeNome" placeholder="Nome da academia">
+      <input class="admin-input" id="redeEndereco" placeholder="Endereço">
+      <input class="admin-input" id="redeProfessor" placeholder="Professor responsável">
+      <input class="admin-input" id="redeDistancia" placeholder="Distância (ex: 0,8 km)">
+      <button class="btn" onclick="adicionarAcademiaRede()">Adicionar academia à rede</button>
+    </div>
+    <div class="card" id="redeAcademiasList"></div>
+
+    <p class="section-title">Mensalidade</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Só a matriz pode alterar valor, situação e histórico de mensalidade.</p>
       <input class="admin-input" id="mensalidadeValor" placeholder="Valor (ex: R$ 120,00)">
       <input class="admin-input" id="mensalidadeVencimento" placeholder="Vencimento (ex: 05 de agosto)">
-      <button class="btn" onclick="publicarMensalidade()">Salvar valor da mensalidade</button>
+      <select class="admin-input" id="mensalidadeStatus">
+        <option value="Em dia">Em dia</option>
+        <option value="Atrasado">Atrasado</option>
+      </select>
+      <button class="btn" onclick="publicarMensalidade()">Salvar mensalidade</button>
     </div>
+
+    <p class="section-title">Histórico de pagamentos</p>
+    <div class="card">
+      <input class="admin-input" id="histMes" placeholder="Mês/ano (ex: Agosto 2026)">
+      <select class="admin-input" id="histStatus">
+        <option value="Pago">Pago</option>
+        <option value="Atrasado">Atrasado</option>
+      </select>
+      <button class="btn" onclick="adicionarHistorico()">Adicionar ao histórico</button>
+    </div>
+    <div class="card" id="historicoGerenciar"></div>
 
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">A senha matriz é a única que cria novos acessos. Cada academia filiada, ao receber seu usuário e senha aqui, passa a poder publicar seus próprios eventos, fotos e cadastrar seus alunos — sem precisar da senha matriz.</p>
   </div>
 
+  <!-- ESTATÍSTICAS -->
+  <div class="screen" id="estatisticas">
+    <p class="greeting" style="font-size:18px;">Estatísticas</p>
+    <p class="subgreeting">Frequência, faltas e mensalidade dos alunos</p>
+    <div class="card" id="estatisticasList"></div>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado. A situação da mensalidade, neste protótipo, é a mesma para todos os alunos (ainda não existe cobrança individual por aluno).</p>
+  </div>
+
   <div class="tabbar">
-    <button class="tab active" data-target="home" onclick="showScreen(&#39;home&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v10h14V10"></path></svg>
+    <button class="tab active" data-target="home" onclick="showScreen('home', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg>
       Início
     </button>
-    <button class="tab" data-target="academias" onclick="showScreen(&#39;academias&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"></circle><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"></path></svg>
+    <button class="tab" data-target="academias" onclick="showScreen('academias', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/></svg>
       Academias
     </button>
-    <button class="tab" data-target="mensalidade" onclick="showScreen(&#39;mensalidade&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg>
+    <button class="tab" data-target="mensalidade" onclick="showScreen('mensalidade', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
       Mensalidade
     </button>
-    <button class="tab" data-target="perfil" onclick="showScreen(&#39;perfil&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
+    <button class="tab" data-target="perfil" onclick="showScreen('perfil', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
       Perfil
     </button>
-    <button class="tab" data-target="admin" onclick="showScreen(&#39;admin&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path></svg>
+    <button class="tab" data-target="admin" onclick="showScreen('admin', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
       Academia
     </button>
-    <button class="tab" data-target="chat" onclick="showScreen(&#39;chat&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4V4z"></path></svg>
+    <button class="tab" data-target="chat" onclick="showScreen('chat', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4V4z"/></svg>
       Chat
     </button>
-    <button class="tab" data-target="matriz" onclick="showScreen(&#39;matriz&#39;, this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
+    <button class="tab" data-target="checkin" onclick="showScreen('checkin', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+      Check-in
+    </button>
+    <button class="tab" data-target="aulas" onclick="showScreen('aulas', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/></svg>
+      Aulas
+    </button>
+    <button class="tab" data-target="matriz" onclick="showScreen('matriz', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
       Matriz
+    </button>
+    <button class="tab" data-target="estatisticas" onclick="showScreen('estatisticas', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+      Estatísticas
     </button>
   </div>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
 <script>
 let currentRole = null;
+let currentUser = null;
 let selectedRole = 'aluno';
 
 function seedContas(){
@@ -842,6 +986,7 @@ function fazerLogin(){
     const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
     const conta = contas.find(c => c.user === user && c.senha === pass);
     if(conta){
+      currentUser = user;
       entrar('academia');
     } else {
       alert('Usuário ou senha incorretos. Esse acesso precisa ser concedido pela matriz.');
@@ -853,6 +998,7 @@ function fazerLogin(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const conta = contas.find(c => c.user === user && c.senha === pass);
   if(conta){
+    currentUser = user;
     entrar('aluno');
   } else {
     alert('Usuário ou senha incorretos. Esse acesso precisa ser concedido pela sua academia ou pela matriz.');
@@ -874,12 +1020,19 @@ function aplicarPermissoes(){
   const adminTab = document.querySelector('.tab[data-target="admin"]');
   const chatTab = document.querySelector('.tab[data-target="chat"]');
   const matrizTab = document.querySelector('.tab[data-target="matriz"]');
+  const checkinTab = document.querySelector('.tab[data-target="checkin"]');
+  const estatisticasTab = document.querySelector('.tab[data-target="estatisticas"]');
+  const aulasTab = document.querySelector('.tab[data-target="aulas"]');
 
   adminTab.style.display = (currentRole === 'academia') ? 'flex' : 'none';
   chatTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
   matrizTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
+  checkinTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
+  estatisticasTab.style.display = (currentRole === 'matriz' || currentRole === 'academia') ? 'flex' : 'none';
+  aulasTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
 
   renderEventos();
+  renderEventosGerenciar();
   renderGaleria();
   renderAviso();
   renderAlunos();
@@ -889,6 +1042,17 @@ function aplicarPermissoes(){
   renderEnderecos();
   renderCheckin();
   renderMensalidade();
+  renderRedeAcademias();
+  renderConfigGeral();
+  renderAcademiasScreen();
+  renderQrHoje();
+  renderHistoricoGerenciar();
+  renderHistoricoAluno();
+  renderEstatisticas();
+  renderAulas();
+  renderAulasStatusAdmin();
+  renderAulasPendentes();
+  renderAulasTodas();
 }
 
 function showScreen(id, btn){
@@ -900,6 +1064,24 @@ function showScreen(id, btn){
     alert('Apenas a matriz pode acessar esta área.');
     return;
   }
+  if(id === 'checkin' && currentRole !== 'aluno'){
+    alert('O check-in por QR code é uma área do aluno.');
+    return;
+  }
+  if(id === 'estatisticas' && currentRole !== 'matriz' && currentRole !== 'academia'){
+    alert('As estatísticas são visíveis só para a matriz e para as academias.');
+    return;
+  }
+  if(id === 'aulas' && currentRole !== 'aluno'){
+    alert('Aulas online é uma área do aluno.');
+    return;
+  }
+  if(id !== 'checkin'){
+    pararScanner();
+  }
+  if(id === 'estatisticas'){
+    renderEstatisticas();
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -908,10 +1090,13 @@ function showScreen(id, btn){
 
 function criarAcessoAcademia(){
   const nome = document.getElementById('novaAcademiaNome').value.trim();
+  const endereco = document.getElementById('novaAcademiaEndereco').value.trim();
+  const professor = document.getElementById('novaAcademiaProfessor').value.trim();
+  const distancia = document.getElementById('novaAcademiaDistancia').value.trim();
   const user = document.getElementById('novaAcademiaUser').value.trim();
   const senha = document.getElementById('novaAcademiaSenha').value.trim();
-  if(!nome || !user || !senha){
-    alert('Preencha nome, usuário e senha da academia.');
+  if(!nome || !endereco || !professor || !user || !senha){
+    alert('Preencha nome, endereço, professor, usuário e senha da academia.');
     return;
   }
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
@@ -921,11 +1106,34 @@ function criarAcessoAcademia(){
   }
   contas.push({nome, user, senha});
   localStorage.setItem('gingapass_academias_contas', JSON.stringify(contas));
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const existente = rede.findIndex(a => a.nome === nome);
+  const entrada = {nome, endereco, professor, distancia};
+  if(existente >= 0){
+    rede[existente] = entrada;
+  } else {
+    rede.push(entrada);
+  }
+  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+
+  const cfgAtual = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  if(!cfgAtual || !cfgAtual.nucleo || !cfgAtual.professor){
+    const novoCfg = Object.assign({}, cfgAtual || {}, {nucleo: nome, professor: professor});
+    localStorage.setItem('gingapass_config_geral', JSON.stringify(novoCfg));
+  }
+
   document.getElementById('novaAcademiaNome').value = '';
+  document.getElementById('novaAcademiaEndereco').value = '';
+  document.getElementById('novaAcademiaProfessor').value = '';
+  document.getElementById('novaAcademiaDistancia').value = '';
   document.getElementById('novaAcademiaUser').value = '';
   document.getElementById('novaAcademiaSenha').value = '';
   renderAcademiasContas();
-  alert('Acesso concedido! Repasse o usuário e a senha pra academia.');
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  renderConfigGeral();
+  alert('Acesso concedido! A academia já aparece na rede e nos menus de núcleo/professor. Repasse o usuário e a senha pra ela.');
 }
 
 function renderAcademiasContas(){
@@ -962,6 +1170,9 @@ function revogarAcademia(i){
 
 function criarAcessoAluno(){
   const nome = document.getElementById('novoAlunoNome').value.trim();
+  const corda = document.getElementById('novoAlunoCorda').value.trim();
+  const nucleo = document.getElementById('novoAlunoNucleo').value;
+  const professor = document.getElementById('novoAlunoProfessor').value;
   const user = document.getElementById('novoAlunoUser').value.trim();
   const senha = document.getElementById('novoAlunoSenha').value.trim();
   if(!nome || !user || !senha){
@@ -973,9 +1184,12 @@ function criarAcessoAluno(){
     alert('Já existe um aluno com esse usuário.');
     return;
   }
-  contas.push({nome, user, senha});
+  contas.push({nome, user, senha, corda, nucleo, professor, desde: new Date().getFullYear().toString()});
   localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNome').value = '';
+  document.getElementById('novoAlunoCorda').value = '';
+  document.getElementById('novoAlunoNucleo').value = '';
+  document.getElementById('novoAlunoProfessor').value = '';
   document.getElementById('novoAlunoUser').value = '';
   document.getElementById('novoAlunoSenha').value = '';
   renderAlunosContas();
@@ -997,12 +1211,21 @@ function renderAlunosContas(){
     row.className = 'aluno-row';
     const span = document.createElement('span');
     span.textContent = c.nome + ' (usuário: ' + c.user + ')';
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:10px;';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'aluno-del';
+    editBtn.style.color = 'var(--navy-700)';
+    editBtn.textContent = 'Editar';
+    editBtn.onclick = () => editarAluno(i);
     const btn = document.createElement('button');
     btn.className = 'aluno-del';
     btn.textContent = 'Revogar';
     btn.onclick = () => revogarAluno(i);
+    actions.appendChild(editBtn);
+    actions.appendChild(btn);
     row.appendChild(span);
-    row.appendChild(btn);
+    row.appendChild(actions);
     container.appendChild(row);
   });
 }
@@ -1018,11 +1241,20 @@ function revogarAluno(i){
 function alternarEdicaoPerfil(){
   const editCard = document.getElementById('perfilEditCard');
   const btn = document.getElementById('perfilEditBtn');
+  const camposMatriz = document.getElementById('perfilCamposMatriz');
   const editando = editCard.style.display !== 'none';
   if(!editando){
     document.getElementById('perfilNomeInput').value = document.getElementById('perfilNomeView').textContent;
     document.getElementById('perfilEmailInput').value = document.getElementById('perfilEmailView').textContent;
     document.getElementById('perfilTelInput').value = document.getElementById('perfilTelView').textContent;
+    if(currentRole === 'matriz'){
+      camposMatriz.style.display = 'block';
+      populaSelectsNucleoProfessor();
+      document.getElementById('perfilNucleoInput').value = document.getElementById('perfilNucleoView').textContent;
+      document.getElementById('perfilProfessorInput').value = document.getElementById('perfilProfessorView').textContent;
+    } else {
+      camposMatriz.style.display = 'none';
+    }
     editCard.style.display = 'block';
     btn.textContent = 'Salvar alterações';
   } else {
@@ -1031,6 +1263,18 @@ function alternarEdicaoPerfil(){
     const tel = document.getElementById('perfilTelInput').value.trim();
     const fotoInput = document.getElementById('perfilFotoInput');
     const arquivo = fotoInput && fotoInput.files && fotoInput.files[0];
+
+    if(currentRole === 'matriz'){
+      const nucleo = document.getElementById('perfilNucleoInput').value.trim();
+      const professor = document.getElementById('perfilProfessorInput').value.trim();
+      if(nucleo || professor){
+        const cfgAnterior = JSON.parse(localStorage.getItem('gingapass_config_geral') || '{}');
+        cfgAnterior.nucleo = nucleo || cfgAnterior.nucleo;
+        cfgAnterior.professor = professor || cfgAnterior.professor;
+        localStorage.setItem('gingapass_config_geral', JSON.stringify(cfgAnterior));
+        renderConfigGeral();
+      }
+    }
 
     const salvar = (fotoDataUrl) => {
       const perfilAnterior = JSON.parse(localStorage.getItem('gingapass_perfil') || '{}');
@@ -1056,10 +1300,31 @@ function alternarEdicaoPerfil(){
 }
 
 function renderPerfil(){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = (currentRole === 'aluno' && currentUser) ? contas.find(c => c.user === currentUser) : null;
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null') || {};
+
+  const nucleoView = document.getElementById('perfilNucleoView');
+  const profView = document.getElementById('perfilProfessorView');
+  const cordaView = document.getElementById('perfilCordaView');
+  const desdeView = document.getElementById('perfilDesdeView');
+  const nomeView = document.getElementById('perfilNomeView');
+
+  if(minhaConta){
+    if(nomeView) nomeView.textContent = minhaConta.nome;
+    if(nucleoView) nucleoView.textContent = minhaConta.nucleo || cfg.nucleo || 'Ainda não definido';
+    if(profView) profView.textContent = minhaConta.professor || cfg.professor || 'Ainda não definido';
+    if(cordaView) cordaView.textContent = minhaConta.corda ? ('Corda ' + minhaConta.corda) : 'Corda ainda não definida';
+    if(desdeView) desdeView.textContent = minhaConta.desde ? ('Associado desde ' + minhaConta.desde) : 'Associado desde —';
+  } else {
+    if(nucleoView) nucleoView.textContent = cfg.nucleo || 'Ainda não definido';
+    if(profView) profView.textContent = cfg.professor || 'Ainda não definido';
+  }
+
   const perfil = JSON.parse(localStorage.getItem('gingapass_perfil') || 'null');
   if(!perfil) return;
-  if(perfil.nome){
-    document.getElementById('perfilNomeView').textContent = perfil.nome;
+  if(perfil.nome && nomeView){
+    nomeView.textContent = perfil.nome;
   }
   if(perfil.email) document.getElementById('perfilEmailView').textContent = perfil.email;
   if(perfil.tel) document.getElementById('perfilTelView').textContent = perfil.tel;
@@ -1077,44 +1342,386 @@ function renderPerfil(){
   }
 }
 
-function publicarEvento(){
-  const titulo = document.getElementById('evTitulo').value.trim();
-  const data = document.getElementById('evData').value.trim();
-  const local = document.getElementById('evLocal').value.trim();
+function adicionarEvento(titulo, data, local, pagamento){
   if(!titulo || !data){
     alert('Preencha ao menos o nome e a data do evento.');
-    return;
+    return false;
   }
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
-  eventos.push({titulo, data, local});
+  const codigoCheckin = Math.random().toString(36).slice(2, 8).toUpperCase();
+  eventos.push({titulo, data, local, pagamento: pagamento || '', codigoCheckin});
   localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
-  document.getElementById('evTitulo').value = '';
-  document.getElementById('evData').value = '';
-  document.getElementById('evLocal').value = '';
   renderEventos();
-  alert('Evento publicado! Veja na aba Início.');
+  renderEventosGerenciar();
+  alert('Evento publicado! Já saiu com um código de check-in próprio.');
+  return true;
+}
+
+function publicarEventoAdmin(){
+  const titulo = document.getElementById('evTituloAdmin').value.trim();
+  const data = document.getElementById('evDataAdmin').value.trim();
+  const local = document.getElementById('evLocalAdmin').value.trim();
+  const pagamento = document.getElementById('evPagamentoAdmin').value.trim();
+  if(adicionarEvento(titulo, data, local, pagamento)){
+    document.getElementById('evTituloAdmin').value = '';
+    document.getElementById('evDataAdmin').value = '';
+    document.getElementById('evLocalAdmin').value = '';
+    document.getElementById('evPagamentoAdmin').value = '';
+  }
+}
+
+function publicarEventoMatriz(){
+  const titulo = document.getElementById('evTituloMatriz').value.trim();
+  const data = document.getElementById('evDataMatriz').value.trim();
+  const local = document.getElementById('evLocalMatriz').value.trim();
+  const pagamento = document.getElementById('evPagamentoMatriz').value.trim();
+  if(adicionarEvento(titulo, data, local, pagamento)){
+    document.getElementById('evTituloMatriz').value = '';
+    document.getElementById('evDataMatriz').value = '';
+    document.getElementById('evLocalMatriz').value = '';
+    document.getElementById('evPagamentoMatriz').value = '';
+  }
 }
 
 function renderEventos(){
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const lista = document.getElementById('eventsList');
   if(!lista) return;
-  lista.querySelectorAll('.event-row.custom').forEach(el => el.remove());
+  lista.innerHTML = '';
+  if(eventos.length === 0){
+    lista.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p>';
+    return;
+  }
   eventos.forEach(ev => {
     const div = document.createElement('div');
     div.className = 'event-row custom';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'flex-start';
     const localTxt = ev.local ? (' · ' + ev.local) : '';
-    div.innerHTML = '<span class="event-dot"></span><div><h4></h4><p></p></div>';
+    div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
     div.querySelector('h4').textContent = ev.titulo;
     div.querySelector('p').textContent = ev.data + localTxt;
+    if(ev.pagamento){
+      const link = document.createElement('a');
+      link.href = ev.pagamento;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'Pagar inscrição';
+      link.style.cssText = 'display:inline-block;margin:6px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);';
+      div.appendChild(link);
+    }
     lista.appendChild(div);
   });
 }
 
+function renderEventosGerenciar(){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  ['eventosGerenciarAdmin', 'eventosGerenciarMatriz'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if(!container) return;
+    container.innerHTML = '';
+    if(eventos.length === 0){
+      container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p>';
+      return;
+    }
+    const sufixo = containerId === 'eventosGerenciarAdmin' ? 'Admin' : '';
+    eventos.forEach((ev, i) => {
+      const row = document.createElement('div');
+      row.className = 'aluno-row';
+      const span = document.createElement('span');
+      span.textContent = ev.titulo + ' — ' + ev.data + (ev.local ? (' · ' + ev.local) : '');
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:8px;';
+      const qrBtn = document.createElement('button');
+      qrBtn.className = 'aluno-del';
+      qrBtn.style.color = 'var(--amber-700)';
+      qrBtn.textContent = 'QR';
+      qrBtn.onclick = () => mostrarQrEvento(i, sufixo);
+      const editBtn = document.createElement('button');
+      editBtn.className = 'aluno-del';
+      editBtn.style.color = 'var(--navy-700)';
+      editBtn.textContent = 'Editar';
+      editBtn.onclick = () => editarEvento(i);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'aluno-del';
+      delBtn.textContent = 'Remover';
+      delBtn.onclick = () => removerEvento(i);
+      actions.appendChild(qrBtn);
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(span);
+      row.appendChild(actions);
+      container.appendChild(row);
+    });
+  });
+}
+
+function mostrarQrEvento(i, sufixo){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[i];
+  if(!ev.codigoCheckin) return;
+  const box = document.getElementById('eventoQrBox' + sufixo);
+  const imagem = document.getElementById('eventoQrImagem' + sufixo);
+  const texto = document.getElementById('eventoQrTexto' + sufixo);
+  if(!box || !imagem || !texto) return;
+  box.style.display = 'block';
+  imagem.innerHTML = '';
+  texto.textContent = ev.titulo + ' — código: ' + ev.codigoCheckin;
+  const payload = 'GINGAPASS-EVENTO:' + ev.codigoCheckin;
+  if(typeof QRCode !== 'undefined'){
+    new QRCode(imagem, {text: payload, width: 160, height: 160});
+  }
+}
+
+function extrairEmbedVideo(url){
+  try{
+    if(url.includes('youtu.be/')){
+      const id = url.split('youtu.be/')[1].split(/[?&]/)[0];
+      return 'https://www.youtube.com/embed/' + id;
+    }
+    if(url.includes('youtube.com/watch')){
+      const id = new URL(url).searchParams.get('v');
+      if(id) return 'https://www.youtube.com/embed/' + id;
+    }
+    if(url.includes('youtube.com/shorts/')){
+      const id = url.split('shorts/')[1].split(/[?&]/)[0];
+      return 'https://www.youtube.com/embed/' + id;
+    }
+    if(url.includes('vimeo.com/')){
+      const id = url.split('vimeo.com/')[1].split(/[?&]/)[0];
+      return 'https://player.vimeo.com/video/' + id;
+    }
+  } catch(e){}
+  return null;
+}
+
+function enviarAulaAdmin(){
+  const titulo = document.getElementById('aulaTituloAd').value.trim();
+  const link = document.getElementById('aulaLinkAd').value.trim();
+  if(!titulo || !link){
+    alert('Preencha o título e o link do vídeo.');
+    return;
+  }
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  aulas.push({
+    titulo, link,
+    autor: minhaConta ? minhaConta.nome : currentUser,
+    status: 'pendente',
+    data: new Date().toLocaleDateString('pt-BR')
+  });
+  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  document.getElementById('aulaTituloAd').value = '';
+  document.getElementById('aulaLinkAd').value = '';
+  renderAulasStatusAdmin();
+  renderAulasPendentes();
+  renderAulasTodas();
+  alert('Aula enviada! Ela só fica visível pros alunos depois que a matriz aprovar.');
+}
+
+function enviarAulaMatriz(){
+  const titulo = document.getElementById('aulaTituloMatriz').value.trim();
+  const link = document.getElementById('aulaLinkMatriz').value.trim();
+  if(!titulo || !link){
+    alert('Preencha o título e o link do vídeo.');
+    return;
+  }
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  aulas.push({
+    titulo, link,
+    autor: 'Matriz',
+    status: 'aprovado',
+    data: new Date().toLocaleDateString('pt-BR')
+  });
+  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  document.getElementById('aulaTituloMatriz').value = '';
+  document.getElementById('aulaLinkMatriz').value = '';
+  renderAulasPendentes();
+  renderAulasTodas();
+  renderAulas();
+  alert('Aula publicada e já visível pros alunos.');
+}
+
+function renderAulasStatusAdmin(){
+  const container = document.getElementById('aulasStatusAdmin');
+  if(!container) return;
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  const meuNome = minhaConta ? minhaConta.nome : currentUser;
+  const minhas = aulas.map((a, i) => ({...a, i})).filter(a => a.autor === meuNome);
+  container.innerHTML = '';
+  if(minhas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Você ainda não enviou nenhuma aula.</p>';
+    return;
+  }
+  minhas.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = a.titulo;
+    const statusSpan = document.createElement('span');
+    statusSpan.style.cssText = 'font-size:11px;font-weight:600;color:' +
+      (a.status === 'aprovado' ? '#2E8B57' : a.status === 'rejeitado' ? '#C0392B' : 'var(--amber-700)') + ';';
+    statusSpan.textContent = a.status === 'aprovado' ? 'Aprovada' : a.status === 'rejeitado' ? 'Rejeitada' : 'Pendente';
+    row.appendChild(span);
+    row.appendChild(statusSpan);
+    container.appendChild(row);
+  });
+}
+
+function renderAulasPendentes(){
+  const container = document.getElementById('aulasPendentesList');
+  if(!container) return;
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  container.innerHTML = '';
+  const pendentes = aulas.map((a, i) => ({...a, i})).filter(a => a.status === 'pendente');
+  if(pendentes.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma aula aguardando aprovação.</p>';
+    return;
+  }
+  pendentes.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = a.titulo + ' — ' + a.autor;
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:8px;';
+    const verBtn = document.createElement('a');
+    verBtn.href = a.link;
+    verBtn.target = '_blank';
+    verBtn.rel = 'noopener';
+    verBtn.className = 'aluno-del';
+    verBtn.style.color = 'var(--navy-700)';
+    verBtn.textContent = 'Ver';
+    const aprovarBtn = document.createElement('button');
+    aprovarBtn.className = 'aluno-del';
+    aprovarBtn.style.color = '#2E8B57';
+    aprovarBtn.textContent = 'Aprovar';
+    aprovarBtn.onclick = () => moderarAula(a.i, 'aprovado');
+    const rejeitarBtn = document.createElement('button');
+    rejeitarBtn.className = 'aluno-del';
+    rejeitarBtn.textContent = 'Rejeitar';
+    rejeitarBtn.onclick = () => moderarAula(a.i, 'rejeitado');
+    actions.appendChild(verBtn);
+    actions.appendChild(aprovarBtn);
+    actions.appendChild(rejeitarBtn);
+    row.appendChild(span);
+    row.appendChild(actions);
+    container.appendChild(row);
+  });
+}
+
+function moderarAula(i, novoStatus){
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  aulas[i].status = novoStatus;
+  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  renderAulasPendentes();
+  renderAulasTodas();
+  renderAulas();
+}
+
+function renderAulasTodas(){
+  const container = document.getElementById('aulasTodasList');
+  if(!container) return;
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  container.innerHTML = '';
+  if(aulas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma aula cadastrada ainda.</p>';
+    return;
+  }
+  aulas.forEach((a, i) => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    const statusTxt = a.status === 'aprovado' ? 'Aprovada' : a.status === 'rejeitado' ? 'Rejeitada' : 'Pendente';
+    span.textContent = a.titulo + ' — ' + a.autor + ' (' + statusTxt + ')';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'aluno-del';
+    delBtn.textContent = 'Remover';
+    delBtn.onclick = () => removerAula(i);
+    row.appendChild(span);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function removerAula(i){
+  if(!confirm('Remover esta aula?')) return;
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  aulas.splice(i, 1);
+  localStorage.setItem('gingapass_aulas', JSON.stringify(aulas));
+  renderAulasPendentes();
+  renderAulasTodas();
+  renderAulas();
+}
+
+function renderAulas(){
+  const container = document.getElementById('aulasAprovadasList');
+  if(!container) return;
+  const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
+  const aprovadas = aulas.filter(a => a.status === 'aprovado');
+  container.innerHTML = '';
+  if(aprovadas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Nenhuma aula disponível ainda.</p>';
+    return;
+  }
+  aprovadas.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const embed = extrairEmbedVideo(a.link);
+    let mediaHtml = '';
+    if(embed){
+      mediaHtml = '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;margin-bottom:8px;"><iframe src="' + embed + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen loading="lazy"></iframe></div>';
+    } else {
+      mediaHtml = '<a href="' + a.link + '" target="_blank" rel="noopener" style="display:block;background:var(--navy-900);color:var(--cream);border-radius:12px;padding:20px;text-align:center;font-size:13px;font-weight:600;margin-bottom:8px;text-decoration:none;">▶ Assistir vídeo</a>';
+    }
+    card.innerHTML = mediaHtml + '<h4 style="margin:0 0 2px;font-size:14px;color:var(--navy-900);"></h4><p style="margin:0;font-size:11.5px;color:var(--ink-soft);"></p>';
+    card.querySelector('h4').textContent = a.titulo;
+    card.querySelector('p').textContent = 'Por ' + a.autor + ' · ' + a.data;
+    container.appendChild(card);
+  });
+}
+
+function editarEvento(i){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[i];
+  const titulo = prompt('Nome do evento:', ev.titulo);
+  if(titulo === null) return;
+  const data = prompt('Data:', ev.data);
+  if(data === null) return;
+  const local = prompt('Local:', ev.local || '');
+  if(local === null) return;
+  const pagamento = prompt('Link de pagamento (deixe em branco se não houver):', ev.pagamento || '');
+  if(pagamento === null) return;
+  eventos[i] = {
+    titulo: titulo.trim() || ev.titulo,
+    data: data.trim() || ev.data,
+    local: local.trim(),
+    pagamento: pagamento.trim(),
+    codigoCheckin: ev.codigoCheckin
+  };
+  localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
+  renderEventos();
+  renderEventosGerenciar();
+}
+
+function removerEvento(i){
+  if(!confirm('Remover este evento?')) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  eventos.splice(i, 1);
+  localStorage.setItem('gingapass_eventos', JSON.stringify(eventos));
+  renderEventos();
+  renderEventosGerenciar();
+}
+
 let fotosSelecionadas = [];
+let galeriaAtivaId = 'galeriaAdmin';
 
 function previewFotos(){
-  const galeria = document.getElementById('galeria');
+  const galeria = document.getElementById(galeriaAtivaId);
+  if(!galeria) return;
   galeria.innerHTML = '';
   fotosSelecionadas.forEach(src => {
     const img = document.createElement('img');
@@ -1123,7 +1730,7 @@ function previewFotos(){
   });
 }
 
-function publicarFotos(){
+function publicarFotos(galeriaId){
   if(fotosSelecionadas.length === 0){
     alert('Selecione ao menos uma foto.');
     return;
@@ -1138,13 +1745,15 @@ function publicarFotos(){
 
 function renderGaleria(){
   const salvas = JSON.parse(localStorage.getItem('gingapass_fotos') || '[]');
-  const galeria = document.getElementById('galeria');
-  if(!galeria) return;
-  galeria.innerHTML = '';
-  salvas.forEach(src => {
-    const img = document.createElement('img');
-    img.src = src;
-    galeria.appendChild(img);
+  ['galeriaAdmin', 'galeriaMatriz'].forEach(galeriaId => {
+    const galeria = document.getElementById(galeriaId);
+    if(!galeria) return;
+    galeria.innerHTML = '';
+    salvas.forEach(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      galeria.appendChild(img);
+    });
   });
 }
 
@@ -1204,6 +1813,7 @@ function removerEndereco(i){
 
 function criarAcessoAlunoAcademia(){
   const nome = document.getElementById('novoAlunoNomeAd').value.trim();
+  const corda = document.getElementById('novoAlunoCordaAd').value.trim();
   const user = document.getElementById('novoAlunoUserAd').value.trim();
   const senha = document.getElementById('novoAlunoSenhaAd').value.trim();
   if(!nome || !user || !senha){
@@ -1215,9 +1825,22 @@ function criarAcessoAlunoAcademia(){
     alert('Já existe um aluno com esse usuário.');
     return;
   }
-  contas.push({nome, user, senha});
+
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  let nucleo = '';
+  let professor = '';
+  if(minhaConta){
+    nucleo = minhaConta.nome;
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+    if(minhaAcademia) professor = minhaAcademia.professor || '';
+  }
+
+  contas.push({nome, user, senha, corda, nucleo, professor, desde: new Date().getFullYear().toString()});
   localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNomeAd').value = '';
+  document.getElementById('novoAlunoCordaAd').value = '';
   document.getElementById('novoAlunoUserAd').value = '';
   document.getElementById('novoAlunoSenhaAd').value = '';
   renderAlunos();
@@ -1270,15 +1893,25 @@ function editarAluno(i){
   const conta = contas[i];
   const novoNome = prompt('Nome do aluno:', conta.nome);
   if(novoNome === null) return;
+  const novaCorda = prompt('Graduação/corda:', conta.corda || '');
+  if(novaCorda === null) return;
+  const novoNucleo = prompt('Núcleo:', conta.nucleo || '');
+  if(novoNucleo === null) return;
+  const novoProfessor = prompt('Professor:', conta.professor || '');
+  if(novoProfessor === null) return;
   const novaSenha = prompt('Nova senha (deixe igual pra manter):', conta.senha);
   if(novaSenha === null) return;
   conta.nome = novoNome.trim() || conta.nome;
+  conta.corda = novaCorda.trim();
+  conta.nucleo = novoNucleo.trim();
+  conta.professor = novoProfessor.trim();
   conta.senha = novaSenha.trim() || conta.senha;
   contas[i] = conta;
   localStorage.setItem('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunos();
   renderAlunosContas();
   renderCheckin();
+  renderPerfil();
 }
 
 function excluirAlunoConta(i){
@@ -1335,25 +1968,475 @@ function alternarCheckin(user){
   renderCheckin();
 }
 
+function gerarQrHoje(){
+  const dataHoje = hojeStr();
+  const codigo = Math.random().toString(36).slice(2, 8).toUpperCase();
+  localStorage.setItem('gingapass_qrcode_' + dataHoje, codigo);
+
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || '{}');
+  localStorage.setItem('gingapass_qrcode_meta_' + dataHoje, JSON.stringify({
+    professor: cfg.professor || '',
+    nucleo: cfg.nucleo || ''
+  }));
+
+  const dias = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
+  if(!dias.includes(dataHoje)){
+    dias.push(dataHoje);
+    localStorage.setItem('gingapass_dias_checkin', JSON.stringify(dias));
+  }
+  renderQrHoje();
+}
+
+function renderQrHoje(){
+  const box = document.getElementById('qrCodeBox');
+  const texto = document.getElementById('qrCodeTexto');
+  if(!box || !texto) return;
+  const dataHoje = hojeStr();
+  let codigo = localStorage.getItem('gingapass_qrcode_' + dataHoje);
+  if(!codigo){
+    box.innerHTML = '';
+    texto.textContent = 'Nenhum código gerado hoje ainda.';
+    return;
+  }
+  box.innerHTML = '';
+  texto.textContent = 'Código: ' + codigo;
+  const payload = 'GINGAPASS-CHECKIN:' + dataHoje + ':' + codigo;
+  if(typeof QRCode !== 'undefined'){
+    new QRCode(box, {text: payload, width: 160, height: 160});
+  } else {
+    texto.textContent += ' (biblioteca de QR não carregou; use o código manualmente)';
+  }
+}
+
+let scannerAtivo = false;
+let scannerStream = null;
+let scannerLoopId = null;
+
+function alternarScanner(){
+  if(scannerAtivo){
+    pararScanner();
+    return;
+  }
+  const video = document.getElementById('checkinVideo');
+  const status = document.getElementById('checkinStatus');
+  const btn = document.getElementById('checkinScanBtn');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    status.textContent = 'Este navegador não permite acesso à câmera. Use o código manual abaixo.';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}})
+    .then(stream => {
+      scannerStream = stream;
+      video.srcObject = stream;
+      video.style.display = 'block';
+      video.play();
+      scannerAtivo = true;
+      btn.textContent = 'Parar câmera';
+      status.textContent = 'Aponte pro QR code...';
+      loopScanner();
+    })
+    .catch(() => {
+      status.textContent = 'Não foi possível acessar a câmera. Use o código manual abaixo.';
+    });
+}
+
+function loopScanner(){
+  const video = document.getElementById('checkinVideo');
+  const canvas = document.getElementById('checkinCanvas');
+  if(!scannerAtivo || !video.videoWidth){
+    scannerLoopId = requestAnimationFrame(loopScanner);
+    return;
+  }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  if(typeof jsQR !== 'undefined'){
+    const resultado = jsQR(imageData.data, canvas.width, canvas.height);
+    if(resultado && resultado.data){
+      processarCodigoEscaneado(resultado.data);
+      return;
+    }
+  }
+  scannerLoopId = requestAnimationFrame(loopScanner);
+}
+
+function pararScanner(){
+  scannerAtivo = false;
+  if(scannerLoopId) cancelAnimationFrame(scannerLoopId);
+  if(scannerStream){
+    scannerStream.getTracks().forEach(t => t.stop());
+    scannerStream = null;
+  }
+  const video = document.getElementById('checkinVideo');
+  const btn = document.getElementById('checkinScanBtn');
+  if(video) video.style.display = 'none';
+  if(btn) btn.textContent = 'Escanear QR code';
+}
+
+function processarCodigoEscaneado(payload){
+  pararScanner();
+  const partes = payload.split(':');
+  const codigo = partes[partes.length - 1];
+  validarCheckin(codigo);
+}
+
+function confirmarCheckinManual(){
+  const codigo = document.getElementById('checkinCodigoManual').value.trim().toUpperCase();
+  if(!codigo){
+    alert('Digite o código mostrado pelo professor.');
+    return;
+  }
+  validarCheckin(codigo);
+}
+
+function validarCheckin(codigo){
+  const dataHoje = hojeStr();
+  const codigoValido = localStorage.getItem('gingapass_qrcode_' + dataHoje);
+  const status = document.getElementById('checkinStatus');
+  if(!codigoValido){
+    if(status) status.textContent = 'Nenhum código foi gerado pela academia hoje ainda.';
+    alert('Nenhum código foi gerado pela academia hoje ainda.');
+    return;
+  }
+  if(codigo !== codigoValido){
+    if(status) status.textContent = 'Código incorreto ou expirado. Confira com o professor.';
+    alert('Código incorreto ou expirado.');
+    return;
+  }
+  if(!currentUser){
+    alert('Não identificamos seu usuário. Faça login novamente.');
+    return;
+  }
+  const key = 'gingapass_checkin_' + dataHoje;
+  const registro = JSON.parse(localStorage.getItem(key) || '{}');
+  registro[currentUser] = true;
+  localStorage.setItem(key, JSON.stringify(registro));
+
+  const meta = JSON.parse(localStorage.getItem('gingapass_qrcode_meta_' + dataHoje) || '{}');
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  log.push({data: dataHoje, aluno: currentUser, professor: meta.professor || '', nucleo: meta.nucleo || ''});
+  localStorage.setItem('gingapass_checkin_log', JSON.stringify(log));
+
+  const comQuem = meta.professor ? (' com o Prof. ' + meta.professor + (meta.nucleo ? (' · Núcleo ' + meta.nucleo) : '')) : '';
+  if(status) status.textContent = 'Presença confirmada' + comQuem + '! Bom treino 🥋';
+  document.getElementById('checkinCodigoManual').value = '';
+  alert('Check-in feito com sucesso' + comQuem + '!');
+}
+
 function publicarMensalidade(){
   const valor = document.getElementById('mensalidadeValor').value.trim();
   const vencimento = document.getElementById('mensalidadeVencimento').value.trim();
+  const status = document.getElementById('mensalidadeStatus').value;
   if(!valor || !vencimento){
     alert('Preencha o valor e o vencimento.');
     return;
   }
-  localStorage.setItem('gingapass_mensalidade', JSON.stringify({valor, vencimento}));
+  localStorage.setItem('gingapass_mensalidade', JSON.stringify({valor, vencimento, status}));
   renderMensalidade();
-  alert('Valor da mensalidade atualizado para todos os alunos.');
+  alert('Mensalidade atualizada para todos os alunos.');
 }
 
 function renderMensalidade(){
   const dados = JSON.parse(localStorage.getItem('gingapass_mensalidade') || 'null');
   const dueEl = document.getElementById('mensalidadeDueView');
+  const statusEl = document.getElementById('mensalidadeStatusView');
   if(!dueEl) return;
   if(dados){
     dueEl.textContent = 'Próximo vencimento: ' + dados.vencimento + ' · ' + dados.valor;
+    if(statusEl && dados.status) statusEl.textContent = dados.status;
+    const valorInput = document.getElementById('mensalidadeValor');
+    const vencInput = document.getElementById('mensalidadeVencimento');
+    const statusInput = document.getElementById('mensalidadeStatus');
+    if(valorInput && !valorInput.value) valorInput.value = dados.valor;
+    if(vencInput && !vencInput.value) vencInput.value = dados.vencimento;
+    if(statusInput && dados.status) statusInput.value = dados.status;
   }
+}
+
+function adicionarHistorico(){
+  const mes = document.getElementById('histMes').value.trim();
+  const status = document.getElementById('histStatus').value;
+  if(!mes){
+    alert('Preencha o mês/ano.');
+    return;
+  }
+  const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
+  historico.unshift({mes, status});
+  localStorage.setItem('gingapass_historico', JSON.stringify(historico));
+  document.getElementById('histMes').value = '';
+  renderHistoricoGerenciar();
+  renderHistoricoAluno();
+}
+
+function renderHistoricoGerenciar(){
+  const container = document.getElementById('historicoGerenciar');
+  if(!container) return;
+  const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
+  container.innerHTML = '';
+  if(historico.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum lançamento ainda. Os valores mostrados no app são só o exemplo padrão.</p>';
+    return;
+  }
+  historico.forEach((h, i) => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = h.mes + ' — ' + h.status;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'aluno-del';
+    delBtn.textContent = 'Remover';
+    delBtn.onclick = () => removerHistorico(i);
+    row.appendChild(span);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function removerHistorico(i){
+  if(!confirm('Remover este lançamento?')) return;
+  const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
+  historico.splice(i, 1);
+  localStorage.setItem('gingapass_historico', JSON.stringify(historico));
+  renderHistoricoGerenciar();
+  renderHistoricoAluno();
+}
+
+function renderHistoricoAluno(){
+  const container = document.getElementById('historicoPagamentos');
+  if(!container) return;
+  const historico = JSON.parse(localStorage.getItem('gingapass_historico') || '[]');
+  container.innerHTML = '';
+  if(historico.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;padding:16px 0;">Nenhum pagamento registrado ainda.</p>';
+    return;
+  }
+  historico.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    const statusClass = h.status === 'Pago' ? 'ok' : '';
+    row.innerHTML = '<span></span><span class="' + statusClass + '" style="' + (h.status !== 'Pago' ? 'color:#C0392B;font-weight:600;font-size:11.5px;' : '') + '"></span>';
+    row.children[0].textContent = h.mes;
+    row.children[1].textContent = h.status;
+    container.appendChild(row);
+  });
+}
+
+function renderEstatisticas(){
+  const container = document.getElementById('estatisticasList');
+  if(!container) return;
+  const alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const diasCheckin = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const mensalidade = JSON.parse(localStorage.getItem('gingapass_mensalidade') || 'null');
+  const statusGeral = mensalidade && mensalidade.status ? mensalidade.status : 'Em dia';
+
+  container.innerHTML = '';
+  if(alunos.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p>';
+    return;
+  }
+  const totalDias = diasCheckin.length;
+  alunos.forEach(a => {
+    const diasPresente = new Set(log.filter(r => r.aluno === a.user).map(r => r.data)).size;
+    const faltas = Math.max(totalDias - diasPresente, 0);
+    const frequencia = totalDias > 0 ? Math.round((diasPresente / totalDias) * 100) : 0;
+
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:12px 0;border-bottom:1px solid #EDE3D0;';
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:500;font-size:14px;color:var(--ink);">${a.nome}</span>
+        <span style="font-size:11px;font-weight:600;color:${statusGeral === 'Em dia' ? '#2E8B57' : '#C0392B'};">${statusGeral}</span>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--ink-soft);">
+        <span>Frequência: <b style="color:var(--navy-900);">${frequencia}%</b></span>
+        <span>Faltas: <b style="color:var(--navy-900);">${faltas}</b></span>
+        <span>Presenças: <b style="color:var(--navy-900);">${diasPresente}</b></span>
+      </div>`;
+    container.appendChild(row);
+  });
+  const ultimo = container.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
+function publicarConfigGeral(){
+  const turma = document.getElementById('cfgTurma').value.trim();
+  const horario = document.getElementById('cfgHorario').value.trim();
+  const horarioLabel = document.getElementById('cfgHorarioLabel').value.trim();
+  const nucleo = document.getElementById('cfgNucleo').value.trim();
+  const professor = document.getElementById('cfgProfessor').value.trim();
+  const frequencia = document.getElementById('cfgFrequencia').value.trim();
+  if(!nucleo || !professor){
+    alert('Preencha ao menos o núcleo e o professor.');
+    return;
+  }
+  localStorage.setItem('gingapass_config_geral', JSON.stringify({turma, horario, horarioLabel, nucleo, professor, frequencia}));
+  renderConfigGeral();
+  renderPerfil();
+  alert('Configurações salvas! Já aparecem pros alunos.');
+}
+
+function renderConfigGeral(){
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  if(!cfg) return;
+  const aulaInfo = document.getElementById('proximaAulaInfo');
+  const aulaTitulo = document.getElementById('proximaAulaTitulo');
+  const aulaHora = document.getElementById('proximaAulaHora');
+  const aulaLabel = document.getElementById('proximaAulaLabel');
+  const frequenciaView = document.getElementById('frequenciaView');
+
+  if(aulaInfo) aulaInfo.textContent = 'Prof. ' + cfg.professor + ' · Núcleo ' + cfg.nucleo;
+  if(aulaTitulo && cfg.turma) aulaTitulo.textContent = cfg.turma;
+  if(aulaHora && cfg.horario) aulaHora.textContent = cfg.horario;
+  if(aulaLabel && cfg.horarioLabel) aulaLabel.textContent = cfg.horarioLabel;
+  if(frequenciaView && cfg.frequencia) frequenciaView.textContent = cfg.frequencia;
+
+  const campos = {
+    cfgTurma: cfg.turma, cfgHorario: cfg.horario, cfgHorarioLabel: cfg.horarioLabel,
+    cfgNucleo: cfg.nucleo, cfgProfessor: cfg.professor,
+    cfgFrequencia: cfg.frequencia
+  };
+  Object.keys(campos).forEach(id => {
+    const el = document.getElementById(id);
+    if(el && !el.value && campos[id]) el.value = campos[id];
+  });
+}
+
+function adicionarAcademiaRede(){
+  const nome = document.getElementById('redeNome').value.trim();
+  const endereco = document.getElementById('redeEndereco').value.trim();
+  const professor = document.getElementById('redeProfessor').value.trim();
+  const distancia = document.getElementById('redeDistancia').value.trim();
+  if(!nome || !endereco){
+    alert('Preencha ao menos o nome e o endereço da academia.');
+    return;
+  }
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  rede.push({nome, endereco, professor, distancia});
+  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  document.getElementById('redeNome').value = '';
+  document.getElementById('redeEndereco').value = '';
+  document.getElementById('redeProfessor').value = '';
+  document.getElementById('redeDistancia').value = '';
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  alert('Academia adicionada à rede!');
+}
+
+function populaSelectsNucleoProfessor(){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nucleos = [...new Set(rede.map(a => a.nome).filter(Boolean))];
+  const professores = [...new Set(rede.map(a => a.professor).filter(Boolean))];
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  if(cfg){
+    if(cfg.nucleo && !nucleos.includes(cfg.nucleo)) nucleos.push(cfg.nucleo);
+    if(cfg.professor && !professores.includes(cfg.professor)) professores.push(cfg.professor);
+  }
+  ['cfgNucleo', 'perfilNucleoInput', 'novoAlunoNucleo'].forEach(id => {
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Selecione o núcleo...</option>' +
+      nucleos.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+    if(atual) sel.value = atual;
+  });
+  ['cfgProfessor', 'perfilProfessorInput', 'novoAlunoProfessor'].forEach(id => {
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Selecione o professor...</option>' +
+      professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+    if(atual) sel.value = atual;
+  });
+}
+
+function renderRedeAcademias(){
+  const container = document.getElementById('redeAcademiasList');
+  if(!container) return;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  populaSelectsNucleoProfessor();
+  container.innerHTML = '';
+  if(rede.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma academia cadastrada na rede ainda.</p>';
+    return;
+  }
+  rede.forEach((a, i) => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = a.nome + ' — ' + a.endereco + (a.professor ? ' (Prof. ' + a.professor + ')' : '');
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:10px;';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'aluno-del';
+    editBtn.style.color = 'var(--navy-700)';
+    editBtn.textContent = 'Editar';
+    editBtn.onclick = () => editarAcademiaRede(i);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'aluno-del';
+    delBtn.textContent = 'Remover';
+    delBtn.onclick = () => removerAcademiaRede(i);
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(span);
+    row.appendChild(actions);
+    container.appendChild(row);
+  });
+}
+
+function editarAcademiaRede(i){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const a = rede[i];
+  const nome = prompt('Nome da academia:', a.nome);
+  if(nome === null) return;
+  const endereco = prompt('Endereço:', a.endereco);
+  if(endereco === null) return;
+  const professor = prompt('Professor responsável:', a.professor || '');
+  if(professor === null) return;
+  const distancia = prompt('Distância (ex: 0,8 km):', a.distancia || '');
+  if(distancia === null) return;
+  rede[i] = {
+    nome: nome.trim() || a.nome,
+    endereco: endereco.trim() || a.endereco,
+    professor: professor.trim(),
+    distancia: distancia.trim()
+  };
+  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+}
+
+function removerAcademiaRede(i){
+  if(!confirm('Remover esta academia da rede?')) return;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  rede.splice(i, 1);
+  localStorage.setItem('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+}
+
+function renderAcademiasScreen(){
+  const container = document.getElementById('academiasRedeList');
+  if(!container) return;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  container.innerHTML = '';
+  if(rede.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Nenhuma academia cadastrada na rede ainda.</p>';
+    return;
+  }
+  rede.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'academia-card';
+    const iniciais = a.nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+    card.innerHTML = '<div class="academia-thumb">' + (iniciais || 'CT') + '</div>' +
+      '<div class="academia-info"><h4></h4><p></p><div class="academia-meta"><span></span><span>⭐ 4.8</span></div></div>';
+    card.querySelector('h4').textContent = a.nome;
+    card.querySelector('p').textContent = a.endereco;
+    card.querySelector('.academia-meta span').textContent = a.distancia ? ('📍 ' + a.distancia) : '📍 —';
+    container.appendChild(card);
+  });
 }
 
 function publicarAviso(){
@@ -1404,9 +2487,12 @@ function enviarChat(){
 
 document.addEventListener('DOMContentLoaded', function(){
   seedContas();
-  const fotoInput = document.getElementById('fotoInput');
-  if(fotoInput){
-    fotoInput.addEventListener('change', function(e){
+
+  function ligarFotoInput(inputId, galeriaId){
+    const input = document.getElementById(inputId);
+    if(!input) return;
+    input.addEventListener('change', function(e){
+      galeriaAtivaId = galeriaId;
       fotosSelecionadas = [];
       const files = Array.from(e.target.files).slice(0, 6);
       let loaded = 0;
@@ -1422,6 +2508,9 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     });
   }
+  ligarFotoInput('fotoInputAdmin', 'galeriaAdmin');
+  ligarFotoInput('fotoInputMatriz', 'galeriaMatriz');
+
   const chatInput = document.getElementById('chatInput');
   if(chatInput){
     chatInput.addEventListener('keydown', function(e){
@@ -1429,7 +2518,11 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 });
+document.addEventListener('DOMContentLoaded', function(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+});
 </script>
-
-
-</body></html>
+</body>
+</html>
