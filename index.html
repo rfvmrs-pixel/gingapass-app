@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_27.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_28.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -811,6 +811,12 @@
 
     <!-- Visão do professor/afiliado e da matriz: caixa de mensagens recebidas -->
     <div id="chatVisaoProfessor" style="display:none;">
+      <div class="card" id="chatIniciarComAlunoBox">
+        <div class="card-label">Falar com um aluno</div>
+        <select class="admin-input" id="chatAlunoSelect" style="margin-bottom:0;" onchange="selecionarAlunoChat()"><option value="">Selecione o aluno...</option></select>
+      </div>
+      <div id="chatThreadSelecionado"></div>
+      <p class="section-title">Conversas</p>
       <div class="card" id="inboxChatTab"></div>
       <p class="section-title">Forma de pagamento</p>
       <div class="card" id="pagamentoAtalhoChatBox" style="display:none;">
@@ -1376,7 +1382,7 @@ function showScreen(id, btn){
     renderEstatisticas();
   }
   if(id === 'chat'){
-    renderTelaChat();
+    atualizarNuvemManual(null);
   }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -3054,6 +3060,8 @@ function populaSelectsNucleoProfessor(){
     if(cfg.nucleo && !nucleos.includes(cfg.nucleo)) nucleos.push(cfg.nucleo);
     if(cfg.professor && !professores.includes(cfg.professor)) professores.push(cfg.professor);
   }
+  const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  if(meuProf && meuProf.nome && !professores.includes(meuProf.nome)) professores.push(meuProf.nome);
   ['cfgNucleo', 'perfilNucleoInput', 'novoAlunoNucleo'].forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
@@ -3253,6 +3261,9 @@ function renderTelaChat(){
     visaoProfessor.style.display = 'block';
     if(titulo) titulo.textContent = 'Mensagens dos alunos';
     if(label) label.textContent = 'Aqui chegam as perguntas dos alunos. Responda direto por aqui.';
+    renderSeletorAlunosChat();
+    const selecionado = document.getElementById('chatAlunoSelect');
+    if(selecionado && selecionado.value) renderThreadSelecionado(selecionado.value);
     renderInbox('inboxChatTab');
 
     const box = document.getElementById('pagamentoAtalhoChatBox');
@@ -3378,6 +3389,114 @@ function enviarChat(){
     if(enviarBtn) enviarBtn.disabled = false;
     renderChat();
   });
+}
+
+function meusAlunosParaChat(){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  if(currentRole === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    const meuNucleo = minhaConta ? minhaConta.nome : null;
+    return meuNucleo ? contas.filter(c => c.nucleo === meuNucleo) : [];
+  }
+  if(currentRole === 'matriz'){
+    return contas;
+  }
+  return [];
+}
+
+function renderSeletorAlunosChat(){
+  const select = document.getElementById('chatAlunoSelect');
+  if(!select) return;
+  const atual = select.value;
+  const alunos = meusAlunosParaChat();
+  select.innerHTML = '<option value="">Selecione o aluno...</option>' +
+    alunos.map(a => '<option value="' + a.user + '">' + a.nome + '</option>').join('');
+  if(atual) select.value = atual;
+}
+
+function selecionarAlunoChat(){
+  const select = document.getElementById('chatAlunoSelect');
+  if(!select) return;
+  renderThreadSelecionado(select.value);
+}
+
+function renderThreadSelecionado(alunoUser){
+  const box = document.getElementById('chatThreadSelecionado');
+  if(!box) return;
+  box.innerHTML = '';
+  if(!alunoUser) return;
+  const meuNome = obterMeuNomeProfessor();
+  if(!meuNome) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const aluno = contas.find(c => c.user === alunoUser);
+  const nomeAluno = aluno ? aluno.nome : alunoUser;
+  const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
+  const alvoNome = meuNome.trim().toLowerCase();
+  const mensagens = todas.filter(m => m.aluno === alunoUser && (m.professor || '').trim().toLowerCase() === alvoNome);
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  const titulo = document.createElement('div');
+  titulo.style.cssText = 'font-weight:600;font-size:13px;color:var(--navy-900);margin-bottom:8px;';
+  titulo.textContent = nomeAluno;
+  card.appendChild(titulo);
+
+  const thread = document.createElement('div');
+  thread.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:8px;';
+  if(mensagens.length === 0){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:12px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Nenhuma mensagem ainda. Escreva pra começar a conversa.';
+    thread.appendChild(vazio);
+  } else {
+    mensagens.forEach(m => {
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:85%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
+        (m.remetente === 'professor'
+          ? 'background:var(--navy-900);color:var(--cream);align-self:flex-end;'
+          : 'background:var(--cream-2);color:var(--ink);align-self:flex-start;');
+      bubble.textContent = m.texto;
+      thread.appendChild(bubble);
+    });
+  }
+  card.appendChild(thread);
+
+  const respRow = document.createElement('div');
+  respRow.style.cssText = 'display:flex;gap:6px;';
+  const respInput = document.createElement('input');
+  respInput.className = 'admin-input';
+  respInput.placeholder = 'Escrever pra ' + nomeAluno + '...';
+  respInput.style.marginBottom = '0';
+  const respBtn = document.createElement('button');
+  respBtn.className = 'btn';
+  respBtn.type = 'button';
+  respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;';
+  respBtn.textContent = 'Enviar';
+  respBtn.onclick = () => {
+    const texto = respInput.value.trim();
+    if(!texto) return;
+    respBtn.disabled = true;
+    buscarValorFresco('gingapass_chat').then(function(valorFresco){
+      const todasAtual = JSON.parse(valorFresco || '[]');
+      todasAtual.push({
+        aluno: alunoUser,
+        nomeAluno: nomeAluno,
+        professor: meuNome,
+        remetente: 'professor',
+        texto,
+        data: Date.now()
+      });
+      setDado('gingapass_chat', JSON.stringify(todasAtual));
+      renderThreadSelecionado(alunoUser);
+      renderInbox('inboxChatTab');
+    });
+  };
+  respRow.appendChild(respInput);
+  respRow.appendChild(respBtn);
+  card.appendChild(respRow);
+
+  box.appendChild(card);
 }
 
 function renderInbox(containerId){
