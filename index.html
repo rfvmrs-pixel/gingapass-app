@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_52.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_53.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3677,8 +3677,7 @@ function renderChat(){
     return;
   }
   const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
-  const alvo = meuProfessor.trim().toLowerCase();
-  const minhas = todas.filter(m => m.aluno === currentUser && (m.professor || '').trim().toLowerCase() === alvo);
+  const minhas = todas.filter(m => m.aluno === currentUser);
   container.innerHTML = '';
   if(minhas.length === 0){
     container.innerHTML = '<div class="chat-bubble bot">Envie uma mensagem pro seu professor por aqui. Ele recebe na caixa de mensagens dele e responde direto nesta conversa.</div>';
@@ -3780,8 +3779,7 @@ function renderThreadSelecionado(alunoUser){
   const aluno = contas.find(c => c.user === alunoUser);
   const nomeAluno = aluno ? aluno.nome : alunoUser;
   const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
-  const alvoNome = meuNome.trim().toLowerCase();
-  const mensagens = todas.filter(m => m.aluno === alunoUser && (m.professor || '').trim().toLowerCase() === alvoNome);
+  const mensagens = todas.filter(m => m.aluno === alunoUser);
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -3864,8 +3862,7 @@ function renderInbox(containerId){
     return;
   }
   const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
-  const alvoNome = meuNome.trim().toLowerCase();
-  const minhas = todas.filter(m => (m.professor || '').trim().toLowerCase() === alvoNome);
+  const minhas = todas;
   const porAluno = {};
   minhas.forEach(m => {
     if(!porAluno[m.aluno]) porAluno[m.aluno] = {nome: m.nomeAluno, mensagens: []};
