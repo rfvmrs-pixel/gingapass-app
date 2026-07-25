@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_25.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_26.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -784,16 +784,33 @@
 
   <!-- CHAT -->
   <div class="screen" id="chat">
-    <p class="greeting" style="font-size:18px;">Fale com seu professor</p>
+    <p class="greeting" style="font-size:18px;" id="chatTituloTela">Fale com seu professor</p>
     <p class="subgreeting" id="chatProfessorLabel">Tire dúvidas sobre aulas, eventos ou mensalidade</p>
-    <div class="card" id="chatSeletorProfessorBox" style="display:none;">
-      <div class="card-label">Para qual professor?</div>
-      <select class="admin-input" id="chatProfessorSelect" style="margin-bottom:0;" onchange="escolherProfessorChat()"><option value="">Selecione o professor...</option></select>
+
+    <!-- Visão do aluno: conversa com um professor -->
+    <div id="chatVisaoAluno">
+      <div class="card" id="chatSeletorProfessorBox" style="display:none;">
+        <div class="card-label">Para qual professor?</div>
+        <select class="admin-input" id="chatProfessorSelect" style="margin-bottom:0;" onchange="escolherProfessorChat()"><option value="">Selecione o professor...</option></select>
+      </div>
+      <div id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input id="chatInput" placeholder="Escreva sua mensagem...">
+        <button class="chat-send" onclick="enviarChat()" type="button">➤</button>
+      </div>
     </div>
-    <div id="chatMessages"></div>
-    <div class="chat-input-row">
-      <input id="chatInput" placeholder="Escreva sua mensagem...">
-      <button class="chat-send" onclick="enviarChat()" type="button">➤</button>
+
+    <!-- Visão do professor/afiliado e da matriz: caixa de mensagens recebidas -->
+    <div id="chatVisaoProfessor" style="display:none;">
+      <div class="card" id="inboxChatTab"></div>
+      <p class="section-title">Forma de pagamento</p>
+      <div class="card" id="pagamentoAtalhoChatBox" style="display:none;">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
+        <input class="admin-input" id="admPixAtalho" placeholder="Chave Pix ou link de pagamento Pix">
+        <input class="admin-input" id="admCartaoAtalho" placeholder="Link de pagamento com cartão">
+        <button class="btn" onclick="salvarPagamentoAtalho()">Salvar forma de pagamento</button>
+      </div>
+      <p id="pagamentoAtalhoAvisoMatriz" style="display:none;font-size:11.5px;color:var(--ink-soft);margin:0;">Cada academia filiada define sua própria forma de pagamento, na aba "Academia" dela.</p>
     </div>
   </div>
 
@@ -1215,7 +1232,7 @@ function aplicarPermissoes(){
   const aulasTab = document.querySelector('.tab[data-target="aulas"]');
 
   adminTab.style.display = (currentRole === 'academia') ? 'flex' : 'none';
-  chatTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
+  chatTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
   matrizTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
   checkinTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
   estatisticasTab.style.display = (currentRole === 'matriz' || currentRole === 'academia') ? 'flex' : 'none';
@@ -1246,7 +1263,7 @@ function aplicarPermissoes(){
   renderAulasStatusAdmin();
   renderAulasPendentes();
   renderAulasTodas();
-  renderChat();
+  renderTelaChat();
   renderInbox('inboxAdmin');
   renderInbox('inboxMatriz');
   renderPagamentoAluno();
@@ -1297,6 +1314,9 @@ function showScreen(id, btn){
   }
   if(id === 'estatisticas'){
     renderEstatisticas();
+  }
+  if(id === 'chat'){
+    renderTelaChat();
   }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -3086,6 +3106,80 @@ function escolherProfessorChat(){
     setDado('gingapass_alunos_contas', JSON.stringify(contas));
   }
   renderChat();
+}
+
+function renderTelaChat(){
+  const titulo = document.getElementById('chatTituloTela');
+  const label = document.getElementById('chatProfessorLabel');
+  const visaoAluno = document.getElementById('chatVisaoAluno');
+  const visaoProfessor = document.getElementById('chatVisaoProfessor');
+  if(!visaoAluno || !visaoProfessor) return;
+
+  if(currentRole === 'aluno'){
+    visaoAluno.style.display = 'block';
+    visaoProfessor.style.display = 'none';
+    if(titulo) titulo.textContent = 'Fale com seu professor';
+    renderChat();
+    return;
+  }
+
+  if(currentRole === 'academia' || currentRole === 'matriz'){
+    visaoAluno.style.display = 'none';
+    visaoProfessor.style.display = 'block';
+    if(titulo) titulo.textContent = 'Mensagens dos alunos';
+    if(label) label.textContent = 'Aqui chegam as perguntas dos alunos. Responda direto por aqui.';
+    renderInbox('inboxChatTab');
+
+    const box = document.getElementById('pagamentoAtalhoChatBox');
+    const avisoMatriz = document.getElementById('pagamentoAtalhoAvisoMatriz');
+    if(currentRole === 'academia'){
+      if(box) box.style.display = 'block';
+      if(avisoMatriz) avisoMatriz.style.display = 'none';
+      const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+      const minhaConta = academiasContas.find(c => c.user === currentUser);
+      if(minhaConta){
+        const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+        const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+        const pixInput = document.getElementById('admPixAtalho');
+        const cartaoInput = document.getElementById('admCartaoAtalho');
+        if(minhaAcademia){
+          if(pixInput) pixInput.value = minhaAcademia.pix || '';
+          if(cartaoInput) cartaoInput.value = minhaAcademia.cartao || '';
+        }
+      }
+    } else {
+      if(box) box.style.display = 'none';
+      if(avisoMatriz) avisoMatriz.style.display = 'block';
+    }
+  }
+}
+
+function salvarPagamentoAtalho(){
+  if(currentRole !== 'academia') return;
+  const pix = document.getElementById('admPixAtalho').value.trim();
+  const cartao = document.getElementById('admCartaoAtalho').value.trim();
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  if(!minhaConta){
+    alert('Não identificamos sua academia. Faça login novamente.');
+    return;
+  }
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const idx = rede.findIndex(a => a.nome === minhaConta.nome);
+  if(idx >= 0){
+    rede[idx].pix = pix;
+    rede[idx].cartao = cartao;
+  } else {
+    rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
+  }
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  const pixInput = document.getElementById('admPix');
+  const cartaoInput = document.getElementById('admCartao');
+  if(pixInput) pixInput.value = pix;
+  if(cartaoInput) cartaoInput.value = cartao;
+  alert('Forma de pagamento salva! Já aparece pros seus alunos.');
 }
 
 function renderChat(){
