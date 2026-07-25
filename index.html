@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_60.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_61.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -552,6 +552,7 @@
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
       <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarSetupMaster();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Primeiro acesso? Criar cadastro master</a>
+      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master? Recomeçar cadastro master</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
@@ -1333,6 +1334,27 @@ function setRole(role){
   selectedRole = role;
   document.getElementById('roleAlunoBtn').classList.toggle('active', role === 'aluno');
   document.getElementById('roleAcademiaBtn').classList.toggle('active', role === 'academia');
+}
+
+function resetarCadastroMaster(){
+  const passo1 = confirm('Isso vai apagar o cadastro master atual (usuário e senha), pra você criar um novo do zero. Academias, alunos, chat, fotos e eventos NÃO são apagados — só o master. Continuar?');
+  if(!passo1) return;
+  const passo2 = confirm('Confirmando: qualquer pessoa com o link do app vai conseguir criar um novo cadastro master depois disso, até você criar o seu. Faça isso e crie o novo master imediatamente. Continuar?');
+  if(!passo2) return;
+
+  localStorage.removeItem('gingapass_master');
+  if(dbCollection){
+    dbCollection.doc('gingapass_master').delete().then(function(){
+      alert('Cadastro master apagado. A tela vai recarregar — clique em "Primeiro acesso? Criar cadastro master" pra criar o novo.');
+      location.reload();
+    }).catch(function(){
+      alert('Apagado neste aparelho. Recarregando.');
+      location.reload();
+    });
+  } else {
+    alert('Cadastro master apagado. Recarregando.');
+    location.reload();
+  }
 }
 
 function alternarSetupMaster(){
