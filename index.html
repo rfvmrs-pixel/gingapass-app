@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_28.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_29.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -768,10 +768,12 @@
 
     <p class="section-title">QR code de check-in <span id="checkinData"></span></p>
     <div class="card" style="text-align:center;">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Gere o código de hoje e mostre na tela pros alunos escanearem ao chegar na aula.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Escolha a data e o professor da aula, gere o código e mostre na tela pros alunos escanearem ao chegar.</p>
+      <input class="admin-input" id="aulaQrData" type="date" style="text-align:left;">
+      <select class="admin-input" id="aulaQrProfessor" style="text-align:left;"><option value="">Selecione o professor...</option></select>
       <div id="qrCodeBox" style="display:flex;justify-content:center;margin-bottom:10px;"></div>
       <p id="qrCodeTexto" style="font-family:var(--font-mono, monospace);font-size:13px;font-weight:600;color:var(--navy-900);margin:0 0 10px;"></p>
-      <button class="btn" onclick="gerarQrHoje()">Gerar novo código de hoje</button>
+      <button class="btn" onclick="gerarQrAula()">Gerar código da aula</button>
     </div>
 
     <p class="section-title">Check-in de hoje (manual)</p>
@@ -816,8 +818,6 @@
         <select class="admin-input" id="chatAlunoSelect" style="margin-bottom:0;" onchange="selecionarAlunoChat()"><option value="">Selecione o aluno...</option></select>
       </div>
       <div id="chatThreadSelecionado"></div>
-      <p class="section-title">Conversas</p>
-      <div class="card" id="inboxChatTab"></div>
       <p class="section-title">Forma de pagamento</p>
       <div class="card" id="pagamentoAtalhoChatBox" style="display:none;">
         <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;" id="pagamentoAtalhoTexto">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
@@ -2637,22 +2637,33 @@ function alternarCheckin(user){
   renderCheckin();
 }
 
-function gerarQrHoje(){
-  const dataHoje = hojeStr();
+function gerarQrAula(){
+  const dataInput = document.getElementById('aulaQrData');
+  const profInput = document.getElementById('aulaQrProfessor');
+  const data = (dataInput && dataInput.value) ? dataInput.value : hojeStr();
+  const professor = profInput ? profInput.value.trim() : '';
+  if(!professor){
+    alert('Selecione o professor da aula.');
+    return;
+  }
   const codigo = Math.random().toString(36).slice(2, 8).toUpperCase();
-  setDado('gingapass_qrcode_' + dataHoje, codigo);
+  setDado('gingapass_qrcode_' + data, codigo);
 
   const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || '{}');
-  setDado('gingapass_qrcode_meta_' + dataHoje, JSON.stringify({
-    professor: cfg.professor || '',
-    nucleo: cfg.nucleo || ''
-  }));
+  let nucleo = cfg.nucleo || '';
+  if(currentRole === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    if(minhaConta) nucleo = minhaConta.nome;
+  }
+  setDado('gingapass_qrcode_meta_' + data, JSON.stringify({professor, nucleo}));
 
   const dias = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
-  if(!dias.includes(dataHoje)){
-    dias.push(dataHoje);
+  if(!dias.includes(data)){
+    dias.push(data);
     setDado('gingapass_dias_checkin', JSON.stringify(dias));
   }
+  window._ultimaDataQrGerada = data;
   renderQrHoje();
 }
 
@@ -2660,16 +2671,19 @@ function renderQrHoje(){
   const box = document.getElementById('qrCodeBox');
   const texto = document.getElementById('qrCodeTexto');
   if(!box || !texto) return;
-  const dataHoje = hojeStr();
-  let codigo = localStorage.getItem('gingapass_qrcode_' + dataHoje);
+  const dataInput = document.getElementById('aulaQrData');
+  if(dataInput && !dataInput.value) dataInput.value = hojeStr();
+  const data = window._ultimaDataQrGerada || (dataInput ? dataInput.value : hojeStr()) || hojeStr();
+  let codigo = localStorage.getItem('gingapass_qrcode_' + data);
   if(!codigo){
     box.innerHTML = '';
-    texto.textContent = 'Nenhum código gerado hoje ainda.';
+    texto.textContent = 'Nenhum código gerado pra essa data ainda.';
     return;
   }
   box.innerHTML = '';
-  texto.textContent = 'Código: ' + codigo;
-  const payload = 'GINGAPASS-CHECKIN:' + dataHoje + ':' + codigo;
+  const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+  texto.textContent = 'Código (' + dataFormatada + '): ' + codigo;
+  const payload = 'GINGAPASS-CHECKIN:' + data + ':' + codigo;
   if(typeof QRCode !== 'undefined'){
     new QRCode(box, {text: payload, width: 160, height: 160});
   } else {
@@ -2747,8 +2761,14 @@ function pararScanner(){
 function processarCodigoEscaneado(payload){
   pararScanner();
   const partes = payload.split(':');
-  const codigo = partes[partes.length - 1];
-  validarCheckin(codigo);
+  if(partes.length >= 3){
+    const data = partes[1];
+    const codigo = partes[2];
+    validarCheckin(codigo, data);
+  } else {
+    const codigo = partes[partes.length - 1];
+    validarCheckin(codigo);
+  }
 }
 
 function confirmarCheckinManual(){
@@ -2760,13 +2780,13 @@ function confirmarCheckinManual(){
   validarCheckin(codigo);
 }
 
-function validarCheckin(codigo){
-  const dataHoje = hojeStr();
-  const codigoValido = localStorage.getItem('gingapass_qrcode_' + dataHoje);
+function validarCheckin(codigo, dataAula){
+  const data = dataAula || hojeStr();
+  const codigoValido = localStorage.getItem('gingapass_qrcode_' + data);
   const status = document.getElementById('checkinStatus');
   if(!codigoValido){
-    if(status) status.textContent = 'Nenhum código foi gerado pela academia hoje ainda.';
-    alert('Nenhum código foi gerado pela academia hoje ainda.');
+    if(status) status.textContent = 'Nenhum código foi gerado pela academia pra essa data ainda.';
+    alert('Nenhum código foi gerado pela academia pra essa data ainda.');
     return;
   }
   if(codigo !== codigoValido){
@@ -2778,14 +2798,14 @@ function validarCheckin(codigo){
     alert('Não identificamos seu usuário. Faça login novamente.');
     return;
   }
-  const key = 'gingapass_checkin_' + dataHoje;
+  const key = 'gingapass_checkin_' + data;
   const registro = JSON.parse(localStorage.getItem(key) || '{}');
   registro[currentUser] = true;
   setDado(key, JSON.stringify(registro));
 
-  const meta = JSON.parse(localStorage.getItem('gingapass_qrcode_meta_' + dataHoje) || '{}');
+  const meta = JSON.parse(localStorage.getItem('gingapass_qrcode_meta_' + data) || '{}');
   const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
-  log.push({data: dataHoje, aluno: currentUser, professor: meta.professor || '', nucleo: meta.nucleo || ''});
+  log.push({data: data, aluno: currentUser, professor: meta.professor || '', nucleo: meta.nucleo || ''});
   setDado('gingapass_checkin_log', JSON.stringify(log));
 
   const comQuem = meta.professor ? (' com o Prof. ' + meta.professor + (meta.nucleo ? (' · Núcleo ' + meta.nucleo) : '')) : '';
@@ -3070,7 +3090,7 @@ function populaSelectsNucleoProfessor(){
       nucleos.map(n => '<option value="' + n + '">' + n + '</option>').join('');
     if(atual) sel.value = atual;
   });
-  ['cfgProfessor', 'perfilProfessorInput', 'novoAlunoProfessor', 'chatProfessorSelect'].forEach(id => {
+  ['cfgProfessor', 'perfilProfessorInput', 'novoAlunoProfessor', 'chatProfessorSelect', 'aulaQrProfessor'].forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
     const atual = sel.value;
@@ -3259,12 +3279,12 @@ function renderTelaChat(){
   if(currentRole === 'academia' || currentRole === 'matriz'){
     visaoAluno.style.display = 'none';
     visaoProfessor.style.display = 'block';
+    const meuNome = obterMeuNomeProfessor();
     if(titulo) titulo.textContent = 'Mensagens dos alunos';
-    if(label) label.textContent = 'Aqui chegam as perguntas dos alunos. Responda direto por aqui.';
+    if(label) label.textContent = meuNome ? ('Você está reconhecido como Prof. ' + meuNome + '. Se o nome não bater com o que o aluno vê pra escolher, o chat não vai casar as mensagens.') : 'Cadastre seu nome de professor pra receber mensagens (em "Meus dados de professor").';
     renderSeletorAlunosChat();
     const selecionado = document.getElementById('chatAlunoSelect');
     if(selecionado && selecionado.value) renderThreadSelecionado(selecionado.value);
-    renderInbox('inboxChatTab');
 
     const box = document.getElementById('pagamentoAtalhoChatBox');
     const textoEl = document.getElementById('pagamentoAtalhoTexto');
@@ -3328,6 +3348,16 @@ function salvarPagamentoAtalho(){
   alert('Forma de pagamento salva! Já aparece pros seus alunos.');
 }
 
+function excluirMensagemChat(aluno, professor, remetente, data, callbackDepois){
+  if(!confirm('Apagar essa mensagem?')) return;
+  buscarValorFresco('gingapass_chat').then(function(valorFresco){
+    const todas = JSON.parse(valorFresco || '[]');
+    const restantes = todas.filter(m => !(m.aluno === aluno && (m.professor || '') === professor && m.remetente === remetente && m.data === data));
+    setDado('gingapass_chat', JSON.stringify(restantes));
+    if(callbackDepois) callbackDepois();
+  });
+}
+
 function renderChat(){
   const container = document.getElementById('chatMessages');
   const label = document.getElementById('chatProfessorLabel');
@@ -3355,7 +3385,16 @@ function renderChat(){
   minhas.forEach(m => {
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + (m.remetente === 'aluno' ? 'user' : 'bot');
-    bubble.textContent = m.texto;
+    bubble.style.position = 'relative';
+    bubble.style.paddingRight = '26px';
+    bubble.appendChild(document.createTextNode(m.texto));
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = '×';
+    delBtn.title = 'Apagar mensagem';
+    delBtn.style.cssText = 'position:absolute;top:2px;right:4px;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;color:inherit;opacity:0.6;padding:2px 4px;';
+    delBtn.onclick = () => excluirMensagemChat(m.aluno, m.professor || '', m.remetente, m.data, renderChat);
+    bubble.appendChild(delBtn);
     container.appendChild(bubble);
   });
   container.scrollTop = container.scrollHeight;
@@ -3452,11 +3491,18 @@ function renderThreadSelecionado(alunoUser){
   } else {
     mensagens.forEach(m => {
       const bubble = document.createElement('div');
-      bubble.style.cssText = 'max-width:85%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
+      bubble.style.cssText = 'position:relative;max-width:85%;padding:8px 26px 8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
         (m.remetente === 'professor'
           ? 'background:var(--navy-900);color:var(--cream);align-self:flex-end;'
           : 'background:var(--cream-2);color:var(--ink);align-self:flex-start;');
-      bubble.textContent = m.texto;
+      bubble.appendChild(document.createTextNode(m.texto));
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '×';
+      delBtn.title = 'Apagar mensagem';
+      delBtn.style.cssText = 'position:absolute;top:2px;right:4px;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;color:inherit;opacity:0.6;padding:2px 4px;';
+      delBtn.onclick = () => excluirMensagemChat(m.aluno, m.professor || '', m.remetente, m.data, () => renderThreadSelecionado(alunoUser));
+      bubble.appendChild(delBtn);
       thread.appendChild(bubble);
     });
   }
@@ -3489,7 +3535,6 @@ function renderThreadSelecionado(alunoUser){
       });
       setDado('gingapass_chat', JSON.stringify(todasAtual));
       renderThreadSelecionado(alunoUser);
-      renderInbox('inboxChatTab');
     });
   };
   respRow.appendChild(respInput);
@@ -3534,11 +3579,18 @@ function renderInbox(containerId){
     thread.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:8px;';
     grupo.mensagens.forEach(m => {
       const bubble = document.createElement('div');
-      bubble.style.cssText = 'max-width:85%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
+      bubble.style.cssText = 'position:relative;max-width:85%;padding:8px 26px 8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
         (m.remetente === 'professor'
           ? 'background:var(--navy-900);color:var(--cream);align-self:flex-end;'
           : 'background:var(--cream-2);color:var(--ink);align-self:flex-start;');
-      bubble.textContent = m.texto;
+      bubble.appendChild(document.createTextNode(m.texto));
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '×';
+      delBtn.title = 'Apagar mensagem';
+      delBtn.style.cssText = 'position:absolute;top:2px;right:4px;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;color:inherit;opacity:0.6;padding:2px 4px;';
+      delBtn.onclick = () => excluirMensagemChat(m.aluno, m.professor || '', m.remetente, m.data, () => renderInbox(containerId));
+      bubble.appendChild(delBtn);
       thread.appendChild(bubble);
     });
     bloco.appendChild(thread);
