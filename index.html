@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_49.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_50.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3362,7 +3362,12 @@ function populaSelectsNucleoProfessor(){
   }
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const nomesComLogin = new Set(academiasContas.map(c => c.nome));
-  const professoresAfiliados = [...new Set(rede.filter(a => nomesComLogin.has(a.nome) && a.professor).map(a => a.professor))];
+  const professoresAfiliados = [...new Set(
+    academiasContas.map(conta => {
+      const minhaAcademia = rede.find(a => a.nome === conta.nome);
+      return (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
+    }).filter(Boolean)
+  )];
 
   ['perfilProfessorInput', 'novoAlunoProfessor', 'aulaQrProfessor', 'aulaQrProfessorMatriz'].forEach(id => {
     const sel = document.getElementById(id);
