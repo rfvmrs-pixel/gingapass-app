@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_65.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_66.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -599,7 +599,7 @@
     <div class="card">
       <div class="card-label">Mural em destaque</div>
       <div style="border-radius:14px;overflow:hidden;background:#EFE6D2;">
-        <img id="muralSlideshowImg" style="width:100%;height:180px;object-fit:cover;display:block;transition:opacity 0.2s ease;">
+        <img id="muralSlideshowImg" style="width:100%;height:180px;object-fit:cover;display:block;transition:opacity 0.2s ease;cursor:pointer;" onclick="abrirLightboxMural()">
       </div>
       <p id="muralSlideshowVazio" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;display:none;">Nenhuma foto no mural ainda. Publique em "Fotos"!</p>
     </div>
@@ -1030,7 +1030,7 @@
     <p class="subgreeting">Conceda acesso a novas academias e alunos</p>
 
     <div class="card">
-      <div class="card-label">Novo acesso de academia filiada</div>
+      <div class="card-label">Adicionar professor (academia filiada) — pede senha master</div>
       <input class="admin-input" id="novaAcademiaNome" placeholder="Nome da academia">
       <input class="admin-input" id="novaAcademiaEndereco" placeholder="Endereço">
       <input class="admin-input" id="novaAcademiaProfessor" placeholder="Professor responsável">
@@ -1137,6 +1137,16 @@
     <p class="subgreeting">Frequência, faltas e mensalidade dos alunos</p>
     <div class="card" id="estatisticasList"></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado. A situação da mensalidade, neste protótipo, é a mesma para todos os alunos (ainda não existe cobrança individual por aluno).</p>
+  </div>
+
+  <div id="lightboxMural" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+    <img id="lightboxMuralImg" style="max-width:100%;max-height:60vh;border-radius:14px;object-fit:contain;">
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn" type="button" onclick="compartilharFotoMural()" style="width:auto;padding:10px 18px;">📤 Compartilhar</button>
+      <button class="btn" type="button" onclick="compartilharFotoWhatsapp()" style="width:auto;padding:10px 18px;background:#25D366;color:#0B2E1B;">WhatsApp</button>
+      <button class="btn" type="button" onclick="fecharLightboxMural()" style="width:auto;padding:10px 18px;background:var(--white);color:var(--navy-900);">Fechar</button>
+    </div>
+    <p style="font-size:11px;color:#C9D6E3;margin-top:10px;text-align:center;">Pra postar no Instagram: toque em "Compartilhar" e escolha o Instagram na lista, ou salve a imagem e poste pelo app.</p>
   </div>
 
   <div class="tabbar">
@@ -2110,6 +2120,8 @@ function obterNomeExibicaoAtual(){
     const chave = obterChavePerfil();
     const perfil = chave ? JSON.parse(localStorage.getItem(chave) || 'null') : null;
     if(perfil && perfil.nome) return perfil.nome.split(' ')[0];
+    const nomeProfessor = obterMeuNomeProfessor();
+    if(nomeProfessor) return nomeProfessor.split(' ')[0];
     return minhaConta ? minhaConta.nome.split(' ')[0] : 'Academia';
   }
   if(currentRole === 'matriz'){
@@ -2124,6 +2136,56 @@ function obterNomeExibicaoAtual(){
 
 let _muralSlideshowInterval = null;
 let _muralSlideshowIndex = 0;
+
+function abrirLightboxMural(){
+  const imgOrigem = document.getElementById('muralSlideshowImg');
+  const lightbox = document.getElementById('lightboxMural');
+  const lightboxImg = document.getElementById('lightboxMuralImg');
+  if(!imgOrigem || !imgOrigem.src || !lightbox || !lightboxImg) return;
+  lightboxImg.src = imgOrigem.src;
+  lightbox.style.display = 'flex';
+}
+
+function fecharLightboxMural(){
+  const lightbox = document.getElementById('lightboxMural');
+  if(lightbox) lightbox.style.display = 'none';
+}
+
+function dataUrlParaArquivo(dataUrl, nomeArquivo){
+  const partes = dataUrl.split(',');
+  const mimeMatch = partes[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binario = atob(partes[1]);
+  const bytes = new Uint8Array(binario.length);
+  for(let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return new File([bytes], nomeArquivo, {type: mime});
+}
+
+function compartilharFotoMural(){
+  const lightboxImg = document.getElementById('lightboxMuralImg');
+  if(!lightboxImg || !lightboxImg.src) return;
+  try{
+    const arquivo = dataUrlParaArquivo(lightboxImg.src, 'gingapass-foto.jpg');
+    if(navigator.canShare && navigator.canShare({files: [arquivo]})){
+      navigator.share({files: [arquivo], title: 'GingaPass', text: 'Foto do mural do GingaPass!'}).catch(function(){});
+      return;
+    }
+  } catch(e){}
+  alert('Seu navegador não permite compartilhar a imagem direto. Toque e segure na foto pra salvar, e depois compartilhe pelo WhatsApp ou Instagram manualmente.');
+}
+
+function compartilharFotoWhatsapp(){
+  const lightboxImg = document.getElementById('lightboxMuralImg');
+  if(!lightboxImg || !lightboxImg.src) return;
+  try{
+    const arquivo = dataUrlParaArquivo(lightboxImg.src, 'gingapass-foto.jpg');
+    if(navigator.canShare && navigator.canShare({files: [arquivo]})){
+      navigator.share({files: [arquivo], title: 'GingaPass', text: 'Foto do mural do GingaPass!'}).catch(function(){});
+      return;
+    }
+  } catch(e){}
+  window.open('https://wa.me/?text=' + encodeURIComponent('Olha essa foto do mural do GingaPass! Abra o app pra ver: ' + location.href), '_blank');
+}
 
 function iniciarSlideshowMural(){
   const img = document.getElementById('muralSlideshowImg');
