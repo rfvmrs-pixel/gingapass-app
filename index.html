@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_41.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_42.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -621,6 +621,7 @@
       <button class="btn" id="btnPagarPix" type="button" onclick="abrirPagamento(&#39;pix&#39;)" style="display:none;">Pagar com Pix</button>
       <button class="btn" id="btnPagarCartao" type="button" onclick="abrirPagamento(&#39;cartao&#39;)" style="display:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</button>
       <p id="pagamentoAviso" style="font-size:11.5px;color:#B9CBDD;margin:8px 0 0;display:none;">Seu professor ainda não cadastrou a forma de pagamento.</p>
+      <p id="atrasoAviso" style="font-size:12px;font-weight:600;color:#FFD9D0;background:rgba(192,57,43,0.35);border-radius:10px;padding:8px 10px;margin:10px 0 0;display:none;"></p>
     </div>
 
     <p class="section-title">Histórico de pagamentos</p>
@@ -845,6 +846,7 @@
       </div>
       <button class="btn" type="button" onclick="atualizarNuvemManual(this)" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;">↻ Atualizar</button>
     </div>
+    <p id="chatStatusNuvem" style="font-size:11px;color:var(--ink-soft);margin:2px 0 10px;"></p>
 
     <!-- Visão do aluno: conversa com um professor -->
     <div id="chatVisaoAluno">
@@ -1229,6 +1231,7 @@ function iniciarFirebase(tentativas){
 let currentRole = null;
 let currentUser = null;
 let selectedRole = 'aluno';
+let meuSessionToken = null;
 
 function seedContas(){
   if(!localStorage.getItem('gingapass_academias_contas')){
@@ -1322,14 +1325,34 @@ function entrar(role){
   currentRole = role;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContent').classList.add('visible');
+  meuSessionToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  sessionStorage.setItem('gingapass_meu_token', meuSessionToken);
+  const chaveSessao = 'gingapass_sessao_' + role + ':' + (currentUser || 'master');
+  setDado(chaveSessao, JSON.stringify({token: meuSessionToken, ts: Date.now()}));
   aplicarPermissoes();
 }
 
 function logout(){
+  if(currentRole){
+    const chaveSessao = 'gingapass_sessao_' + currentRole + ':' + (currentUser || 'master');
+    localStorage.removeItem(chaveSessao);
+    if(dbCollection) dbCollection.doc(chaveSessao).delete().catch(function(){});
+  }
   location.reload();
 }
 
+function verificarSessaoUnica(){
+  if(!currentRole || !meuSessionToken) return;
+  const chaveSessao = 'gingapass_sessao_' + currentRole + ':' + (currentUser || 'master');
+  const dados = JSON.parse(localStorage.getItem(chaveSessao) || 'null');
+  if(dados && dados.token && dados.token !== meuSessionToken){
+    alert('Sua conta foi acessada em outro aparelho, então você foi desconectado aqui. Se não foi você, troque sua senha.');
+    location.reload();
+  }
+}
+
 function aplicarPermissoes(){
+  verificarSessaoUnica();
   const adminTab = document.querySelector('.tab[data-target="admin"]');
   const chatTab = document.querySelector('.tab[data-target="chat"]');
   const matrizTab = document.querySelector('.tab[data-target="matriz"]');
@@ -2868,6 +2891,17 @@ function validarCheckin(codigo, dataAula){
     alert('Não identificamos seu usuário. Faça login novamente.');
     return;
   }
+
+  const contasAluno = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaContaAluno = contasAluno.find(c => c.user === currentUser);
+  const diasAtraso = diasEmAtraso(minhaContaAluno);
+  if(diasAtraso >= 10){
+    const msg = 'Sua mensalidade está atrasada há ' + diasAtraso + ' dias. Fale com seu professor pra regularizar antes de fazer check-in.';
+    if(status) status.textContent = msg;
+    alert(msg);
+    return;
+  }
+
   const key = 'gingapass_checkin_' + data;
   const registro = JSON.parse(localStorage.getItem(key) || '{}');
   registro[currentUser] = true;
@@ -2879,9 +2913,10 @@ function validarCheckin(codigo, dataAula){
   setDado('gingapass_checkin_log', JSON.stringify(log));
 
   const comQuem = meta.professor ? (' com o Prof. ' + meta.professor + (meta.nucleo ? (' · Núcleo ' + meta.nucleo) : '')) : '';
-  if(status) status.textContent = 'Presença confirmada' + comQuem + '! Bom treino 🥋';
+  const avisoAtraso = (diasAtraso > 0 && diasAtraso < 10) ? ('\n\nAtenção: sua mensalidade está atrasada há ' + diasAtraso + ' dia(s). Com 10 dias de atraso o check-in é bloqueado.') : '';
+  if(status) status.textContent = 'Presença confirmada' + comQuem + '! Bom treino 🥋' + (avisoAtraso ? ' ⚠️' : '');
   document.getElementById('checkinCodigoManual').value = '';
-  alert('Check-in feito com sucesso' + comQuem + '!');
+  alert('Check-in feito com sucesso' + comQuem + '!' + avisoAtraso);
 }
 
 function publicarMensalidade(){
@@ -2911,6 +2946,19 @@ function renderMensalidade(){
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
     const minhaConta = contas.find(c => c.user === currentUser);
     if(minhaConta && minhaConta.mensalidadeStatus) status = minhaConta.mensalidadeStatus;
+    const atrasoEl = document.getElementById('atrasoAviso');
+    if(atrasoEl){
+      const dias = diasEmAtraso(minhaConta);
+      if(dias >= 10){
+        atrasoEl.textContent = '🚫 Mensalidade atrasada há ' + dias + ' dias. O check-in está bloqueado até regularizar com seu professor.';
+        atrasoEl.style.display = 'block';
+      } else if(dias > 0){
+        atrasoEl.textContent = '⚠️ Mensalidade atrasada há ' + dias + ' dia(s). Com 10 dias de atraso o check-in é bloqueado.';
+        atrasoEl.style.display = 'block';
+      } else {
+        atrasoEl.style.display = 'none';
+      }
+    }
   }
 
   if(valor && vencimento){
@@ -2933,9 +2981,19 @@ function alterarMensalidadeAluno(userAluno, novoStatus){
   const idx = contas.findIndex(c => c.user === userAluno);
   if(idx < 0) return;
   contas[idx].mensalidadeStatus = novoStatus;
+  if(novoStatus === 'Atrasado'){
+    if(!contas[idx].atrasadoDesde) contas[idx].atrasadoDesde = Date.now();
+  } else {
+    contas[idx].atrasadoDesde = null;
+  }
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+}
+
+function diasEmAtraso(conta){
+  if(!conta || conta.mensalidadeStatus !== 'Atrasado' || !conta.atrasadoDesde) return 0;
+  return Math.floor((Date.now() - conta.atrasadoDesde) / 86400000);
 }
 
 function renderMensalidadesAlunos(containerId, escopo){
@@ -3342,6 +3400,10 @@ function escolherProfessorChat(){
 }
 
 function renderTelaChat(){
+  const statusNuvem = document.getElementById('chatStatusNuvem');
+  if(statusNuvem){
+    statusNuvem.textContent = dbCollection ? '🟢 Conectado à nuvem — mensagens sincronizam entre aparelhos' : '🔴 Sem conexão com a nuvem — mensagens ficam só neste aparelho';
+  }
   const titulo = document.getElementById('chatTituloTela');
   const label = document.getElementById('chatProfessorLabel');
   const visaoAluno = document.getElementById('chatVisaoAluno');
