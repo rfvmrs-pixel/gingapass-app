@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_61.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_62.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -552,12 +552,25 @@
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
       <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarSetupMaster();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Primeiro acesso? Criar cadastro master</a>
-      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master? Recomeçar cadastro master</a>
+      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:10px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
+      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master e a resposta de segurança? Recomeçar cadastro master</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterSenha" type="password" placeholder="Senha que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="setupMasterPergunta" placeholder="Pergunta de segurança (ex: nome do seu primeiro cachorro)" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="setupMasterResposta" placeholder="Resposta da pergunta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <button class="btn" onclick="criarMaster()" type="button" style="background:var(--amber-500);color:var(--navy-900);">Criar cadastro master</button>
+      </div>
+      <div id="recuperarSenhaBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
+        <input id="recSenhaUser" placeholder="Seu usuário" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <button class="btn" onclick="buscarPerguntaRecuperacao()" type="button" style="background:var(--white);color:var(--navy-900);">Buscar pergunta de segurança</button>
+        <div id="recSenhaPerguntaBox" style="display:none;margin-top:10px;">
+          <p id="recSenhaPerguntaTexto" style="font-size:12.5px;color:#E7EEF6;margin:0 0 8px;"></p>
+          <input id="recSenhaResposta" placeholder="Sua resposta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+          <input id="recSenhaNova" type="password" placeholder="Nova senha" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+          <button class="btn" onclick="confirmarRecuperacaoSenha()" type="button" style="background:var(--amber-500);color:var(--navy-900);">Confirmar e trocar senha</button>
+        </div>
       </div>
     </div>
   </div>
@@ -697,6 +710,14 @@
       <input class="admin-input" id="senhaNovaInput" type="password" placeholder="Nova senha">
       <input class="admin-input" id="senhaNovaConfirmInput" type="password" placeholder="Confirme a nova senha">
       <button class="btn" onclick="trocarMinhaSenha()">Salvar nova senha</button>
+    </div>
+
+    <p class="section-title">Pergunta de segurança</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Configure isso pra poder recuperar sua senha sozinho se esquecer, sem precisar pedir ajuda.</p>
+      <input class="admin-input" id="perguntaSegurancaInput" placeholder="Pergunta (ex: nome do seu primeiro cachorro)">
+      <input class="admin-input" id="respostaSegurancaInput" placeholder="Resposta">
+      <button class="btn" onclick="salvarPerguntaSeguranca()">Salvar pergunta de segurança</button>
     </div>
 
     <p class="section-title">Redes sociais</p>
@@ -863,6 +884,8 @@
         <input class="admin-input" id="novoAlunoVencimentoAd" type="date">
         <input class="admin-input" id="novoAlunoUserAd" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenhaAd" placeholder="Senha de acesso">
+        <input class="admin-input" id="novoAlunoPerguntaAd" placeholder="Pergunta de segurança (pra recuperar senha depois)">
+        <input class="admin-input" id="novoAlunoRespostaAd" placeholder="Resposta da pergunta">
         <button class="btn" onclick="criarAcessoAlunoAcademia()">Adicionar aluno</button>
       </div>
       <p class="section-title">Alunos cadastrados</p>
@@ -885,6 +908,8 @@
         <select class="admin-input" id="novoAlunoProfessor"><option value="">Selecione o professor...</option></select>
         <input class="admin-input" id="novoAlunoUser" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenha" placeholder="Senha de acesso">
+        <input class="admin-input" id="novoAlunoPergunta" placeholder="Pergunta de segurança (pra recuperar senha depois)">
+        <input class="admin-input" id="novoAlunoResposta" placeholder="Resposta da pergunta">
         <button class="btn" onclick="criarAcessoAluno()">Conceder acesso ao aluno</button>
       </div>
       <p class="section-title">Alunos com acesso</p>
@@ -1015,6 +1040,8 @@
       <input class="admin-input" id="novaAcademiaCartao" placeholder="Link de pagamento cartão — deixe em branco pro professor preencher depois">
       <input class="admin-input" id="novaAcademiaUser" placeholder="Usuário de acesso">
       <input class="admin-input" id="novaAcademiaSenha" placeholder="Senha de acesso">
+      <input class="admin-input" id="novaAcademiaPergunta" placeholder="Pergunta de segurança (pra recuperar senha depois)">
+      <input class="admin-input" id="novaAcademiaResposta" placeholder="Resposta da pergunta">
       <button class="btn" onclick="criarAcessoAcademia()">Conceder acesso à academia</button>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;">Isso já cadastra a academia na rede automaticamente — não precisa repetir em "Academias da rede".</p>
     </div>
@@ -1336,34 +1363,150 @@ function setRole(role){
   document.getElementById('roleAcademiaBtn').classList.toggle('active', role === 'academia');
 }
 
+function alternarRecuperarSenha(){
+  const box = document.getElementById('recuperarSenhaBox');
+  const setupBox = document.getElementById('setupMasterBox');
+  if(!box) return;
+  if(setupBox) setupBox.style.display = 'none';
+  box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+  const perguntaBox = document.getElementById('recSenhaPerguntaBox');
+  if(perguntaBox) perguntaBox.style.display = 'none';
+}
+
+function localizarContaPorUsuario(user){
+  if(!user) return null;
+  const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+  if(master && master.user === user) return {tipo: 'matriz', chave: 'gingapass_master', conta: master, indice: -1};
+
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idxAc = academiasContas.findIndex(c => c.user === user);
+  if(idxAc >= 0) return {tipo: 'academia', chave: 'gingapass_academias_contas', conta: academiasContas[idxAc], indice: idxAc, todas: academiasContas};
+
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idxAl = alunosContas.findIndex(c => c.user === user);
+  if(idxAl >= 0) return {tipo: 'aluno', chave: 'gingapass_alunos_contas', conta: alunosContas[idxAl], indice: idxAl, todas: alunosContas};
+
+  return null;
+}
+
+function buscarPerguntaRecuperacao(){
+  const user = document.getElementById('recSenhaUser').value.trim();
+  if(!user){
+    alert('Digite seu usuário.');
+    return;
+  }
+  const achado = localizarContaPorUsuario(user);
+  const perguntaBox = document.getElementById('recSenhaPerguntaBox');
+  const perguntaTexto = document.getElementById('recSenhaPerguntaTexto');
+  if(!achado || !achado.conta.pergunta || !achado.conta.resposta){
+    alert('Não encontramos uma pergunta de segurança pra esse usuário. Peça pra quem criou seu acesso (professor ou matriz) trocar sua senha manualmente.');
+    if(perguntaBox) perguntaBox.style.display = 'none';
+    return;
+  }
+  if(perguntaTexto) perguntaTexto.textContent = 'Pergunta: ' + achado.conta.pergunta;
+  if(perguntaBox) perguntaBox.style.display = 'block';
+}
+
+function confirmarRecuperacaoSenha(){
+  const user = document.getElementById('recSenhaUser').value.trim();
+  const resposta = document.getElementById('recSenhaResposta').value.trim().toLowerCase();
+  const novaSenha = document.getElementById('recSenhaNova').value.trim();
+
+  const achado = localizarContaPorUsuario(user);
+  if(!achado || !achado.conta.resposta){
+    alert('Não foi possível confirmar. Recarregue a página e tente de novo.');
+    return;
+  }
+  if(resposta !== achado.conta.resposta){
+    alert('Resposta incorreta.');
+    return;
+  }
+  if(!novaSenha || novaSenha.length < 4){
+    alert('A nova senha precisa ter pelo menos 4 caracteres.');
+    return;
+  }
+
+  if(achado.tipo === 'matriz'){
+    achado.conta.senha = novaSenha;
+    setDado('gingapass_master', JSON.stringify(achado.conta));
+  } else {
+    achado.todas[achado.indice].senha = novaSenha;
+    setDado(achado.chave, JSON.stringify(achado.todas));
+  }
+
+  alert('Senha alterada com sucesso! Já pode entrar com a nova senha.');
+  document.getElementById('recSenhaUser').value = '';
+  document.getElementById('recSenhaResposta').value = '';
+  document.getElementById('recSenhaNova').value = '';
+  document.getElementById('recSenhaPerguntaBox').style.display = 'none';
+  document.getElementById('recuperarSenhaBox').style.display = 'none';
+}
+
+function salvarPerguntaSeguranca(){
+  const pergunta = document.getElementById('perguntaSegurancaInput').value.trim();
+  const resposta = document.getElementById('respostaSegurancaInput').value.trim();
+  if(!pergunta || !resposta){
+    alert('Preencha a pergunta e a resposta.');
+    return;
+  }
+  if(!currentRole){
+    alert('Faça login novamente.');
+    return;
+  }
+  if(currentRole === 'matriz'){
+    const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+    if(!master) return;
+    master.pergunta = pergunta;
+    master.resposta = resposta.trim().toLowerCase();
+    setDado('gingapass_master', JSON.stringify(master));
+  } else {
+    const chave = currentRole === 'academia' ? 'gingapass_academias_contas' : 'gingapass_alunos_contas';
+    const contas = JSON.parse(localStorage.getItem(chave) || '[]');
+    const idx = contas.findIndex(c => c.user === currentUser);
+    if(idx < 0) return;
+    contas[idx].pergunta = pergunta;
+    contas[idx].resposta = resposta.trim().toLowerCase();
+    setDado(chave, JSON.stringify(contas));
+  }
+  document.getElementById('perguntaSegurancaInput').value = '';
+  document.getElementById('respostaSegurancaInput').value = '';
+  alert('Pergunta de segurança salva! Já pode usar "Esqueci minha senha" se precisar.');
+}
+
 function resetarCadastroMaster(){
+  if(!dbCollection){
+    alert('Ainda não conectamos com a nuvem neste aparelho. Espere alguns segundos (ou recarregue a página) e tente de novo — se você apagar sem estar conectado, o cadastro master antigo pode voltar sozinho depois.');
+    return;
+  }
   const passo1 = confirm('Isso vai apagar o cadastro master atual (usuário e senha), pra você criar um novo do zero. Academias, alunos, chat, fotos e eventos NÃO são apagados — só o master. Continuar?');
   if(!passo1) return;
   const passo2 = confirm('Confirmando: qualquer pessoa com o link do app vai conseguir criar um novo cadastro master depois disso, até você criar o seu. Faça isso e crie o novo master imediatamente. Continuar?');
   if(!passo2) return;
 
   localStorage.removeItem('gingapass_master');
-  if(dbCollection){
-    dbCollection.doc('gingapass_master').delete().then(function(){
-      alert('Cadastro master apagado. A tela vai recarregar — clique em "Primeiro acesso? Criar cadastro master" pra criar o novo.');
-      location.reload();
-    }).catch(function(){
-      alert('Apagado neste aparelho. Recarregando.');
-      location.reload();
-    });
-  } else {
-    alert('Cadastro master apagado. Recarregando.');
+  dbCollection.doc('gingapass_master').delete().then(function(){
+    return dbCollection.doc('gingapass_master').get();
+  }).then(function(doc){
+    if(doc.exists){
+      alert('Não conseguimos confirmar a exclusão na nuvem. Verifique sua conexão e tente de novo.');
+      return;
+    }
+    alert('Cadastro master apagado de verdade (confirmado na nuvem). A tela vai recarregar — clique em "Primeiro acesso? Criar cadastro master" pra criar o novo AGORA.');
     location.reload();
-  }
+  }).catch(function(){
+    alert('Não conseguimos confirmar a exclusão na nuvem. Verifique sua conexão e tente de novo.');
+  });
 }
 
 function alternarSetupMaster(){
   const box = document.getElementById('setupMasterBox');
+  const recBox = document.getElementById('recuperarSenhaBox');
   const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
   if(master){
-    alert('Já existe um cadastro master (' + master.nome + '). Faça login com o usuário e senha que foram criados. Se esqueceu a senha, peça ajuda técnica pra redefinir.');
+    alert('Já existe um cadastro master (' + master.nome + '). Faça login com o usuário e senha que foram criados. Se esqueceu a senha, use "Esqueci minha senha" (se cadastrou pergunta de segurança) ou "Recomeçar cadastro master".');
     return;
   }
+  if(recBox) recBox.style.display = 'none';
   box.style.display = box.style.display === 'none' ? 'block' : 'none';
 }
 
@@ -1376,6 +1519,8 @@ function criarMaster(){
   const nome = document.getElementById('setupMasterNome').value.trim();
   const user = document.getElementById('setupMasterUser').value.trim();
   const senha = document.getElementById('setupMasterSenha').value.trim();
+  const pergunta = document.getElementById('setupMasterPergunta').value.trim();
+  const resposta = document.getElementById('setupMasterResposta').value.trim();
   if(!nome || !user || !senha){
     alert('Preencha seu nome, usuário e senha.');
     return;
@@ -1384,7 +1529,7 @@ function criarMaster(){
     alert('Use uma senha com pelo menos 6 caracteres.');
     return;
   }
-  setDado('gingapass_master', JSON.stringify({nome, user, senha}));
+  setDado('gingapass_master', JSON.stringify({nome, user, senha, pergunta, resposta: resposta.trim().toLowerCase()}));
   alert('Cadastro master criado! Guarde seu usuário e senha em lugar seguro — agora você já pode entrar com eles.');
   document.getElementById('setupMasterBox').style.display = 'none';
   document.getElementById('loginUser').value = user;
@@ -1597,6 +1742,8 @@ function criarAcessoAcademia(){
   const cartao = document.getElementById('novaAcademiaCartao').value.trim();
   const user = document.getElementById('novaAcademiaUser').value.trim();
   const senha = document.getElementById('novaAcademiaSenha').value.trim();
+  const pergunta = document.getElementById('novaAcademiaPergunta').value.trim();
+  const resposta = document.getElementById('novaAcademiaResposta').value.trim();
   if(!nome || !endereco || !professor || !user || !senha){
     alert('Preencha nome, endereço, professor, usuário e senha da academia.');
     return;
@@ -1607,7 +1754,7 @@ function criarAcessoAcademia(){
     alert('Já existe uma academia com esse usuário.');
     return;
   }
-  contas.push({nome, user, senha});
+  contas.push({nome, user, senha, pergunta, resposta: resposta.trim().toLowerCase()});
   setDado('gingapass_academias_contas', JSON.stringify(contas));
 
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
@@ -1703,6 +1850,8 @@ function criarAcessoAluno(){
   const professor = document.getElementById('novoAlunoProfessor').value;
   const user = document.getElementById('novoAlunoUser').value.trim();
   const senha = document.getElementById('novoAlunoSenha').value.trim();
+  const pergunta = document.getElementById('novoAlunoPergunta').value.trim();
+  const resposta = document.getElementById('novoAlunoResposta').value.trim();
   if(!nome || !user || !senha){
     alert('Preencha nome, usuário e senha do aluno.');
     return;
@@ -1716,7 +1865,8 @@ function criarAcessoAluno(){
     nome, user, senha, corda, nucleo, professor,
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
-    desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString()
+    desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
+    pergunta, resposta: resposta.trim().toLowerCase()
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNome').value = '';
@@ -1727,6 +1877,8 @@ function criarAcessoAluno(){
   document.getElementById('novoAlunoProfessor').value = '';
   document.getElementById('novoAlunoUser').value = '';
   document.getElementById('novoAlunoSenha').value = '';
+  document.getElementById('novoAlunoPergunta').value = '';
+  document.getElementById('novoAlunoResposta').value = '';
   renderAlunosContas();
   renderAlunos();
   alert('Acesso concedido! Repasse o usuário e a senha pro aluno.');
@@ -2865,6 +3017,8 @@ function criarAcessoAlunoAcademia(){
   const vencimento = document.getElementById('novoAlunoVencimentoAd').value;
   const user = document.getElementById('novoAlunoUserAd').value.trim();
   const senha = document.getElementById('novoAlunoSenhaAd').value.trim();
+  const pergunta = document.getElementById('novoAlunoPerguntaAd').value.trim();
+  const resposta = document.getElementById('novoAlunoRespostaAd').value.trim();
   if(!nome || !user || !senha){
     alert('Preencha nome, usuário e senha do aluno.');
     return;
@@ -2890,7 +3044,8 @@ function criarAcessoAlunoAcademia(){
     nome, user, senha, corda, nucleo, professor,
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
-    desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString()
+    desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
+    pergunta, resposta: resposta.trim().toLowerCase()
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNomeAd').value = '';
@@ -2899,6 +3054,8 @@ function criarAcessoAlunoAcademia(){
   document.getElementById('novoAlunoVencimentoAd').value = '';
   document.getElementById('novoAlunoUserAd').value = '';
   document.getElementById('novoAlunoSenhaAd').value = '';
+  document.getElementById('novoAlunoPerguntaAd').value = '';
+  document.getElementById('novoAlunoRespostaAd').value = '';
   renderAlunos();
   renderAlunosContas();
   renderCheckin();
