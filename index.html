@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_26.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_27.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -544,7 +544,7 @@
       <p>Entre com seu usuário e senha</p>
       <div class="role-toggle">
         <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
-        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Academia</button>
+        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
       </div>
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
@@ -688,7 +688,7 @@
 
   <!-- ADMIN -->
   <div class="screen" id="admin">
-    <p class="greeting" style="font-size:18px;">Painel da academia</p>
+    <p class="greeting" style="font-size:18px;">Painel do professor</p>
     <p class="subgreeting">Publique eventos e fotos da sua unidade</p>
 
     <div class="card">
@@ -762,6 +762,10 @@
     <p class="section-title">Alunos cadastrados</p>
     <div class="card" id="alunosList"></div>
 
+    <p class="section-title">Mensalidades dos meus alunos</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Marque a situação de cada aluno individualmente. Isso é o que aparece pra cada um na tela de Mensalidade dele.</p>
+    <div class="card" id="mensalidadesAlunosAdmin"></div>
+
     <p class="section-title">QR code de check-in <span id="checkinData"></span></p>
     <div class="card" style="text-align:center;">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Gere o código de hoje e mostre na tela pros alunos escanearem ao chegar na aula.</p>
@@ -784,8 +788,13 @@
 
   <!-- CHAT -->
   <div class="screen" id="chat">
-    <p class="greeting" style="font-size:18px;" id="chatTituloTela">Fale com seu professor</p>
-    <p class="subgreeting" id="chatProfessorLabel">Tire dúvidas sobre aulas, eventos ou mensalidade</p>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div>
+        <p class="greeting" style="font-size:18px;margin-bottom:2px;" id="chatTituloTela">Fale com seu professor</p>
+        <p class="subgreeting" id="chatProfessorLabel">Tire dúvidas sobre aulas, eventos ou mensalidade</p>
+      </div>
+      <button class="btn" type="button" onclick="atualizarNuvemManual(this)" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;">↻ Atualizar</button>
+    </div>
 
     <!-- Visão do aluno: conversa com um professor -->
     <div id="chatVisaoAluno">
@@ -805,12 +814,11 @@
       <div class="card" id="inboxChatTab"></div>
       <p class="section-title">Forma de pagamento</p>
       <div class="card" id="pagamentoAtalhoChatBox" style="display:none;">
-        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;" id="pagamentoAtalhoTexto">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
         <input class="admin-input" id="admPixAtalho" placeholder="Chave Pix ou link de pagamento Pix">
         <input class="admin-input" id="admCartaoAtalho" placeholder="Link de pagamento com cartão">
         <button class="btn" onclick="salvarPagamentoAtalho()">Salvar forma de pagamento</button>
       </div>
-      <p id="pagamentoAtalhoAvisoMatriz" style="display:none;font-size:11.5px;color:var(--ink-soft);margin:0;">Cada academia filiada define sua própria forma de pagamento, na aba "Academia" dela.</p>
     </div>
   </div>
 
@@ -877,6 +885,10 @@
 
     <p class="section-title">Alunos com acesso</p>
     <div class="card" id="alunosContasList"></div>
+
+    <p class="section-title">Mensalidades dos alunos (rede toda)</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Marque a situação de cada aluno individualmente. Isso é o que aparece pra cada um na tela de Mensalidade dele.</p>
+    <div class="card" id="mensalidadesAlunosMatriz"></div>
 
     <p class="section-title">Aulas online (link do YouTube/Vimeo)</p>
     <div class="card">
@@ -1006,7 +1018,7 @@
     </button>
     <button class="tab" data-target="admin" onclick="showScreen(&#39;admin&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path></svg>
-      Academia
+      Professor
     </button>
     <button class="tab" data-target="chat" onclick="showScreen(&#39;chat&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4V4z"></path></svg>
@@ -1060,6 +1072,52 @@ function setDado(chave, valor){
       console.error('Erro ao sincronizar com a nuvem:', e);
     });
   }
+}
+
+function buscarValorFresco(chave){
+  return new Promise(function(resolve){
+    if(!dbCollection){
+      resolve(window.localStorage.getItem(chave));
+      return;
+    }
+    dbCollection.doc(chave).get().then(function(doc){
+      if(doc.exists){
+        const data = doc.data();
+        if(data && typeof data.value === 'string'){
+          _setLocal(chave, data.value);
+          resolve(data.value);
+          return;
+        }
+      }
+      resolve(window.localStorage.getItem(chave));
+    }).catch(function(){
+      resolve(window.localStorage.getItem(chave));
+    });
+  });
+}
+
+function atualizarNuvemManual(botao){
+  const textoOriginal = botao ? botao.textContent : null;
+  if(botao){ botao.textContent = 'Atualizando...'; botao.disabled = true; }
+  const finalizar = () => {
+    aplicarPermissoes();
+    if(botao){ botao.textContent = textoOriginal; botao.disabled = false; }
+  };
+  if(!dbCollection){
+    finalizar();
+    return;
+  }
+  dbCollection.get().then(function(snapshot){
+    snapshot.forEach(function(doc){
+      const data = doc.data();
+      if(data && typeof data.value === 'string'){
+        _setLocal(doc.id, data.value);
+      }
+    });
+    finalizar();
+  }).catch(function(){
+    finalizar();
+  });
 }
 
 function iniciarFirebase(tentativas){
@@ -1252,6 +1310,8 @@ function aplicarPermissoes(){
   renderEnderecos();
   renderCheckin();
   renderMensalidade();
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
   renderRedeAcademias();
   renderConfigGeral();
   renderAcademiasScreen();
@@ -2333,11 +2393,19 @@ function renderPagamentoAluno(){
 
   const pix = (minhaAcademia && minhaAcademia.pix) ? minhaAcademia.pix.trim() : '';
   const cartao = (minhaAcademia && minhaAcademia.cartao) ? minhaAcademia.cartao.trim() : '';
-  pagamentoAtual = {pix, cartao};
+  let pixFinal = pix, cartaoFinal = cartao;
+  if(!pixFinal || !cartaoFinal){
+    const dadosMatriz = JSON.parse(localStorage.getItem('gingapass_pagamento_matriz') || 'null');
+    if(dadosMatriz){
+      if(!pixFinal && dadosMatriz.pix) pixFinal = dadosMatriz.pix.trim();
+      if(!cartaoFinal && dadosMatriz.cartao) cartaoFinal = dadosMatriz.cartao.trim();
+    }
+  }
+  pagamentoAtual = {pix: pixFinal, cartao: cartaoFinal};
 
-  btnPix.style.display = pix ? '' : 'none';
-  btnCartao.style.display = cartao ? '' : 'none';
-  if(aviso) aviso.style.display = (pix || cartao) ? 'none' : 'block';
+  btnPix.style.display = pixFinal ? '' : 'none';
+  btnCartao.style.display = cartaoFinal ? '' : 'none';
+  if(aviso) aviso.style.display = (pixFinal || cartaoFinal) ? 'none' : 'block';
 }
 
 function abrirPagamento(tipo){
@@ -2738,9 +2806,23 @@ function renderMensalidade(){
   const dueEl = document.getElementById('mensalidadeDueView');
   const statusEl = document.getElementById('mensalidadeStatusView');
   if(!dueEl) return;
+
+  let valor = dados ? dados.valor : null;
+  let vencimento = dados ? dados.vencimento : null;
+  let status = dados ? dados.status : null;
+
+  if(currentRole === 'aluno' && currentUser){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const minhaConta = contas.find(c => c.user === currentUser);
+    if(minhaConta && minhaConta.mensalidadeStatus) status = minhaConta.mensalidadeStatus;
+  }
+
+  if(valor && vencimento){
+    dueEl.textContent = 'Próximo vencimento: ' + vencimento + ' · ' + valor;
+  }
+  if(statusEl && status) statusEl.textContent = status;
+
   if(dados){
-    dueEl.textContent = 'Próximo vencimento: ' + dados.vencimento + ' · ' + dados.valor;
-    if(statusEl && dados.status) statusEl.textContent = dados.status;
     const valorInput = document.getElementById('mensalidadeValor');
     const vencInput = document.getElementById('mensalidadeVencimento');
     const statusInput = document.getElementById('mensalidadeStatus');
@@ -2748,6 +2830,49 @@ function renderMensalidade(){
     if(vencInput && !vencInput.value) vencInput.value = dados.vencimento;
     if(statusInput && dados.status) statusInput.value = dados.status;
   }
+}
+
+function alterarMensalidadeAluno(userAluno, novoStatus){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userAluno);
+  if(idx < 0) return;
+  contas[idx].mensalidadeStatus = novoStatus;
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+}
+
+function renderMensalidadesAlunos(containerId, escopo){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  let meusAlunos = contas;
+  if(escopo === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    const meuNucleo = minhaConta ? minhaConta.nome : null;
+    meusAlunos = meuNucleo ? contas.filter(c => c.nucleo === meuNucleo) : [];
+  }
+  container.innerHTML = '';
+  if(meusAlunos.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p>';
+    return;
+  }
+  meusAlunos.forEach(aluno => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = aluno.nome + (escopo === 'matriz' && aluno.nucleo ? ' (' + aluno.nucleo + ')' : '');
+    const select = document.createElement('select');
+    select.className = 'admin-input';
+    select.style.cssText = 'width:auto;margin-bottom:0;padding:6px 10px;font-size:12px;';
+    select.innerHTML = '<option value="Em dia">Em dia</option><option value="Atrasado">Atrasado</option>';
+    select.value = aluno.mensalidadeStatus || 'Em dia';
+    select.onchange = () => alterarMensalidadeAluno(aluno.user, select.value);
+    row.appendChild(span);
+    row.appendChild(select);
+    container.appendChild(row);
+  });
 }
 
 function adicionarHistorico(){
@@ -3131,10 +3256,10 @@ function renderTelaChat(){
     renderInbox('inboxChatTab');
 
     const box = document.getElementById('pagamentoAtalhoChatBox');
-    const avisoMatriz = document.getElementById('pagamentoAtalhoAvisoMatriz');
+    const textoEl = document.getElementById('pagamentoAtalhoTexto');
+    if(box) box.style.display = 'block';
     if(currentRole === 'academia'){
-      if(box) box.style.display = 'block';
-      if(avisoMatriz) avisoMatriz.style.display = 'none';
+      if(textoEl) textoEl.textContent = 'Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.';
       const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
       const minhaConta = academiasContas.find(c => c.user === currentUser);
       if(minhaConta){
@@ -3148,37 +3273,47 @@ function renderTelaChat(){
         }
       }
     } else {
-      if(box) box.style.display = 'none';
-      if(avisoMatriz) avisoMatriz.style.display = 'block';
+      if(textoEl) textoEl.textContent = 'Se você mesmo é o professor (sem uma academia filiada separada), cadastre aqui sua chave Pix ou link de cobrança. Isso vale como padrão pra qualquer aluno cuja academia ainda não tenha uma forma de pagamento própria.';
+      const dadosMatriz = JSON.parse(localStorage.getItem('gingapass_pagamento_matriz') || 'null');
+      const pixInput = document.getElementById('admPixAtalho');
+      const cartaoInput = document.getElementById('admCartaoAtalho');
+      if(pixInput) pixInput.value = (dadosMatriz && dadosMatriz.pix) || '';
+      if(cartaoInput) cartaoInput.value = (dadosMatriz && dadosMatriz.cartao) || '';
     }
   }
 }
 
 function salvarPagamentoAtalho(){
-  if(currentRole !== 'academia') return;
   const pix = document.getElementById('admPixAtalho').value.trim();
   const cartao = document.getElementById('admCartaoAtalho').value.trim();
-  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  const minhaConta = academiasContas.find(c => c.user === currentUser);
-  if(!minhaConta){
-    alert('Não identificamos sua academia. Faça login novamente.');
+
+  if(currentRole === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const minhaConta = academiasContas.find(c => c.user === currentUser);
+    if(!minhaConta){
+      alert('Não identificamos sua academia. Faça login novamente.');
+      return;
+    }
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const idx = rede.findIndex(a => a.nome === minhaConta.nome);
+    if(idx >= 0){
+      rede[idx].pix = pix;
+      rede[idx].cartao = cartao;
+    } else {
+      rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
+    }
+    setDado('gingapass_rede_academias', JSON.stringify(rede));
+    renderRedeAcademias();
+    renderAcademiasScreen();
+    const pixInput = document.getElementById('admPix');
+    const cartaoInput = document.getElementById('admCartao');
+    if(pixInput) pixInput.value = pix;
+    if(cartaoInput) cartaoInput.value = cartao;
+  } else if(currentRole === 'matriz'){
+    setDado('gingapass_pagamento_matriz', JSON.stringify({pix, cartao}));
+  } else {
     return;
   }
-  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-  const idx = rede.findIndex(a => a.nome === minhaConta.nome);
-  if(idx >= 0){
-    rede[idx].pix = pix;
-    rede[idx].cartao = cartao;
-  } else {
-    rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
-  }
-  setDado('gingapass_rede_academias', JSON.stringify(rede));
-  renderRedeAcademias();
-  renderAcademiasScreen();
-  const pixInput = document.getElementById('admPix');
-  const cartaoInput = document.getElementById('admCartao');
-  if(pixInput) pixInput.value = pix;
-  if(cartaoInput) cartaoInput.value = cartao;
   alert('Forma de pagamento salva! Já aparece pros seus alunos.');
 }
 
@@ -3224,20 +3359,25 @@ function enviarChat(){
     alert('Escolha primeiro o professor pra quem você quer mandar a mensagem, na lista acima.');
     return;
   }
-  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const minhaConta = contas.find(c => c.user === currentUser);
-  const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
-  todas.push({
-    aluno: currentUser,
-    nomeAluno: minhaConta ? minhaConta.nome : currentUser,
-    professor: meuProfessor,
-    remetente: 'aluno',
-    texto,
-    data: Date.now()
+  const enviarBtn = document.querySelector('#chatVisaoAluno .chat-send');
+  if(enviarBtn) enviarBtn.disabled = true;
+  buscarValorFresco('gingapass_chat').then(function(valorFresco){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const minhaConta = contas.find(c => c.user === currentUser);
+    const todas = JSON.parse(valorFresco || '[]');
+    todas.push({
+      aluno: currentUser,
+      nomeAluno: minhaConta ? minhaConta.nome : currentUser,
+      professor: meuProfessor,
+      remetente: 'aluno',
+      texto,
+      data: Date.now()
+    });
+    setDado('gingapass_chat', JSON.stringify(todas));
+    input.value = '';
+    if(enviarBtn) enviarBtn.disabled = false;
+    renderChat();
   });
-  setDado('gingapass_chat', JSON.stringify(todas));
-  input.value = '';
-  renderChat();
 }
 
 function renderInbox(containerId){
@@ -3297,17 +3437,20 @@ function renderInbox(containerId){
     respBtn.onclick = () => {
       const texto = respInput.value.trim();
       if(!texto) return;
-      const todasAtual = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
-      todasAtual.push({
-        aluno: alunoUser,
-        nomeAluno: grupo.nome,
-        professor: meuNome,
-        remetente: 'professor',
-        texto,
-        data: Date.now()
+      respBtn.disabled = true;
+      buscarValorFresco('gingapass_chat').then(function(valorFresco){
+        const todasAtual = JSON.parse(valorFresco || '[]');
+        todasAtual.push({
+          aluno: alunoUser,
+          nomeAluno: grupo.nome,
+          professor: meuNome,
+          remetente: 'professor',
+          texto,
+          data: Date.now()
+        });
+        setDado('gingapass_chat', JSON.stringify(todasAtual));
+        renderInbox(containerId);
       });
-      setDado('gingapass_chat', JSON.stringify(todasAtual));
-      renderInbox(containerId);
     };
     respRow.appendChild(respInput);
     respRow.appendChild(respBtn);
