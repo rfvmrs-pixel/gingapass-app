@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_29.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_31.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -717,9 +717,6 @@
     </div>
     <div class="card" id="aulasStatusAdmin"></div>
 
-    <p class="section-title">Mensagens dos alunos</p>
-    <div class="card" id="inboxAdmin"></div>
-
     <p class="section-title">Fotos da academia</p>
     <div class="card">
       <input type="file" id="fotoInputAdmin" accept="image/*" multiple="" style="font-size:12px;margin-bottom:4px;">
@@ -858,7 +855,7 @@
 
   <!-- MATRIZ -->
   <div class="screen" id="matriz">
-    <p class="greeting" style="font-size:18px;">Painel matriz</p>
+    <p class="greeting" style="font-size:18px;">Painel de dados</p>
     <p class="subgreeting">Conceda acesso a novas academias e alunos</p>
 
     <div class="card">
@@ -941,8 +938,15 @@
       <button class="btn" onclick="salvarMeuProfessor()">Salvar meus dados</button>
     </div>
 
-    <p class="section-title">Mensagens dos alunos</p>
-    <div class="card" id="inboxMatriz"></div>
+    <p class="section-title">QR code de check-in da aula</p>
+    <div class="card" style="text-align:center;">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Escolha a data e o professor da aula, gere o código e mostre na tela pros alunos escanearem ao chegar.</p>
+      <input class="admin-input" id="aulaQrDataMatriz" type="date" style="text-align:left;">
+      <select class="admin-input" id="aulaQrProfessorMatriz" style="text-align:left;"><option value="">Selecione o professor...</option></select>
+      <div id="qrCodeBoxMatriz" style="display:flex;justify-content:center;margin-bottom:10px;"></div>
+      <p id="qrCodeTextoMatriz" style="font-family:var(--font-mono, monospace);font-size:13px;font-weight:600;color:var(--navy-900);margin:0 0 10px;"></p>
+      <button class="btn" onclick="gerarQrAula(&#39;Matriz&#39;)">Gerar código da aula</button>
+    </div>
 
     <p class="section-title">Configurações gerais</p>
     <div class="card">
@@ -1040,7 +1044,7 @@
     </button>
     <button class="tab" data-target="matriz" onclick="showScreen(&#39;matriz&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
-      Matriz
+      Dados
     </button>
     <button class="tab" data-target="estatisticas" onclick="showScreen(&#39;estatisticas&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"></path></svg>
@@ -1074,10 +1078,14 @@ function _setLocal(chave, valor){
 function setDado(chave, valor){
   _setLocal(chave, valor);
   if(dbCollection){
-    dbCollection.doc(chave).set({value: valor, atualizado: Date.now()}).catch(function(e){
+    return dbCollection.doc(chave).set({value: valor, atualizado: Date.now()}).then(function(){
+      return true;
+    }).catch(function(e){
       console.error('Erro ao sincronizar com a nuvem:', e);
+      return false;
     });
   }
+  return Promise.resolve(true);
 }
 
 function buscarValorFresco(chave){
@@ -1322,6 +1330,7 @@ function aplicarPermissoes(){
   renderConfigGeral();
   renderAcademiasScreen();
   renderQrHoje();
+  renderQrHoje('Matriz');
   renderHistoricoGerenciar();
   renderHistoricoAluno();
   renderEstatisticas();
@@ -1330,8 +1339,6 @@ function aplicarPermissoes(){
   renderAulasPendentes();
   renderAulasTodas();
   renderTelaChat();
-  renderInbox('inboxAdmin');
-  renderInbox('inboxMatriz');
   renderPagamentoAluno();
   if(currentRole === 'academia'){
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
@@ -2637,9 +2644,10 @@ function alternarCheckin(user){
   renderCheckin();
 }
 
-function gerarQrAula(){
-  const dataInput = document.getElementById('aulaQrData');
-  const profInput = document.getElementById('aulaQrProfessor');
+function gerarQrAula(sufixo){
+  sufixo = sufixo || '';
+  const dataInput = document.getElementById('aulaQrData' + sufixo);
+  const profInput = document.getElementById('aulaQrProfessor' + sufixo);
   const data = (dataInput && dataInput.value) ? dataInput.value : hojeStr();
   const professor = profInput ? profInput.value.trim() : '';
   if(!professor){
@@ -2663,17 +2671,20 @@ function gerarQrAula(){
     dias.push(data);
     setDado('gingapass_dias_checkin', JSON.stringify(dias));
   }
-  window._ultimaDataQrGerada = data;
-  renderQrHoje();
+  window._ultimaDataQrGerada = window._ultimaDataQrGerada || {};
+  window._ultimaDataQrGerada[sufixo] = data;
+  renderQrHoje(sufixo);
 }
 
-function renderQrHoje(){
-  const box = document.getElementById('qrCodeBox');
-  const texto = document.getElementById('qrCodeTexto');
+function renderQrHoje(sufixo){
+  sufixo = sufixo || '';
+  const box = document.getElementById('qrCodeBox' + sufixo);
+  const texto = document.getElementById('qrCodeTexto' + sufixo);
   if(!box || !texto) return;
-  const dataInput = document.getElementById('aulaQrData');
+  const dataInput = document.getElementById('aulaQrData' + sufixo);
   if(dataInput && !dataInput.value) dataInput.value = hojeStr();
-  const data = window._ultimaDataQrGerada || (dataInput ? dataInput.value : hojeStr()) || hojeStr();
+  const memo = (window._ultimaDataQrGerada && window._ultimaDataQrGerada[sufixo]) || null;
+  const data = memo || (dataInput ? dataInput.value : hojeStr()) || hojeStr();
   let codigo = localStorage.getItem('gingapass_qrcode_' + data);
   if(!codigo){
     box.innerHTML = '';
@@ -3090,7 +3101,7 @@ function populaSelectsNucleoProfessor(){
       nucleos.map(n => '<option value="' + n + '">' + n + '</option>').join('');
     if(atual) sel.value = atual;
   });
-  ['cfgProfessor', 'perfilProfessorInput', 'novoAlunoProfessor', 'chatProfessorSelect', 'aulaQrProfessor'].forEach(id => {
+  ['cfgProfessor', 'perfilProfessorInput', 'novoAlunoProfessor', 'chatProfessorSelect', 'aulaQrProfessor', 'aulaQrProfessorMatriz'].forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
     const atual = sel.value;
@@ -3423,7 +3434,11 @@ function enviarChat(){
       texto,
       data: Date.now()
     });
-    setDado('gingapass_chat', JSON.stringify(todas));
+    setDado('gingapass_chat', JSON.stringify(todas)).then(function(ok){
+      if(!ok){
+        alert('Sua mensagem foi salva neste aparelho, mas não conseguiu sincronizar com a nuvem agora (conexão instável). Ela pode não chegar pro professor até você abrir o app de novo com internet estável.');
+      }
+    });
     input.value = '';
     if(enviarBtn) enviarBtn.disabled = false;
     renderChat();
@@ -3533,7 +3548,9 @@ function renderThreadSelecionado(alunoUser){
         texto,
         data: Date.now()
       });
-      setDado('gingapass_chat', JSON.stringify(todasAtual));
+      setDado('gingapass_chat', JSON.stringify(todasAtual)).then(function(ok){
+        if(!ok) alert('Sua resposta foi salva neste aparelho, mas não conseguiu sincronizar com a nuvem agora (conexão instável). Ela pode não chegar pro aluno até você abrir o app de novo com internet estável.');
+      });
       renderThreadSelecionado(alunoUser);
     });
   };
