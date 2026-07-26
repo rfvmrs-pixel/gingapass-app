@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_96.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_97.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2443,6 +2443,18 @@ function trocarMinhaSenha(){
 }
 
 function alternarEdicaoPerfil(){
+  try{
+    alternarEdicaoPerfilInterno();
+  } catch(e){
+    console.error('Erro ao abrir edição de perfil:', e);
+    window._errosRenderizacao.push((e && e.message) ? e.message : String(e));
+    mostrarBannerErros();
+    const editCard = document.getElementById('perfilEditCard');
+    if(editCard) editCard.style.display = 'block';
+  }
+}
+
+function alternarEdicaoPerfilInterno(){
   const editCard = document.getElementById('perfilEditCard');
   const btn = document.getElementById('perfilEditBtn');
   const camposMatriz = document.getElementById('perfilCamposMatriz');
@@ -5010,8 +5022,7 @@ function populaSelectsNucleoProfessor(){
   }
   const diag = document.getElementById('chatDiagnostico');
   if(diag){
-    diag.textContent = 'Diagnóstico: ' + academiasContas.length + ' academia(s) com login encontrada(s): [' +
-      academiasContas.map(c => c.nome).join(', ') + ']. Nomes de professor resolvidos: [' + professoresAfiliados.join(', ') + '].';
+    diag.textContent = 'Diagnóstico: professores encontrados: [' + professoresAfiliados.join(', ') + '].';
   }
   const listaSugestoes = document.getElementById('cfgProfessorSugestoes');
   if(listaSugestoes){
