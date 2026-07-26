@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_82.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_83.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1147,8 +1147,27 @@
     <div class="card" id="estatisticasList"></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado. A situação da mensalidade, neste protótipo, é a mesma para todos os alunos (ainda não existe cobrança individual por aluno).</p>
 
-    <p class="section-title">Alunos por dia (últimos 14 dias)</p>
+    <p class="section-title">Filtrar período</p>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:130px;">
+          <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">De</label>
+          <input class="admin-input" id="estatisticasDataInicio" type="date" style="margin-bottom:0;">
+        </div>
+        <div style="flex:1;min-width:130px;">
+          <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Até</label>
+          <input class="admin-input" id="estatisticasDataFim" type="date" style="margin-bottom:0;">
+        </div>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="aplicarFiltroPeriodo()">Ver período</button>
+      <button class="btn" style="margin-top:8px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="limparFiltroPeriodo()">Voltar pros últimos 14 dias</button>
+    </div>
+
+    <p class="section-title" id="tituloGraficoDiario">Alunos por dia (últimos 14 dias)</p>
     <div class="card" id="graficoFrequenciaDiaria"></div>
+
+    <p class="section-title">Alunos por mês</p>
+    <div class="card" id="graficoFrequenciaMensal"></div>
 
     <p class="section-title">Quem mais participa</p>
     <div class="card" id="rankingMaisPresentes"></div>
@@ -1156,9 +1175,12 @@
     <p class="section-title">Quem mais falta</p>
     <div class="card" id="rankingMaisFaltas"></div>
 
-    <p class="section-title">Visitantes por aula (últimos 14 dias)</p>
+    <p class="section-title" id="tituloGraficoVisitantes">Visitantes por aula (últimos 14 dias)</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Pessoas sem conta que confirmaram presença escaneando o QR direto pela câmera do celular.</p>
     <div class="card" id="graficoVisitantesDiario"></div>
+
+    <p class="section-title">Visitantes por mês</p>
+    <div class="card" id="graficoVisitantesMensal"></div>
 
     <p class="section-title">Quem mais visita</p>
     <div class="card" id="rankingMaisVisitam"></div>
@@ -4134,31 +4156,30 @@ function obterTodosCheckinsAvulsos(){
   return resultado;
 }
 
-function renderGraficoVisitantes(meuNome){
+function renderGraficoVisitantes(meuNome, diasCustom){
   const container = document.getElementById('graficoVisitantesDiario');
   if(!container) return;
+
+  window._estatMeuNomeVisitas = meuNome;
 
   const todos = obterTodosCheckinsAvulsos();
   const filtrados = meuNome ? todos.filter(c => (c.professor || '').trim().toLowerCase() === meuNome.trim().toLowerCase()) : todos;
 
-  const hoje = new Date();
-  const dias = [];
-  for(let i = 13; i >= 0; i--){
-    const d = new Date(hoje);
-    d.setDate(d.getDate() - i);
-    dias.push(d.toISOString().slice(0, 10));
-  }
+  const dias = gerarIntervaloDatas(diasCustom);
 
   const contagens = dias.map(dataStr => filtrados.filter(c => c.data === dataStr).length);
   const maximo = Math.max(...contagens, 1);
 
   container.innerHTML = '';
+  const scrollWrap = document.createElement('div');
+  scrollWrap.style.cssText = 'overflow-x:auto;';
   const barrasWrap = document.createElement('div');
-  barrasWrap.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:120px;';
+  const larguraMin = Math.max(dias.length * 22, 280);
+  barrasWrap.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:120px;min-width:' + larguraMin + 'px;';
 
   dias.forEach((dataStr, i) => {
     const col = document.createElement('div');
-    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;';
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:18px;';
     const valor = contagens[i];
     const barra = document.createElement('div');
     const alturaPx = Math.max(Math.round((valor / maximo) * 90), valor > 0 ? 6 : 2);
@@ -4171,23 +4192,27 @@ function renderGraficoVisitantes(meuNome){
     col.appendChild(barra);
     barrasWrap.appendChild(col);
   });
-  container.appendChild(barrasWrap);
+  scrollWrap.appendChild(barrasWrap);
+  container.appendChild(scrollWrap);
 
   const legendaWrap = document.createElement('div');
-  legendaWrap.style.cssText = 'display:flex;gap:4px;margin-top:4px;';
+  legendaWrap.style.cssText = 'display:flex;gap:4px;margin-top:4px;overflow-x:auto;';
+  const legendaInner = document.createElement('div');
+  legendaInner.style.cssText = 'display:flex;gap:4px;min-width:' + larguraMin + 'px;';
   dias.forEach(dataStr => {
     const dia = document.createElement('span');
-    dia.style.cssText = 'flex:1;text-align:center;font-size:8px;color:var(--ink-soft);';
+    dia.style.cssText = 'flex:1;text-align:center;font-size:8px;color:var(--ink-soft);min-width:18px;';
     dia.textContent = dataStr.slice(8, 10) + '/' + dataStr.slice(5, 7);
-    legendaWrap.appendChild(dia);
+    legendaInner.appendChild(dia);
   });
+  legendaWrap.appendChild(legendaInner);
   container.appendChild(legendaWrap);
 
   const totalVisitas = filtrados.length;
   const totalPeriodo = filtrados.filter(c => dias.includes(c.data)).length;
   const resumo = document.createElement('p');
   resumo.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;';
-  resumo.textContent = totalPeriodo + ' visita(s) nos últimos 14 dias · ' + totalVisitas + ' no total desde o início.';
+  resumo.textContent = totalPeriodo + ' visita(s) no período · ' + totalVisitas + ' no total desde o início.';
   container.appendChild(resumo);
 }
 
@@ -4262,17 +4287,16 @@ function renderEstatisticas(){
     if(ultimo) ultimo.style.borderBottom = 'none';
 
     renderGraficoFrequenciaDiaria(log, alunos, meuNome);
+    renderGraficoFrequenciaMensal(log, alunos);
     renderRankingFrequencia(linhas);
   }
   renderGraficoVisitantes(meuNome);
+  renderGraficoVisitantesMensal(meuNome);
   renderRankingVisitantes(meuNome);
 }
 
-function renderGraficoFrequenciaDiaria(log, alunos, meuNome){
-  const container = document.getElementById('graficoFrequenciaDiaria');
-  if(!container) return;
-
-  const usuariosValidos = new Set(alunos.map(a => a.user));
+function gerarIntervaloDatas(diasCustom){
+  if(diasCustom && diasCustom.length > 0) return diasCustom;
   const hoje = new Date();
   const dias = [];
   for(let i = 13; i >= 0; i--){
@@ -4280,6 +4304,19 @@ function renderGraficoFrequenciaDiaria(log, alunos, meuNome){
     d.setDate(d.getDate() - i);
     dias.push(d.toISOString().slice(0, 10));
   }
+  return dias;
+}
+
+function renderGraficoFrequenciaDiaria(log, alunos, meuNome, diasCustom){
+  const container = document.getElementById('graficoFrequenciaDiaria');
+  if(!container) return;
+
+  window._estatLog = log;
+  window._estatAlunos = alunos;
+  window._estatMeuNome = meuNome;
+
+  const usuariosValidos = new Set(alunos.map(a => a.user));
+  const dias = gerarIntervaloDatas(diasCustom);
 
   const contagens = dias.map(dataStr => {
     const alunosNoDia = new Set(log.filter(r => r.data === dataStr && usuariosValidos.has(r.aluno)).map(r => r.aluno));
@@ -4290,12 +4327,15 @@ function renderGraficoFrequenciaDiaria(log, alunos, meuNome){
 
   const maximo = Math.max(...contagens, 1);
   container.innerHTML = '';
+  const scrollWrap = document.createElement('div');
+  scrollWrap.style.cssText = 'overflow-x:auto;';
   const barrasWrap = document.createElement('div');
-  barrasWrap.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:120px;';
+  const larguraMin = Math.max(dias.length * 22, 280);
+  barrasWrap.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:120px;min-width:' + larguraMin + 'px;';
 
   dias.forEach((dataStr, i) => {
     const col = document.createElement('div');
-    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;';
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:18px;';
     const valor = contagens[i];
     const barra = document.createElement('div');
     const alturaPx = Math.max(Math.round((valor / maximo) * 90), valor > 0 ? 6 : 2);
@@ -4308,17 +4348,132 @@ function renderGraficoFrequenciaDiaria(log, alunos, meuNome){
     col.appendChild(barra);
     barrasWrap.appendChild(col);
   });
-  container.appendChild(barrasWrap);
+  scrollWrap.appendChild(barrasWrap);
+  container.appendChild(scrollWrap);
 
   const legendaWrap = document.createElement('div');
-  legendaWrap.style.cssText = 'display:flex;gap:4px;margin-top:4px;';
+  legendaWrap.style.cssText = 'display:flex;gap:4px;margin-top:4px;overflow-x:auto;';
+  const legendaInner = document.createElement('div');
+  legendaInner.style.cssText = 'display:flex;gap:4px;min-width:' + larguraMin + 'px;';
   dias.forEach(dataStr => {
     const dia = document.createElement('span');
-    dia.style.cssText = 'flex:1;text-align:center;font-size:8px;color:var(--ink-soft);';
+    dia.style.cssText = 'flex:1;text-align:center;font-size:8px;color:var(--ink-soft);min-width:18px;';
     dia.textContent = dataStr.slice(8, 10) + '/' + dataStr.slice(5, 7);
-    legendaWrap.appendChild(dia);
+    legendaInner.appendChild(dia);
   });
+  legendaWrap.appendChild(legendaInner);
   container.appendChild(legendaWrap);
+}
+
+function renderGraficoMensal(containerId, itens, obterUsuarioUnico, corBarra, rotulo){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+
+  const meses = [];
+  const hoje = new Date();
+  for(let i = 11; i >= 0; i--){
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push(d.toISOString().slice(0, 7));
+  }
+
+  const contagens = meses.map(mesStr => {
+    const doMes = itens.filter(item => (item.data || '').slice(0, 7) === mesStr);
+    if(obterUsuarioUnico){
+      return new Set(doMes.map(obterUsuarioUnico)).size;
+    }
+    return doMes.length;
+  });
+
+  const maximo = Math.max(...contagens, 1);
+  container.innerHTML = '';
+  const scrollWrap = document.createElement('div');
+  scrollWrap.style.cssText = 'overflow-x:auto;';
+  const barrasWrap = document.createElement('div');
+  const larguraMin = Math.max(meses.length * 30, 280);
+  barrasWrap.style.cssText = 'display:flex;align-items:flex-end;gap:6px;height:120px;min-width:' + larguraMin + 'px;';
+
+  const nomesMes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  meses.forEach((mesStr, i) => {
+    const col = document.createElement('div');
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:24px;';
+    const valor = contagens[i];
+    const barra = document.createElement('div');
+    const alturaPx = Math.max(Math.round((valor / maximo) * 90), valor > 0 ? 6 : 2);
+    barra.style.cssText = 'width:100%;max-width:24px;border-radius:4px 4px 0 0;background:' + (valor > 0 ? corBarra : '#E8DDC7') + ';height:' + alturaPx + 'px;';
+    const [ano, mes] = mesStr.split('-');
+    barra.title = nomesMes[parseInt(mes, 10) - 1] + '/' + ano + ': ' + valor + ' ' + rotulo;
+    const numero = document.createElement('span');
+    numero.style.cssText = 'font-size:9px;color:var(--ink-soft);';
+    numero.textContent = valor;
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:8px;color:var(--ink-soft);';
+    label.textContent = nomesMes[parseInt(mes, 10) - 1];
+    col.appendChild(numero);
+    col.appendChild(barra);
+    col.appendChild(label);
+    barrasWrap.appendChild(col);
+  });
+  scrollWrap.appendChild(barrasWrap);
+  container.appendChild(scrollWrap);
+}
+
+function renderGraficoFrequenciaMensal(log, alunos){
+  const usuariosValidos = new Set(alunos.map(a => a.user));
+  const itens = log.filter(r => usuariosValidos.has(r.aluno));
+  renderGraficoMensal('graficoFrequenciaMensal', itens, item => item.aluno, 'var(--amber-500)', 'aluno(s)');
+}
+
+function renderGraficoVisitantesMensal(meuNome){
+  const todos = obterTodosCheckinsAvulsos();
+  const filtrados = meuNome ? todos.filter(c => (c.professor || '').trim().toLowerCase() === meuNome.trim().toLowerCase()) : todos;
+  renderGraficoMensal('graficoVisitantesMensal', filtrados, null, 'var(--navy-700)', 'visita(s)');
+}
+
+function gerarIntervaloEntreDatas(inicio, fim){
+  const dias = [];
+  const dAtual = new Date(inicio + 'T00:00:00');
+  const dFim = new Date(fim + 'T00:00:00');
+  if(dAtual > dFim) return [];
+  let contador = 0;
+  while(dAtual <= dFim && contador < 90){
+    dias.push(dAtual.toISOString().slice(0, 10));
+    dAtual.setDate(dAtual.getDate() + 1);
+    contador++;
+  }
+  return dias;
+}
+
+function aplicarFiltroPeriodo(){
+  const inicio = document.getElementById('estatisticasDataInicio').value;
+  const fim = document.getElementById('estatisticasDataFim').value;
+  if(!inicio || !fim){
+    alert('Escolha as duas datas (De e Até).');
+    return;
+  }
+  const dias = gerarIntervaloEntreDatas(inicio, fim);
+  if(dias.length === 0){
+    alert('A data "De" precisa ser antes ou igual à data "Até".');
+    return;
+  }
+  const tituloDiario = document.getElementById('tituloGraficoDiario');
+  const tituloVisitantes = document.getElementById('tituloGraficoVisitantes');
+  const periodoTexto = dias.length + ' dia(s), de ' + inicio.split('-').reverse().join('/') + ' até ' + fim.split('-').reverse().join('/');
+  if(tituloDiario) tituloDiario.textContent = 'Alunos por dia (' + periodoTexto + ')';
+  if(tituloVisitantes) tituloVisitantes.textContent = 'Visitantes por aula (' + periodoTexto + ')';
+
+  renderGraficoFrequenciaDiaria(window._estatLog || [], window._estatAlunos || [], window._estatMeuNome, dias);
+  renderGraficoVisitantes(window._estatMeuNomeVisitas, dias);
+}
+
+function limparFiltroPeriodo(){
+  document.getElementById('estatisticasDataInicio').value = '';
+  document.getElementById('estatisticasDataFim').value = '';
+  const tituloDiario = document.getElementById('tituloGraficoDiario');
+  const tituloVisitantes = document.getElementById('tituloGraficoVisitantes');
+  if(tituloDiario) tituloDiario.textContent = 'Alunos por dia (últimos 14 dias)';
+  if(tituloVisitantes) tituloVisitantes.textContent = 'Visitantes por aula (últimos 14 dias)';
+  renderGraficoFrequenciaDiaria(window._estatLog || [], window._estatAlunos || [], window._estatMeuNome);
+  renderGraficoVisitantes(window._estatMeuNomeVisitas);
 }
 
 function renderRankingFrequencia(linhas){
