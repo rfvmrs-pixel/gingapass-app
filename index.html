@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_2.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_3.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -919,14 +919,22 @@
         <input class="admin-input" id="novoAlunoNomeAd" placeholder="Nome do aluno">
         <input class="admin-input" id="novoAlunoCordaAd" placeholder="Graduação/corda (ex: Corda Verde e Amarela)">
         <select class="admin-input" id="novoAlunoNucleoAd"><option value="">Selecione o núcleo (se você tiver mais de um)...</option></select>
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Tipo de cadastro</label>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button type="button" class="role-btn active" id="alunoAdComAcessoBtn" onclick="alternarAcessoNovoAluno(&#39;ad&#39;, true)" style="flex:1;">Com acesso ao app</button>
+          <button type="button" class="role-btn" id="alunoAdSemAcessoBtn" onclick="alternarAcessoNovoAluno(&#39;ad&#39;, false)" style="flex:1;">Sem acesso (só cadastro)</button>
+        </div>
+        <p id="alunoAdSemAcessoTexto" style="display:none;font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;">Fica registrado só com nome/graduação. Essa pessoa pode fazer check-in apontando a câmera pro QR code, sem precisar de login. Se depois ela quiser um perfil, é só editar e adicionar usuário/senha.</p>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Início dos treinos</label>
         <input class="admin-input" id="novoAlunoInicioAd" type="date">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade</label>
         <input class="admin-input" id="novoAlunoVencimentoAd" type="date">
+        <div id="alunoAdCamposAcesso">
         <input class="admin-input" id="novoAlunoUserAd" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenhaAd" placeholder="Senha de acesso">
         <input class="admin-input" id="novoAlunoPerguntaAd" placeholder="Pergunta de segurança (pra recuperar senha depois)">
         <input class="admin-input" id="novoAlunoRespostaAd" placeholder="Resposta da pergunta">
+        </div>
         <button class="btn" onclick="criarAcessoAlunoAcademia()">Adicionar aluno</button>
       </div>
       <p class="section-title">Alunos cadastrados</p>
@@ -941,17 +949,25 @@
       <div class="card">
         <input class="admin-input" id="novoAlunoNome" placeholder="Nome do aluno">
         <input class="admin-input" id="novoAlunoCorda" placeholder="Graduação/corda (ex: Verde e Amarela)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Tipo de cadastro</label>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <button type="button" class="role-btn active" id="alunoComAcessoBtn" onclick="alternarAcessoNovoAluno(&#39;matriz&#39;, true)" style="flex:1;">Com acesso ao app</button>
+          <button type="button" class="role-btn" id="alunoSemAcessoBtn" onclick="alternarAcessoNovoAluno(&#39;matriz&#39;, false)" style="flex:1;">Sem acesso (só cadastro)</button>
+        </div>
+        <p id="alunoSemAcessoTexto" style="display:none;font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;">Fica registrado só com nome/graduação. Essa pessoa pode fazer check-in apontando a câmera pro QR code, sem precisar de login. Se depois ela quiser um perfil, é só editar e adicionar usuário/senha.</p>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Início dos treinos</label>
         <input class="admin-input" id="novoAlunoInicio" type="date">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade</label>
         <input class="admin-input" id="novoAlunoVencimento" type="date">
         <select class="admin-input" id="novoAlunoNucleo"><option value="">Selecione o núcleo...</option></select>
         <select class="admin-input" id="novoAlunoProfessor"><option value="">Selecione o professor...</option></select>
+        <div id="alunoMatrizCamposAcesso">
         <input class="admin-input" id="novoAlunoUser" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenha" placeholder="Senha de acesso">
         <input class="admin-input" id="novoAlunoPergunta" placeholder="Pergunta de segurança (pra recuperar senha depois)">
         <input class="admin-input" id="novoAlunoResposta" placeholder="Resposta da pergunta">
-        <button class="btn" onclick="criarAcessoAluno()">Conceder acesso ao aluno</button>
+        </div>
+        <button class="btn" onclick="criarAcessoAluno()">Adicionar aluno</button>
       </div>
       <p class="section-title">Alunos com acesso</p>
       <div class="card" id="alunosContasList"></div>
@@ -1945,7 +1961,7 @@ function fazerLogin(){
 
   // aluno
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const conta = contas.find(c => c.user === user && c.senha === pass);
+  const conta = contas.find(c => c.user === user && c.senha === pass && pass !== '' && !c.semAcesso);
   if(conta){
     currentUser = user;
     entrar('aluno');
@@ -2371,7 +2387,7 @@ function renderAcademiasContas(){
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
-    span.textContent = c.nome + ' (usuário: ' + c.user + ')';
+    span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
     const btn = document.createElement('button');
     btn.className = 'aluno-del';
     btn.textContent = 'Revogar';
@@ -2413,14 +2429,30 @@ function criarAcessoAluno(){
   const vencimento = document.getElementById('novoAlunoVencimento').value;
   const nucleo = document.getElementById('novoAlunoNucleo').value;
   const professor = document.getElementById('novoAlunoProfessor').value;
-  const user = document.getElementById('novoAlunoUser').value.trim();
-  const senha = document.getElementById('novoAlunoSenha').value.trim();
-  const pergunta = document.getElementById('novoAlunoPergunta').value.trim();
-  const resposta = document.getElementById('novoAlunoResposta').value.trim();
-  if(!nome || !user || !senha){
-    alert('Preencha nome, usuário e senha do aluno.');
+  const comAcesso = window._alunoComAcessoMatriz !== false;
+
+  if(!nome){
+    alert('Preencha o nome do aluno.');
     return;
   }
+
+  let user, senha, pergunta, resposta;
+  if(comAcesso){
+    user = document.getElementById('novoAlunoUser').value.trim();
+    senha = document.getElementById('novoAlunoSenha').value.trim();
+    pergunta = document.getElementById('novoAlunoPergunta').value.trim();
+    resposta = document.getElementById('novoAlunoResposta').value.trim();
+    if(!user || !senha){
+      alert('Preencha usuário e senha do aluno (ou escolha "Sem acesso").');
+      return;
+    }
+  } else {
+    user = gerarUsuarioSemAcesso(nome);
+    senha = '';
+    pergunta = '';
+    resposta = '';
+  }
+
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   if(contas.some(c => c.user === user)){
     alert('Já existe um aluno com esse usuário.');
@@ -2431,7 +2463,8 @@ function criarAcessoAluno(){
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
     desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
-    pergunta, resposta: resposta.trim().toLowerCase()
+    pergunta, resposta: resposta.trim().toLowerCase(),
+    semAcesso: !comAcesso
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNome').value = '';
@@ -2446,7 +2479,7 @@ function criarAcessoAluno(){
   document.getElementById('novoAlunoResposta').value = '';
   renderAlunosContas();
   renderAlunos();
-  alert('Acesso concedido! Repasse o usuário e a senha pro aluno.');
+  alert(comAcesso ? 'Acesso concedido! Repasse o usuário e a senha pro aluno.' : 'Aluno cadastrado sem acesso ao app. Ele já pode fazer check-in pela câmera, sem precisar de login.');
 }
 
 function renderAlunosContas(){
@@ -2462,7 +2495,7 @@ function renderAlunosContas(){
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
-    span.textContent = c.nome + ' (usuário: ' + c.user + ')';
+    span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
     const actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:10px;';
     const editBtn = document.createElement('button');
@@ -3858,19 +3891,61 @@ function removerEndereco(i){
   renderEnderecos();
 }
 
+function alternarAcessoNovoAluno(contexto, comAcesso){
+  const sufixo = contexto === 'ad' ? 'Ad' : '';
+  const btnCom = document.getElementById(contexto === 'ad' ? 'alunoAdComAcessoBtn' : 'alunoComAcessoBtn');
+  const btnSem = document.getElementById(contexto === 'ad' ? 'alunoAdSemAcessoBtn' : 'alunoSemAcessoBtn');
+  const campos = document.getElementById(contexto === 'ad' ? 'alunoAdCamposAcesso' : 'alunoMatrizCamposAcesso');
+  const texto = document.getElementById(contexto === 'ad' ? 'alunoAdSemAcessoTexto' : 'alunoSemAcessoTexto');
+  if(!btnCom || !btnSem || !campos) return;
+  if(comAcesso){
+    btnCom.classList.add('active');
+    btnSem.classList.remove('active');
+    campos.style.display = 'block';
+    if(texto) texto.style.display = 'none';
+  } else {
+    btnSem.classList.add('active');
+    btnCom.classList.remove('active');
+    campos.style.display = 'none';
+    if(texto) texto.style.display = 'block';
+  }
+  window['_alunoComAcesso' + (contexto === 'ad' ? 'Ad' : 'Matriz')] = comAcesso;
+}
+
+function gerarUsuarioSemAcesso(nome){
+  const base = (nome || 'aluno').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_');
+  return 'semacesso_' + base + '_' + Math.random().toString(36).slice(2, 7);
+}
+
 function criarAcessoAlunoAcademia(){
   const nome = document.getElementById('novoAlunoNomeAd').value.trim();
   const corda = document.getElementById('novoAlunoCordaAd').value.trim();
   const inicio = document.getElementById('novoAlunoInicioAd').value;
   const vencimento = document.getElementById('novoAlunoVencimentoAd').value;
-  const user = document.getElementById('novoAlunoUserAd').value.trim();
-  const senha = document.getElementById('novoAlunoSenhaAd').value.trim();
-  const pergunta = document.getElementById('novoAlunoPerguntaAd').value.trim();
-  const resposta = document.getElementById('novoAlunoRespostaAd').value.trim();
-  if(!nome || !user || !senha){
-    alert('Preencha nome, usuário e senha do aluno.');
+  const comAcesso = window._alunoComAcessoAd !== false;
+
+  if(!nome){
+    alert('Preencha o nome do aluno.');
     return;
   }
+
+  let user, senha, pergunta, resposta;
+  if(comAcesso){
+    user = document.getElementById('novoAlunoUserAd').value.trim();
+    senha = document.getElementById('novoAlunoSenhaAd').value.trim();
+    pergunta = document.getElementById('novoAlunoPerguntaAd').value.trim();
+    resposta = document.getElementById('novoAlunoRespostaAd').value.trim();
+    if(!user || !senha){
+      alert('Preencha usuário e senha do aluno (ou escolha "Sem acesso").');
+      return;
+    }
+  } else {
+    user = gerarUsuarioSemAcesso(nome);
+    senha = '';
+    pergunta = '';
+    resposta = '';
+  }
+
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   if(contas.some(c => c.user === user)){
     alert('Já existe um aluno com esse usuário.');
@@ -3895,7 +3970,8 @@ function criarAcessoAlunoAcademia(){
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
     desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
-    pergunta, resposta: resposta.trim().toLowerCase()
+    pergunta, resposta: resposta.trim().toLowerCase(),
+    semAcesso: !comAcesso
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   document.getElementById('novoAlunoNomeAd').value = '';
@@ -3909,7 +3985,7 @@ function criarAcessoAlunoAcademia(){
   renderAlunos();
   renderAlunosContas();
   renderCheckin();
-  alert('Aluno adicionado! Já pode entrar com esse usuário e senha.');
+  alert(comAcesso ? 'Aluno adicionado! Já pode entrar com esse usuário e senha.' : 'Aluno cadastrado sem acesso ao app. Ele já pode fazer check-in pela câmera, sem precisar de login.');
 }
 
 function renderAlunos(){
@@ -3936,7 +4012,7 @@ function renderAlunos(){
     row.id = 'alunoRow' + i;
 
     const span = document.createElement('span');
-    span.textContent = c.nome + ' (usuário: ' + c.user + ')';
+    span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
 
     const actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:10px;';
@@ -3977,8 +4053,28 @@ function editarAluno(i){
   if(novoVencimento === null) return;
   const novoStatus = prompt('Situação da mensalidade (digite "Em dia" ou "Atrasado"):', conta.mensalidadeStatus || 'Em dia');
   if(novoStatus === null) return;
-  const novaSenha = prompt('Nova senha (deixe igual pra manter):', conta.senha);
-  if(novaSenha === null) return;
+
+  let novoUser = conta.user;
+  let novaSenha = conta.senha;
+  if(conta.semAcesso){
+    if(confirm('Esse aluno está cadastrado SEM acesso ao app. Quer dar acesso agora (criar usuário e senha)?')){
+      const userDigitado = prompt('Novo usuário de acesso:', conta.nome.split(' ')[0]);
+      if(userDigitado === null) return;
+      const senhaDigitada = prompt('Nova senha de acesso:', '');
+      if(senhaDigitada === null) return;
+      if(!userDigitado.trim() || !senhaDigitada.trim()){
+        alert('Precisa preencher usuário e senha pra dar acesso. Nada foi alterado.');
+      } else {
+        novoUser = userDigitado.trim();
+        novaSenha = senhaDigitada.trim();
+        conta.semAcesso = false;
+      }
+    }
+  } else {
+    const senhaPrompt = prompt('Nova senha (deixe igual pra manter):', conta.senha);
+    if(senhaPrompt === null) return;
+    novaSenha = senhaPrompt.trim() || conta.senha;
+  }
 
   conta.nome = novoNome.trim() || conta.nome;
   conta.corda = novaCorda.trim();
@@ -3993,7 +4089,8 @@ function editarAluno(i){
     conta.mensalidadeStatus = statusFinal;
     conta.atrasadoDesde = statusFinal === 'Atrasado' ? (conta.atrasadoDesde || Date.now()) : null;
   }
-  conta.senha = novaSenha.trim() || conta.senha;
+  conta.user = novoUser;
+  conta.senha = novaSenha;
   contas[i] = conta;
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunos();
