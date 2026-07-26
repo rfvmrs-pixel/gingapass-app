@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_93.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_96.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -687,6 +687,13 @@
     </div>
     <button class="btn" id="perfilEditBtn" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="alternarEdicaoPerfil()">Editar perfil</button>
 
+    <p class="section-title">Armazenamento</p>
+    <div class="card">
+      <p id="armazenamentoTexto" style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Verificando espaço usado...</p>
+      <button class="btn" onclick="apagarEventosAntigos()">Apagar eventos com mais de 60 dias</button>
+      <button class="btn" style="margin-top:8px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="apagarFotosAntigas()">Apagar fotos do mural com mais de 90 dias</button>
+    </div>
+
     <p class="section-title">Link de demonstração</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Gere um link pra mandar pra quem quiser conhecer o app. Quem abrir só visualiza — nada que a pessoa fizer afeta seus dados reais.</p>
@@ -1294,7 +1301,45 @@ let dbCollection = null;
 let firebaseSynced = false;
 
 function _setLocal(chave, valor){
-  window.localStorage.setItem(chave, valor);
+  try{
+    window.localStorage.setItem(chave, valor);
+  } catch(e){
+    if(e && e.name === 'QuotaExceededError'){
+      console.error('Armazenamento local cheio. Tentando liberar espaço...');
+      const liberou = liberarEspacoLocal();
+      if(liberou){
+        try{
+          window.localStorage.setItem(chave, valor);
+          return;
+        } catch(e2){
+          console.error('Mesmo depois de liberar espaço, não coube:', e2);
+        }
+      }
+      avisarArmazenamentoCheio();
+    } else {
+      console.error('Erro ao salvar localmente:', e);
+    }
+  }
+}
+
+let _jaAvisouArmazenamentoCheio = false;
+function avisarArmazenamentoCheio(){
+  if(_jaAvisouArmazenamentoCheio) return;
+  _jaAvisouArmazenamentoCheio = true;
+  alert('O espaço de armazenamento deste navegador está cheio (muitas fotos salvas). Algumas informações podem não salvar direito neste aparelho até você liberar espaço. Peça ajuda técnica, ou tente limpar o cache do navegador pra esse site.');
+}
+
+function liberarEspacoLocal(){
+  try{
+    const chaves = Object.keys(window.localStorage).filter(k => k.startsWith('gingapass_checkin_avulso_') || k.startsWith('gingapass_geocache'));
+    let liberouAlgo = false;
+    chaves.forEach(k => {
+      try{ window.localStorage.removeItem(k); liberouAlgo = true; } catch(e){}
+    });
+    return liberouAlgo;
+  } catch(e){
+    return false;
+  }
 }
 
 let modoDemo = false;
@@ -1928,6 +1973,55 @@ function verificarSessaoUnica(){
   }
 }
 
+function calcularEspacoUsado(){
+  let total = 0;
+  Object.keys(window.localStorage).forEach(k => {
+    const v = window.localStorage.getItem(k) || '';
+    total += k.length + v.length;
+  });
+  return total;
+}
+
+function renderArmazenamento(){
+  const el = document.getElementById('armazenamentoTexto');
+  if(!el) return;
+  const bytes = calcularEspacoUsado();
+  const kb = Math.round(bytes / 1024);
+  const percentual = Math.min(Math.round((bytes / (5 * 1024 * 1024)) * 100), 100);
+  el.textContent = 'Usando aproximadamente ' + kb + ' KB (cerca de ' + percentual + '% do limite comum de 5MB por navegador). Se estiver perto de 100%, apague dados antigos abaixo.';
+}
+
+function apagarEventosAntigos(){
+  if(!confirm('Isso apaga eventos publicados há mais de 60 dias (com os cartazes deles). Continuar?')) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const limite = Date.now() - (60 * 24 * 60 * 60 * 1000);
+  const restantes = eventos.filter(ev => {
+    const d = new Date(ev.data);
+    if(isNaN(d.getTime())) return true;
+    return d.getTime() >= limite;
+  });
+  const removidos = eventos.length - restantes.length;
+  setDado('gingapass_eventos', JSON.stringify(restantes));
+  renderEventos();
+  renderEventosGerenciar();
+  renderArmazenamento();
+  alert(removidos + ' evento(s) antigo(s) removido(s). Espaço liberado.');
+}
+
+function apagarFotosAntigas(){
+  if(!confirm('Isso apaga fotos do mural publicadas há mais de 90 dias. Continuar?')) return;
+  const fotos = normalizarFotos();
+  const limite = Date.now() - (90 * 24 * 60 * 60 * 1000);
+  const restantes = fotos.filter(f => f.data >= limite);
+  const removidas = fotos.length - restantes.length;
+  setDado('gingapass_fotos', JSON.stringify(restantes));
+  renderFotosFeed();
+  renderGaleria();
+  iniciarSlideshowMural();
+  renderArmazenamento();
+  alert(removidas + ' foto(s) antiga(s) removida(s). Espaço liberado.');
+}
+
 function copiarLinkDemo(){
   const link = 'https://rfvmrs-pixel.github.io/gingapass-app/?demo=1';
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1941,12 +2035,32 @@ function copiarLinkDemo(){
   }
 }
 
+window._errosRenderizacao = [];
+
+window.addEventListener('error', function(event){
+  window._errosRenderizacao.push('Erro: ' + event.message + ' (linha ' + event.lineno + ')');
+  mostrarBannerErros();
+});
+
 function tentarChamar(fn){
   try{
     fn();
   } catch(e){
     console.error('Erro numa parte da tela (isolado, resto continua funcionando):', e);
+    window._errosRenderizacao.push((e && e.message) ? e.message : String(e));
+    mostrarBannerErros();
   }
+}
+
+function mostrarBannerErros(){
+  let banner = document.getElementById('bannerErrosDebug');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'bannerErrosDebug';
+    banner.style.cssText = 'position:fixed;bottom:70px;left:10px;right:10px;z-index:1002;background:#C0392B;color:#fff;padding:10px 12px;border-radius:10px;font-size:11px;max-height:120px;overflow-y:auto;';
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = '<b>Erros encontrados (manda print disso):</b><br>' + window._errosRenderizacao.map((m, i) => (i+1) + '. ' + m).join('<br>');
 }
 
 function aplicarPermissoes(){
@@ -1988,6 +2102,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderAviso(); });
   tentarChamar(function(){ renderAlunos(); });
   tentarChamar(function(){ renderPerfil(); });
+  tentarChamar(function(){ renderArmazenamento(); });
   tentarChamar(function(){ renderAcademiasContas(); });
   tentarChamar(function(){ renderAlunosContas(); });
   tentarChamar(function(){ renderEnderecos(); });
@@ -2649,10 +2764,7 @@ function adicionarEvento(titulo, data, local, pagamento, imagem){
 function lerImagemComoBase64(inputEl, callback){
   const file = inputEl && inputEl.files && inputEl.files[0];
   if(!file){ callback(''); return; }
-  const reader = new FileReader();
-  reader.onload = ev => callback(ev.target.result);
-  reader.onerror = () => callback('');
-  reader.readAsDataURL(file);
+  comprimirImagem(file, 800, 0.7).then(callback);
 }
 
 function publicarEventoAdmin(){
@@ -6167,13 +6279,11 @@ document.addEventListener('DOMContentLoaded', function(){
       let loaded = 0;
       if(files.length === 0) return;
       files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(ev){
-          fotosSelecionadas.push(ev.target.result);
+        comprimirImagem(file, 900, 0.7).then(function(dataUrl){
+          fotosSelecionadas.push(dataUrl);
           loaded++;
           if(loaded === files.length) previewFotos();
-        };
-        reader.readAsDataURL(file);
+        });
       });
     });
   }
@@ -6188,13 +6298,11 @@ document.addEventListener('DOMContentLoaded', function(){
       let loaded = 0;
       if(files.length === 0) return;
       files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(ev){
-          fotosSelecionadasComunidade.push(ev.target.result);
+        comprimirImagem(file, 900, 0.7).then(function(dataUrl){
+          fotosSelecionadasComunidade.push(dataUrl);
           loaded++;
           if(loaded === files.length) previewFotosComunidade();
-        };
-        reader.readAsDataURL(file);
+        });
       });
     });
   }
@@ -6207,13 +6315,11 @@ document.addEventListener('DOMContentLoaded', function(){
       let loaded = 0;
       if(files.length === 0) return;
       files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(ev){
-          fotosTopoSelecionadas.push(ev.target.result);
+        comprimirImagem(file, 700, 0.7).then(function(dataUrl){
+          fotosTopoSelecionadas.push(dataUrl);
           loaded++;
           if(loaded === files.length) previewFotosTopo();
-        };
-        reader.readAsDataURL(file);
+        });
       });
     });
   }
