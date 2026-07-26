@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_9.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_10.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -652,6 +652,16 @@
       <p id="pagamentoAviso" style="font-size:11.5px;color:#B9CBDD;margin:8px 0 0;display:none;">Seu professor ainda não cadastrou a forma de pagamento.</p>
       <p id="atrasoAviso" style="font-size:12px;font-weight:600;color:#FFD9D0;background:rgba(192,57,43,0.35);border-radius:10px;padding:8px 10px;margin:10px 0 0;display:none;"></p>
     </div>
+
+    <p class="section-title">Enviar comprovante de pagamento</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Depois de pagar, tire um print ou foto do comprovante e envie aqui — seu professor recebe direto e confirma o pagamento.</p>
+      <input type="file" id="comprovanteInput" accept="image/*" onchange="previewComprovante()" style="font-size:12px;margin-bottom:8px;">
+      <div id="comprovantePreview" style="margin-bottom:8px;"></div>
+      <button class="btn" type="button" onclick="enviarComprovantePagamento()">Enviar comprovante pro professor</button>
+      <p id="comprovanteStatusMsg" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+    </div>
+    <div id="comprovantesEnviadosLista"></div>
 
     <p class="section-title">Histórico de pagamentos</p>
     <div class="card" id="historicoPagamentos"></div>
@@ -1357,6 +1367,7 @@ const firebaseConfig = {
 
 let dbCollection = null;
 let muralFotosCollection = null;
+let comprovantesCollection = null;
 let firebaseSynced = false;
 
 function _setLocal(chave, valor){
@@ -1476,6 +1487,26 @@ function excluirFotoNaNuvem(id){
   });
 }
 
+function salvarComprovanteNaNuvem(comprovante){
+  if(modoDemo || !comprovantesCollection) return Promise.resolve(true);
+  return comprovantesCollection.doc(comprovante.id).set(comprovante).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao salvar comprovante na nuvem:', e);
+    return false;
+  });
+}
+
+function atualizarComprovanteNaNuvem(id, patch){
+  if(modoDemo || !comprovantesCollection) return Promise.resolve(true);
+  return comprovantesCollection.doc(id).update(patch).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao atualizar comprovante na nuvem:', e);
+    return false;
+  });
+}
+
 // Migração única: antes, todas as fotos do mural dividiam um só campo (limite de ~900KB no total).
 // Isso pegou as fotos que sobraram lá e move cada uma pro seu próprio documento, sem limite compartilhado.
 function migrarFotosAntigasSeNecessario(){
@@ -1561,6 +1592,7 @@ function iniciarFirebase(tentativas){
     const db = firebase.firestore(app);
     dbCollection = db.collection('gingapass');
     muralFotosCollection = db.collection('gingapass_mural_fotos');
+    comprovantesCollection = db.collection('gingapass_comprovantes');
 
     const statusEl = document.getElementById('syncStatus');
 
@@ -1608,6 +1640,21 @@ function iniciarFirebase(tentativas){
       }
     }, function(e){
       console.error('Erro ao sincronizar fotos do mural:', e);
+    });
+
+    comprovantesCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
+      const comprovantes = [];
+      snapshot.forEach(function(doc){ comprovantes.push(doc.data()); });
+      _setLocal('gingapass_comprovantes', JSON.stringify(comprovantes));
+      if(typeof currentRole !== 'undefined' && currentRole){
+        if(typeof renderComprovantesAluno === 'function') renderComprovantesAluno();
+        if(typeof renderMensalidadesAlunos === 'function'){
+          renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+          renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+        }
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar comprovantes de pagamento:', e);
     });
   } catch(e){
     console.error('Firebase não pôde ser iniciado, o app vai funcionar só localmente:', e);
@@ -2274,6 +2321,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderAulasTodas(); });
   tentarChamar(function(){ renderTelaChat(); });
   tentarChamar(function(){ renderPagamentoAluno(); });
+  tentarChamar(function(){ renderComprovantesAluno(); });
   if(currentRole === 'academia'){
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
     const minhaConta = academiasContas.find(c => c.user === currentUser);
@@ -4780,6 +4828,98 @@ function renderMensalidade(){
   }
 }
 
+let comprovanteSelecionado = null;
+
+function previewComprovante(){
+  const input = document.getElementById('comprovanteInput');
+  const preview = document.getElementById('comprovantePreview');
+  if(!input || !input.files || !input.files[0]){
+    comprovanteSelecionado = null;
+    if(preview) preview.innerHTML = '';
+    return;
+  }
+  comprimirImagem(input.files[0], 900, 0.7).then(function(dataUrl){
+    comprovanteSelecionado = dataUrl;
+    if(preview) preview.innerHTML = '<img src="' + dataUrl + '" style="max-width:160px;border-radius:10px;display:block;">';
+  });
+}
+
+function enviarComprovantePagamento(){
+  const statusMsg = document.getElementById('comprovanteStatusMsg');
+  if(!comprovanteSelecionado){
+    if(statusMsg) statusMsg.textContent = 'Escolha uma imagem do comprovante antes de enviar.';
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  if(!minhaConta){
+    if(statusMsg) statusMsg.textContent = 'Não identificamos seu cadastro. Faça login novamente.';
+    return;
+  }
+  const comprovante = {
+    id: 'comp_' + Math.random().toString(36).slice(2, 10),
+    alunoUser: currentUser,
+    alunoNome: minhaConta.nome,
+    professor: minhaConta.professor || '',
+    nucleo: minhaConta.nucleo || '',
+    imagem: comprovanteSelecionado,
+    data: Date.now(),
+    status: 'pendente'
+  };
+  const locais = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  locais.unshift(comprovante);
+  _setLocal('gingapass_comprovantes', JSON.stringify(locais));
+  renderComprovantesAluno();
+
+  const input = document.getElementById('comprovanteInput');
+  if(input) input.value = '';
+  comprovanteSelecionado = null;
+  const preview = document.getElementById('comprovantePreview');
+  if(preview) preview.innerHTML = '';
+  if(statusMsg) statusMsg.textContent = 'Enviando...';
+
+  salvarComprovanteNaNuvem(comprovante).then(function(ok){
+    if(statusMsg) statusMsg.textContent = ok ? 'Comprovante enviado! Seu professor vai receber e confirmar por aqui.' : 'Comprovante salvo neste aparelho, mas não sincronizou com a nuvem — verifique sua conexão.';
+    tentarChamar(function(){
+      renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+      renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+    });
+  });
+}
+
+function renderComprovantesAluno(){
+  const container = document.getElementById('comprovantesEnviadosLista');
+  if(!container || currentRole !== 'aluno') return;
+  const todos = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  const meus = todos.filter(c => c.alunoUser === currentUser);
+  container.innerHTML = '';
+  if(meus.length === 0) return;
+  const titulo = document.createElement('p');
+  titulo.className = 'section-title';
+  titulo.textContent = 'Comprovantes enviados';
+  container.appendChild(titulo);
+  const card = document.createElement('div');
+  card.className = 'card';
+  meus.forEach(c => {
+    const linha = document.createElement('div');
+    linha.style.cssText = 'display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const img = document.createElement('img');
+    img.src = c.imagem;
+    img.style.cssText = 'width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;';
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;';
+    const dataTxt = new Date(c.data).toLocaleDateString('pt-BR');
+    const statusTxt = c.status === 'confirmado' ? '✅ Confirmado' : (c.status === 'recusado' ? '❌ Recusado — envie de novo ou fale com o professor' : '⏳ Aguardando confirmação');
+    info.innerHTML = '<span style="font-size:12px;color:var(--ink);display:block;">' + dataTxt + '</span><span style="font-size:11px;font-weight:600;">' + statusTxt + '</span>';
+    linha.appendChild(img);
+    linha.appendChild(info);
+    card.appendChild(linha);
+  });
+  const ultima = card.lastElementChild;
+  if(ultima) ultima.style.borderBottom = 'none';
+  container.appendChild(card);
+}
+
 function alterarDataProfessor(userAcademia, campo, valor){
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const idx = contas.findIndex(c => c.user === userAcademia);
@@ -4896,24 +5036,54 @@ function alterarDataAluno(userAluno, campo, valor){
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
 }
 
-function registrarPagamentoAluno(userAluno){
+function registrarPagamentoAluno(userAluno, formaPreenchida, obsPreenchida){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idx = contas.findIndex(c => c.user === userAluno);
   if(idx < 0) return;
-  if(!confirm('Confirmar que o pagamento de ' + contas[idx].nome + ' foi recebido?')) return;
-  const forma = (prompt('Forma de pagamento (ex: Pix, Cartão, Dinheiro) — opcional:') || '').trim();
-  const obs = (prompt('Referência do pagamento (ex: comprovante/link do Pix) — opcional:') || '').trim();
+  let forma = formaPreenchida, obs = obsPreenchida;
+  if(forma === undefined){
+    if(!confirm('Confirmar que o pagamento de ' + contas[idx].nome + ' foi recebido?')) return;
+    forma = (prompt('Forma de pagamento (ex: Pix, Cartão, Dinheiro) — opcional:') || '').trim();
+    obs = (prompt('Referência do pagamento (ex: comprovante/link do Pix) — opcional:') || '').trim();
+  }
   contas[idx].mensalidadeStatus = 'Em dia';
   contas[idx].atrasadoDesde = null;
   contas[idx].ultimoPagamento = Date.now();
   contas[idx].pagamentosFeitos = (contas[idx].pagamentosFeitos || 0) + 1;
   if(!contas[idx].historicoPagamentos) contas[idx].historicoPagamentos = [];
-  contas[idx].historicoPagamentos.push({data: Date.now(), forma, obs});
+  contas[idx].historicoPagamentos.push({data: Date.now(), forma: forma || '', obs: obs || ''});
   contas[idx].vencimentoMensalidade = calcularProximoVencimento(contas[idx].vencimentoMensalidade);
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
   renderMensalidade();
+}
+
+function confirmarComprovante(idComprovante, userAluno){
+  if(!confirm('Confirmar esse pagamento com base no comprovante enviado?')) return;
+  registrarPagamentoAluno(userAluno, 'Pix', 'Confirmado via comprovante enviado no app');
+  const comprovantes = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  const idx = comprovantes.findIndex(c => c.id === idComprovante);
+  if(idx >= 0){
+    comprovantes[idx].status = 'confirmado';
+    _setLocal('gingapass_comprovantes', JSON.stringify(comprovantes));
+  }
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  atualizarComprovanteNaNuvem(idComprovante, {status: 'confirmado'});
+}
+
+function recusarComprovante(idComprovante, userAluno){
+  if(!confirm('Recusar esse comprovante? O aluno vai ver que precisa enviar de novo ou falar com você.')) return;
+  const comprovantes = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  const idx = comprovantes.findIndex(c => c.id === idComprovante);
+  if(idx >= 0){
+    comprovantes[idx].status = 'recusado';
+    _setLocal('gingapass_comprovantes', JSON.stringify(comprovantes));
+  }
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  atualizarComprovanteNaNuvem(idComprovante, {status: 'recusado'});
 }
 
 function calcularProximoVencimento(vencimentoAtual){
@@ -5073,6 +5243,40 @@ function renderMensalidadesAlunos(containerId, escopo){
       vencInfo.style.cssText = 'font-size:10.5px;font-weight:600;margin:2px 0 0;color:' + cor + ';';
       vencInfo.textContent = diasVenc < 0 ? ('Venceu há ' + Math.abs(diasVenc) + ' dia(s)') : (diasVenc === 0 ? 'Vence hoje' : 'Faltam ' + diasVenc + ' dia(s) pro próximo vencimento');
       wrap.appendChild(vencInfo);
+    }
+
+    const comprovantesTodos = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+    const comprovantesPendentes = comprovantesTodos.filter(c => c.alunoUser === aluno.user && c.status === 'pendente');
+    if(comprovantesPendentes.length > 0){
+      comprovantesPendentes.forEach(comp => {
+        const compWrap = document.createElement('div');
+        compWrap.style.cssText = 'display:flex;gap:10px;align-items:center;margin-top:8px;padding:8px;background:#FFF7E6;border-radius:10px;border:1px solid #F0DDAE;';
+        const img = document.createElement('img');
+        img.src = comp.imagem;
+        img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:pointer;';
+        img.onclick = () => window.open(comp.imagem, '_blank');
+        const compInfo = document.createElement('div');
+        compInfo.style.cssText = 'flex:1;';
+        compInfo.innerHTML = '<span style="font-size:11px;font-weight:600;color:var(--navy-900);display:block;">📎 Comprovante enviado</span><span style="font-size:10px;color:var(--ink-soft);">' + new Date(comp.data).toLocaleDateString('pt-BR') + '</span>';
+        const compBtns = document.createElement('div');
+        compBtns.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+        const confirmarBtn = document.createElement('button');
+        confirmarBtn.type = 'button';
+        confirmarBtn.textContent = '✓ Confirmar';
+        confirmarBtn.style.cssText = 'border:none;background:#1E9C71;color:#fff;font-size:10.5px;font-weight:600;padding:5px 8px;border-radius:8px;cursor:pointer;';
+        confirmarBtn.onclick = () => confirmarComprovante(comp.id, aluno.user);
+        const recusarBtn = document.createElement('button');
+        recusarBtn.type = 'button';
+        recusarBtn.textContent = 'Recusar';
+        recusarBtn.style.cssText = 'border:none;background:none;color:#C0392B;font-size:10.5px;font-weight:600;padding:0;cursor:pointer;';
+        recusarBtn.onclick = () => recusarComprovante(comp.id, aluno.user);
+        compBtns.appendChild(confirmarBtn);
+        compBtns.appendChild(recusarBtn);
+        compWrap.appendChild(img);
+        compWrap.appendChild(compInfo);
+        compWrap.appendChild(compBtns);
+        wrap.appendChild(compWrap);
+      });
     }
 
     const btnPagamento = document.createElement('button');
