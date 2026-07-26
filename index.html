@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_76.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_77.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -544,8 +544,8 @@
       <div id="idiomaLoginSwatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
       <p id="loginEntrarTexto">Entre com seu usuário e senha</p>
       <div class="role-toggle">
-        <button class="role-btn" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
-        <button class="role-btn active" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
+        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
+        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
       </div>
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
@@ -1461,10 +1461,10 @@ function verificarModoCheckinRapido(){
 
 function executarModoCheckinRapido(){
   const params = new URLSearchParams(location.search);
-  if(params.get('checkin') !== '1') return;
+  if(params.get('ck') !== '1') return;
 
-  const data = params.get('data') || '';
-  const codigo = params.get('codigo') || '';
+  const data = params.get('d') || '';
+  const codigo = params.get('k') || '';
 
   const loginScreen = document.getElementById('loginScreen');
   const appContent = document.getElementById('appContent');
@@ -2664,16 +2664,16 @@ function gerarImagemQr(container, payload){
   container.innerHTML = '';
   try{
     if(typeof QRCode !== 'undefined'){
-      new QRCode(container, {text: payload, width: 160, height: 160});
+      new QRCode(container, {text: payload, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.M});
       return;
     }
   } catch(e){
     console.error('Erro ao gerar QR com a biblioteca local:', e);
   }
   const img = document.createElement('img');
-  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(payload);
-  img.width = 160;
-  img.height = 160;
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=' + encodeURIComponent(payload);
+  img.width = 260;
+  img.height = 260;
   img.alt = 'QR code';
   img.onerror = function(){
     container.innerHTML = '<p style="font-size:11.5px;color:var(--danger);margin:0;">Não foi possível gerar a imagem do QR agora. Use o código escrito abaixo.</p>';
@@ -3556,7 +3556,7 @@ function renderQrHoje(sufixo){
   const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
   texto.textContent = 'Código (' + dataFormatada + '): ' + codigo;
   const baseCheckin = 'https://rfvmrs-pixel.github.io/gingapass-app/index.html';
-  const payload = baseCheckin + '?checkin=1&data=' + encodeURIComponent(data) + '&codigo=' + encodeURIComponent(codigo) + '&t=' + Date.now();
+  const payload = baseCheckin + '?ck=1&d=' + encodeURIComponent(data) + '&k=' + encodeURIComponent(codigo);
   gerarImagemQr(box, payload);
 }
 
@@ -3631,8 +3631,8 @@ function processarCodigoEscaneado(payload){
   pararScanner();
   try{
     const url = new URL(payload);
-    const data = url.searchParams.get('data');
-    const codigo = url.searchParams.get('codigo');
+    const data = url.searchParams.get('d') || url.searchParams.get('data');
+    const codigo = url.searchParams.get('k') || url.searchParams.get('codigo');
     if(data && codigo){
       validarCheckin(codigo, data);
       return;
@@ -5681,7 +5681,7 @@ function renderIdiomaSwatches(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  if(new URLSearchParams(location.search).get('checkin') === '1'){
+  if(new URLSearchParams(location.search).get('ck') === '1'){
     const loginScreen = document.getElementById('loginScreen');
     const appContent = document.getElementById('appContent');
     const overlay = document.getElementById('checkinRapidoOverlay');
