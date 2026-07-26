@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_74.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_75.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1171,6 +1171,28 @@
     <div class="card" id="checkinsAvulsosList"></div>
   </div>
 
+  <div id="checkinRapidoOverlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:1000;overflow-y:auto;padding:24px 20px;">
+    <h2 style="color:var(--navy-900);font-size:20px;margin:0 0 4px;">Check-in de treino</h2>
+    <p id="checkinRapidoSub" style="color:var(--ink-soft);font-size:13px;margin:0 0 22px;">Confirme sua presença na aula de hoje</p>
+
+    <div id="checkinRapidoForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
+      <label style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:600;">Seu nome completo</label>
+      <input class="admin-input" id="checkinRapidoNome" placeholder="Nome completo">
+      <label style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:600;">Graduação / corda</label>
+      <input class="admin-input" id="checkinRapidoGraduacao" placeholder="Ex: Corda Verde e Amarela">
+      <label style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:600;">De qual professor você é aluno?</label>
+      <select class="admin-input" id="checkinRapidoProfessor"><option value="">Carregando professores...</option></select>
+      <p id="checkinRapidoErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
+      <button class="btn" id="checkinRapidoBtn" onclick="confirmarCheckinRapido()">Confirmar presença</button>
+    </div>
+
+    <div id="checkinRapidoMsg" style="display:none;text-align:center;padding:40px 10px;">
+      <div id="checkinRapidoMsgIcon" style="font-size:48px;margin-bottom:14px;">✅</div>
+      <h2 id="checkinRapidoMsgTitulo" style="color:var(--navy-900);margin:0 0 8px;">Presença confirmada!</h2>
+      <p id="checkinRapidoMsgTexto" style="color:var(--ink-soft);font-size:14px;word-break:break-word;">Bom treino 🥋</p>
+    </div>
+  </div>
+
   <div id="lightboxMural" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
     <img id="lightboxMuralImg" style="max-width:100%;max-height:60vh;border-radius:14px;object-fit:contain;">
     <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
@@ -1391,6 +1413,7 @@ let selectedRole = 'aluno';
 let meuSessionToken = null;
 
 function seedContas(){
+  verificarModoCheckinRapido();
   if(!localStorage.getItem('gingapass_academias_contas')){
     setDado('gingapass_academias_contas', JSON.stringify([]));
   }
@@ -1419,6 +1442,116 @@ function seedContas(){
       resposta: ''
     }));
   }
+}
+
+function verificarModoCheckinRapido(){
+  if(window._checkinRapidoJaVerificado) return;
+  window._checkinRapidoJaVerificado = true;
+
+  const params = new URLSearchParams(location.search);
+  if(params.get('checkin') !== '1') return;
+
+  const data = params.get('data') || '';
+  const codigo = params.get('codigo') || '';
+
+  const loginScreen = document.getElementById('loginScreen');
+  const appContent = document.getElementById('appContent');
+  const overlay = document.getElementById('checkinRapidoOverlay');
+  if(loginScreen) loginScreen.style.display = 'none';
+  if(appContent) appContent.style.display = 'none';
+  if(!overlay) return;
+  overlay.style.display = 'block';
+
+  const subEl = document.getElementById('checkinRapidoSub');
+  if(!data || !codigo){
+    mostrarMsgCheckinRapido(false, 'Link inválido', 'Esse link de check-in está incompleto. Peça pro professor gerar o QR code de novo.');
+    return;
+  }
+
+  const dataFormatada = (function(){
+    try{ return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'}); }
+    catch(e){ return data; }
+  })();
+  if(subEl) subEl.textContent = 'Aula de ' + dataFormatada;
+
+  const codigoValido = localStorage.getItem('gingapass_qrcode_' + data);
+  if(!codigoValido || codigoValido !== codigo){
+    mostrarMsgCheckinRapido(false, 'Código expirado', 'Esse QR code não é mais válido. Peça pro professor gerar um novo.');
+    return;
+  }
+
+  window._checkinRapidoData = data;
+  window._checkinRapidoCodigo = codigo;
+
+  const select = document.getElementById('checkinRapidoProfessor');
+  if(select){
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const nomesComLogin = new Set(academiasContas.map(c => c.nome));
+    const professores = [...new Set(
+      academiasContas.map(conta => {
+        const minhaAcademia = rede.find(a => a.nome === conta.nome);
+        const nomeResolvido = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
+        return (nomeResolvido || '').trim();
+      }).filter(Boolean)
+    )];
+    select.innerHTML = professores.length === 0
+      ? '<option value="">Nenhum professor cadastrado</option>'
+      : '<option value="">Selecione o professor...</option>' + professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+  }
+}
+
+function mostrarMsgCheckinRapido(sucesso, titulo, texto){
+  const form = document.getElementById('checkinRapidoForm');
+  const msg = document.getElementById('checkinRapidoMsg');
+  if(form) form.style.display = 'none';
+  if(msg) msg.style.display = 'block';
+  const icon = document.getElementById('checkinRapidoMsgIcon');
+  const tit = document.getElementById('checkinRapidoMsgTitulo');
+  const txt = document.getElementById('checkinRapidoMsgTexto');
+  if(icon) icon.textContent = sucesso ? '✅' : '⚠️';
+  if(tit) tit.textContent = titulo;
+  if(txt) txt.textContent = texto;
+}
+
+function confirmarCheckinRapido(){
+  const nome = document.getElementById('checkinRapidoNome').value.trim();
+  const graduacao = document.getElementById('checkinRapidoGraduacao').value.trim();
+  const professor = document.getElementById('checkinRapidoProfessor').value;
+  const erroEl = document.getElementById('checkinRapidoErro');
+  const btn = document.getElementById('checkinRapidoBtn');
+
+  if(!nome){
+    erroEl.textContent = 'Digite seu nome completo.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  if(!professor){
+    erroEl.textContent = 'Selecione de qual professor você é aluno.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  erroEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const data = window._checkinRapidoData;
+  const chave = 'gingapass_checkin_avulso_' + data;
+
+  buscarValorFresco(chave).then(function(valorFresco){
+    const lista = JSON.parse(valorFresco || '[]');
+    lista.push({nome, graduacao, professor, hora: Date.now()});
+    setDado(chave, JSON.stringify(lista)).then(function(ok){
+      if(ok){
+        mostrarMsgCheckinRapido(true, 'Presença confirmada!', 'Bom treino, ' + nome.split(' ')[0] + '! 🥋');
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar presença';
+        erroEl.textContent = 'Não conseguimos registrar agora. Verifique sua internet e tente de novo.';
+        erroEl.style.display = 'block';
+      }
+    });
+  });
 }
 
 function setRole(role){
@@ -3410,8 +3543,8 @@ function renderQrHoje(sufixo){
   box.innerHTML = '';
   const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
   texto.textContent = 'Código (' + dataFormatada + '): ' + codigo;
-  const baseCheckin = 'https://rfvmrs-pixel.github.io/gingapass-app/checkin.html';
-  const payload = baseCheckin + '?data=' + encodeURIComponent(data) + '&codigo=' + encodeURIComponent(codigo) + '&t=' + Date.now();
+  const baseCheckin = 'https://rfvmrs-pixel.github.io/gingapass-app/index.html';
+  const payload = baseCheckin + '?checkin=1&data=' + encodeURIComponent(data) + '&codigo=' + encodeURIComponent(codigo) + '&t=' + Date.now();
   gerarImagemQr(box, payload);
 }
 
@@ -5536,6 +5669,14 @@ function renderIdiomaSwatches(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  if(new URLSearchParams(location.search).get('checkin') === '1'){
+    const loginScreen = document.getElementById('loginScreen');
+    const appContent = document.getElementById('appContent');
+    const overlay = document.getElementById('checkinRapidoOverlay');
+    if(loginScreen) loginScreen.style.display = 'none';
+    if(appContent) appContent.style.display = 'none';
+    if(overlay) overlay.style.display = 'block';
+  }
   iniciarFirebase();
 
   function ligarFotoInput(inputId, galeriaId){
