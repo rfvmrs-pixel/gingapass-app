@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_73.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_74.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3411,7 +3411,7 @@ function renderQrHoje(sufixo){
   const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
   texto.textContent = 'Código (' + dataFormatada + '): ' + codigo;
   const baseCheckin = 'https://rfvmrs-pixel.github.io/gingapass-app/checkin.html';
-  const payload = baseCheckin + '?data=' + encodeURIComponent(data) + '&codigo=' + encodeURIComponent(codigo);
+  const payload = baseCheckin + '?data=' + encodeURIComponent(data) + '&codigo=' + encodeURIComponent(codigo) + '&t=' + Date.now();
   gerarImagemQr(box, payload);
 }
 
