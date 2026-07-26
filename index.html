@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_4.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_5.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1329,10 +1329,10 @@
   </div>
 </div>
 
-<script src="./index_files/qrcode.min.js.baixados"></script>
-<script src="./index_files/jsQR.js.baixados"></script>
-<script src="./index_files/firebase-app-compat.js.baixados"></script>
-<script src="./index_files/firebase-firestore-compat.js.baixados"></script>
+<script src="file:///C:/Users/rafael.souza/Downloads/index_files/qrcode.min.js.baixados"></script>
+<script src="file:///C:/Users/rafael.souza/Downloads/index_files/jsQR.js.baixados"></script>
+<script src="file:///C:/Users/rafael.souza/Downloads/index_files/firebase-app-compat.js.baixados"></script>
+<script src="file:///C:/Users/rafael.souza/Downloads/index_files/firebase-firestore-compat.js.baixados"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
@@ -1344,6 +1344,7 @@ const firebaseConfig = {
 };
 
 let dbCollection = null;
+let muralFotosCollection = null;
 let firebaseSynced = false;
 
 function _setLocal(chave, valor){
@@ -1426,6 +1427,76 @@ function buscarValorFresco(chave){
   });
 }
 
+const LIMITE_FOTOS_LOCAIS = 300; // quantas fotos manter em cache neste aparelho (a nuvem guarda todas, cada uma em seu próprio documento)
+
+function limitarFotosLocais(fotos){
+  if(fotos.length <= LIMITE_FOTOS_LOCAIS) return fotos;
+  return fotos.slice(0, LIMITE_FOTOS_LOCAIS);
+}
+
+function salvarFotoNaNuvem(foto){
+  if(modoDemo || !muralFotosCollection) return Promise.resolve(true);
+  return muralFotosCollection.doc(foto.id).set(foto).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao salvar foto individual na nuvem:', e);
+    return false;
+  });
+}
+
+function atualizarFotoNaNuvem(id, patch){
+  if(modoDemo || !muralFotosCollection) return Promise.resolve(true);
+  return muralFotosCollection.doc(id).update(patch).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao atualizar foto na nuvem:', e);
+    return false;
+  });
+}
+
+function excluirFotoNaNuvem(id){
+  if(modoDemo || !muralFotosCollection) return Promise.resolve(true);
+  return muralFotosCollection.doc(id).delete().then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao excluir foto na nuvem:', e);
+    return false;
+  });
+}
+
+// Migração única: antes, todas as fotos do mural dividiam um só campo (limite de ~900KB no total).
+// Isso pegou as fotos que sobraram lá e move cada uma pro seu próprio documento, sem limite compartilhado.
+function migrarFotosAntigasSeNecessario(){
+  if(!dbCollection || !muralFotosCollection) return;
+  dbCollection.doc('gingapass_fotos').get().then(function(doc){
+    if(!doc.exists) return;
+    const data = doc.data();
+    if(!data || typeof data.value !== 'string') return;
+    let antigas;
+    try{ antigas = JSON.parse(data.value); } catch(e){ return; }
+    if(!Array.isArray(antigas) || antigas.length === 0){
+      dbCollection.doc('gingapass_fotos').delete().catch(function(){});
+      return;
+    }
+    const normalizadas = antigas.map(function(item){
+      if(typeof item === 'string'){
+        return {id: 'foto_' + Math.random().toString(36).slice(2, 10), src: item, legenda: '', autor: 'Academia', autorId: '', autorRole: '', data: Date.now(), likes: [], comentarios: []};
+      }
+      if(!item.id) item.id = 'foto_' + Math.random().toString(36).slice(2, 10);
+      if(!item.likes) item.likes = [];
+      if(!item.comentarios) item.comentarios = [];
+      if(item.autorId === undefined) item.autorId = '';
+      if(item.autorRole === undefined) item.autorRole = '';
+      return item;
+    });
+    Promise.all(normalizadas.map(function(foto){ return salvarFotoNaNuvem(foto); })).then(function(){
+      dbCollection.doc('gingapass_fotos').delete().catch(function(){});
+    });
+  }).catch(function(e){
+    console.error('Erro ao migrar fotos antigas do mural:', e);
+  });
+}
+
 function atualizarNuvemManual(botao){
   const textoOriginal = botao ? botao.textContent : null;
   if(botao){ botao.textContent = 'Atualizando...'; botao.disabled = true; }
@@ -1477,6 +1548,7 @@ function iniciarFirebase(tentativas){
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
     dbCollection = db.collection('gingapass');
+    muralFotosCollection = db.collection('gingapass_mural_fotos');
 
     const statusEl = document.getElementById('syncStatus');
 
@@ -1509,6 +1581,21 @@ function iniciarFirebase(tentativas){
       if(mudou && typeof currentRole !== 'undefined' && currentRole){
         aplicarPermissoes();
       }
+    });
+
+    migrarFotosAntigasSeNecessario();
+
+    muralFotosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
+      const fotos = [];
+      snapshot.forEach(function(doc){ fotos.push(doc.data()); });
+      _setLocal('gingapass_fotos', JSON.stringify(fotos));
+      if(typeof currentRole !== 'undefined' && currentRole){
+        if(typeof renderFotosFeed === 'function') renderFotosFeed();
+        if(typeof renderGaleria === 'function') renderGaleria();
+        if(typeof renderLimiteFotoSemanal === 'function') renderLimiteFotoSemanal();
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar fotos do mural:', e);
     });
   } catch(e){
     console.error('Firebase não pôde ser iniciado, o app vai funcionar só localmente:', e);
@@ -3396,7 +3483,7 @@ function normalizarFotos(){
     if(item.autorRole === undefined){ item.autorRole = ''; mudou = true; }
     return item;
   });
-  if(mudou) setDado('gingapass_fotos', JSON.stringify(normalizadas));
+  if(mudou) _setLocal('gingapass_fotos', JSON.stringify(normalizadas));
   return normalizadas;
 }
 
@@ -3418,15 +3505,14 @@ function podeExcluirFoto(foto){
 
 function excluirFotoMural(id){
   if(!confirm('Apagar essa foto do mural? Os comentários e curtidas somem junto.')) return;
-  buscarValorFresco('gingapass_fotos').then(function(valorFresco){
-    const fotos = JSON.parse(valorFresco || '[]');
-    const restantes = fotos.filter(f => f.id !== id);
-    setDado('gingapass_fotos', JSON.stringify(restantes));
-    renderFotosFeed();
+  const fotos = normalizarFotos();
+  const restantes = fotos.filter(f => f.id !== id);
+  _setLocal('gingapass_fotos', JSON.stringify(restantes));
+  renderFotosFeed();
   renderLimiteFotoSemanal();
-    renderGaleria();
-    iniciarSlideshowMural();
-  });
+  renderGaleria();
+  iniciarSlideshowMural();
+  excluirFotoNaNuvem(id);
 }
 
 function limiteSemanalDeFotos(){
@@ -3467,18 +3553,19 @@ function publicarFotos(galeriaId){
     id: 'foto_' + Math.random().toString(36).slice(2, 10),
     src, legenda: '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
-  let todasFotos = salvas.concat(novas);
-  todasFotos = podarFotosSeNecessario(todasFotos);
-  setDado('gingapass_fotos', JSON.stringify(todasFotos)).then(function(ok){
-    fotosSelecionadas = [];
-    renderGaleria();
-    renderFotosFeed();
-    renderLimiteFotoSemanal();
-    iniciarSlideshowMural();
-    if(ok){
+  let todasFotos = limitarFotosLocais(novas.concat(salvas));
+  _setLocal('gingapass_fotos', JSON.stringify(todasFotos));
+  fotosSelecionadas = [];
+  renderGaleria();
+  renderFotosFeed();
+  renderLimiteFotoSemanal();
+  iniciarSlideshowMural();
+  Promise.all(novas.map(function(foto){ return salvarFotoNaNuvem(foto); })).then(function(resultados){
+    const todasOk = resultados.every(Boolean);
+    if(todasOk){
       alert('Fotos publicadas! Já aparecem no mural pra todo mundo.');
     } else {
-      alert('As fotos ficaram salvas neste aparelho, mas NÃO sincronizaram com a nuvem (mural grande demais). Apague fotos antigas no Perfil (seção Armazenamento) e tente de novo.');
+      alert('As fotos ficaram salvas neste aparelho, mas alguma NÃO sincronizou com a nuvem. Verifique a conexão e tente publicar de novo.');
     }
   });
 }
@@ -3522,35 +3609,25 @@ function publicarFotoComunidade(){
     id: 'foto_' + Math.random().toString(36).slice(2, 10),
     src, legenda: i === 0 ? legenda : '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
-  let todasFotos = salvas.concat(novas);
-  todasFotos = podarFotosSeNecessario(todasFotos);
-  setDado('gingapass_fotos', JSON.stringify(todasFotos)).then(function(ok){
-    fotosSelecionadasComunidade = [];
-    if(legendaInput) legendaInput.value = '';
-    const inputFile = document.getElementById('fotoInputComunidade');
-    if(inputFile) inputFile.value = '';
-    previewFotosComunidade();
-    renderGaleria();
-    renderFotosFeed();
-    renderLimiteFotoSemanal();
-    iniciarSlideshowMural();
-    if(ok){
+  let todasFotos = limitarFotosLocais(novas.concat(salvas));
+  _setLocal('gingapass_fotos', JSON.stringify(todasFotos));
+  fotosSelecionadasComunidade = [];
+  if(legendaInput) legendaInput.value = '';
+  const inputFile = document.getElementById('fotoInputComunidade');
+  if(inputFile) inputFile.value = '';
+  previewFotosComunidade();
+  renderGaleria();
+  renderFotosFeed();
+  renderLimiteFotoSemanal();
+  iniciarSlideshowMural();
+  Promise.all(novas.map(function(foto){ return salvarFotoNaNuvem(foto); })).then(function(resultados){
+    const todasOk = resultados.every(Boolean);
+    if(todasOk){
       alert('Foto publicada no mural!');
     } else {
-      alert('A foto ficou salva neste aparelho, mas NÃO sincronizou com a nuvem (provavelmente o mural está grande demais). Ela pode não aparecer em outros aparelhos. Peça pra apagar fotos antigas do mural no Perfil (seção Armazenamento) e tente publicar de novo.');
+      alert('A foto ficou salva neste aparelho, mas NÃO sincronizou com a nuvem. Ela pode não aparecer em outros aparelhos. Verifique a conexão e tente publicar de novo.');
     }
   });
-}
-
-function podarFotosSeNecessario(fotos){
-  let tamanho = JSON.stringify(fotos).length;
-  const limite = 900 * 1024; // margem de segurança abaixo de 1MB
-  let podadas = fotos.slice();
-  while(tamanho > limite && podadas.length > 5){
-    podadas.shift();
-    tamanho = JSON.stringify(podadas).length;
-  }
-  return podadas;
 }
 
 function curtirFoto(id){
@@ -3562,10 +3639,11 @@ function curtirFoto(id){
   const idx = foto.likes.indexOf(meuId);
   if(idx >= 0) foto.likes.splice(idx, 1);
   else foto.likes.push(meuId);
-  setDado('gingapass_fotos', JSON.stringify(fotos));
+  _setLocal('gingapass_fotos', JSON.stringify(fotos));
   renderFotosFeed();
   renderLimiteFotoSemanal();
   iniciarSlideshowMural();
+  atualizarFotoNaNuvem(id, {likes: foto.likes});
 }
 
 function comentarFoto(id){
@@ -3577,10 +3655,11 @@ function comentarFoto(id){
   const foto = fotos.find(f => f.id === id);
   if(!foto) return;
   foto.comentarios.push({autor: obterNomeExibicaoAtual() || 'Associado', texto, data: Date.now()});
-  setDado('gingapass_fotos', JSON.stringify(fotos));
+  _setLocal('gingapass_fotos', JSON.stringify(fotos));
   renderFotosFeed();
   renderLimiteFotoSemanal();
   iniciarSlideshowMural();
+  atualizarFotoNaNuvem(id, {comentarios: foto.comentarios});
 }
 
 function renderLimiteFotoSemanal(){
