@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0054)file:///C:/Users/rafael.souza/Downloads/checkin_1.html -->
+<!-- saved from url=(0054)file:///C:/Users/rafael.souza/Downloads/checkin_3.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
   .msg{text-align:center;padding:40px 10px;}
   .msg .icon{font-size:48px;margin-bottom:14px;}
   .msg h2{color:var(--navy-900);margin:0 0 8px;}
-  .msg p{color:var(--ink-soft);font-size:14px;}
+  .msg p{color:var(--ink-soft);font-size:14px;word-break:break-all;white-space:pre-wrap;}
   .erro{color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;}
 </style>
 </head>
@@ -47,12 +47,14 @@
   <div class="msg" id="msgBox" style="display: block;">
     <div class="icon" id="msgIcon">⚠️</div>
     <h2 id="msgTitulo">Link inválido</h2>
-    <p id="msgTexto">Esse link de check-in está incompleto. Peça pro professor gerar o QR code de novo.</p>
+    <p id="msgTexto">Esse link de check-in está incompleto. Peça pro professor gerar o QR code de novo.
+
+Link recebido: file:///C:/Users/rafael.souza/Downloads/checkin_3.html</p>
   </div>
 </div>
 
-<script src="./Check-in rápido — GingaPass_files/firebase-app-compat.js.baixados"></script>
-<script src="./Check-in rápido — GingaPass_files/firebase-firestore-compat.js.baixados"></script>
+<script src="./checkin_files/firebase-app-compat.js.baixados"></script>
+<script src="./checkin_files/firebase-firestore-compat.js.baixados"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
@@ -105,7 +107,7 @@ function iniciar(tentativas){
 
 async function carregarDados(){
   if(!dataAula || !codigoAula){
-    mostrarMensagemFinal(false, 'Link inválido', 'Esse link de check-in está incompleto. Peça pro professor gerar o QR code de novo.');
+    mostrarMensagemFinal(false, 'Link inválido', 'Esse link de check-in está incompleto. Peça pro professor gerar o QR code de novo.\n\nLink recebido: ' + location.href);
     return;
   }
 
