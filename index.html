@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_87.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_89.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -795,6 +795,7 @@
       <input class="admin-input" id="fotoLegendaComunidade" placeholder="Escreva uma legenda (opcional)">
       <button class="btn" onclick="publicarFotoComunidade()">Publicar no mural</button>
       <p style="font-size:11px;color:var(--ink-soft);margin:8px 0 0;">Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaPass.</p>
+      <p id="fotoLimiteSemanalTexto" style="font-size:11px;color:var(--amber-700);margin:4px 0 0;font-weight:600;"></p>
     </div>
 
     <p class="section-title">Mural</p>
@@ -810,7 +811,8 @@
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Vídeo de até 1 minuto. Suba como "não listado" no YouTube e cole o link aqui. Só fica visível pros alunos depois que a matriz aprovar.</p>
       <input class="admin-input" id="aulaTituloAd" placeholder="Título da aula (ex: Ginga básica)">
-      <input class="admin-input" id="aulaLinkAd" placeholder="Link do YouTube ou Vimeo">
+      <input class="admin-input" id="aulaLinkAd" placeholder="Link do YouTube, Vimeo, Zoom ou Meet">
+      <input class="admin-input" id="aulaSenhaAd" placeholder="Senha de acesso (opcional, pra aula paga)">
       <button class="btn" onclick="enviarAulaAdmin()">Enviar para aprovação</button>
     </div>
     <div class="card" id="aulasStatusAdmin"></div>
@@ -1062,7 +1064,8 @@
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Vídeo de até 1 minuto, "não listado" no YouTube. Aulas enviadas pela matriz já entram aprovadas.</p>
       <input class="admin-input" id="aulaTituloMatriz" placeholder="Título da aula (ex: Ginga básica)">
-      <input class="admin-input" id="aulaLinkMatriz" placeholder="Link do YouTube ou Vimeo">
+      <input class="admin-input" id="aulaLinkMatriz" placeholder="Link do YouTube, Vimeo, Zoom ou Meet">
+      <input class="admin-input" id="aulaSenhaMatriz" placeholder="Senha de acesso (opcional, pra aula paga)">
       <button class="btn" onclick="enviarAulaMatriz()">Publicar aula (já aprovada)</button>
     </div>
 
@@ -1288,8 +1291,11 @@ function _setLocal(chave, valor){
   window.localStorage.setItem(chave, valor);
 }
 
+let modoDemo = false;
+
 function setDado(chave, valor){
   _setLocal(chave, valor);
+  if(modoDemo) return Promise.resolve(true);
   if(dbCollection){
     return dbCollection.doc(chave).set({value: valor, atualizado: Date.now()}).then(function(){
       return true;
@@ -1421,6 +1427,7 @@ let meuSessionToken = null;
 
 function seedContas(){
   verificarModoCheckinRapido();
+  verificarModoDemo();
   if(!localStorage.getItem('gingapass_academias_contas')){
     setDado('gingapass_academias_contas', JSON.stringify([]));
   }
@@ -1449,6 +1456,45 @@ function seedContas(){
       resposta: ''
     }));
   }
+}
+
+function verificarModoDemo(){
+  if(window._demoJaVerificado) return;
+  window._demoJaVerificado = true;
+
+  const params = new URLSearchParams(location.search);
+  if(params.get('demo') !== '1') return;
+
+  modoDemo = true;
+  currentRole = 'aluno';
+  currentUser = 'demo_visitante';
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  if(!contas.some(c => c.user === 'demo_visitante')){
+    contas.push({
+      nome: 'Visitante Demo',
+      user: 'demo_visitante',
+      senha: '',
+      corda: 'Corda de demonstração',
+      nucleo: (contas[0] && contas[0].nucleo) || '',
+      professor: (contas[0] && contas[0].professor) || '',
+      desde: new Date().getFullYear().toString(),
+      mensalidadeStatus: 'Em dia'
+    });
+    _setLocal('gingapass_alunos_contas', JSON.stringify(contas));
+  }
+
+  const loginScreen = document.getElementById('loginScreen');
+  const appContent = document.getElementById('appContent');
+  if(loginScreen) loginScreen.classList.add('hidden');
+  if(appContent) appContent.classList.add('visible');
+
+  const faixaDemo = document.createElement('div');
+  faixaDemo.textContent = '👀 Modo demonstração — só visualização, nada aqui afeta os dados reais';
+  faixaDemo.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:1001;background:var(--amber-500);color:var(--navy-900);text-align:center;font-size:11px;font-weight:700;padding:6px 10px;';
+  document.body.appendChild(faixaDemo);
+
+  aplicarPermissoes();
 }
 
 function verificarModoCheckinRapido(){
@@ -1519,20 +1565,9 @@ function popularProfessoresCheckinRapido(tentativas){
   const select = document.getElementById('checkinRapidoProfessor');
   if(!select) return;
 
-  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const professores = obterProfessoresReais();
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  const professores = [...new Set(
-    academiasContas.map(conta => {
-      const minhaAcademia = rede.find(a => a.nome === conta.nome);
-      const nomeResolvido = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
-      return (nomeResolvido || '').trim();
-    }).filter(Boolean)
-  )];
-
-  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
-  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
-  const identidadeMatriz = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
-  if(identidadeMatriz && !professores.includes(identidadeMatriz)) professores.push(identidadeMatriz);
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
 
   if(professores.length > 0){
     select.innerHTML = '<option value="">Selecione o professor...</option>' + professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
@@ -1921,6 +1956,7 @@ function aplicarPermissoes(){
   renderEventosGerenciar();
   renderGaleria();
   renderFotosFeed();
+  renderLimiteFotoSemanal();
   iniciarSlideshowMural();
   renderAviso();
   renderAlunos();
@@ -2324,13 +2360,38 @@ function alternarEdicaoPerfil(){
     };
 
     if(arquivo){
-      const reader = new FileReader();
-      reader.onload = (ev) => salvar(ev.target.result);
-      reader.readAsDataURL(arquivo);
+      comprimirImagem(arquivo, 500, 0.75).then((fotoComprimida) => salvar(fotoComprimida));
     } else {
       salvar(null);
     }
   }
+}
+
+function comprimirImagem(arquivo, larguraMaxima, qualidade){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        let largura = img.width;
+        let altura = img.height;
+        if(largura > larguraMaxima){
+          altura = Math.round(altura * (larguraMaxima / largura));
+          largura = larguraMaxima;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = largura;
+        canvas.height = altura;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, largura, altura);
+        resolve(canvas.toDataURL('image/jpeg', qualidade));
+      };
+      img.onerror = () => resolve(ev.target.result);
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(arquivo);
+  });
 }
 
 function obterChavePerfil(){
@@ -2754,6 +2815,7 @@ function extrairEmbedVideo(url){
 function enviarAulaAdmin(){
   const titulo = document.getElementById('aulaTituloAd').value.trim();
   const link = document.getElementById('aulaLinkAd').value.trim();
+  const senha = document.getElementById('aulaSenhaAd').value.trim();
   if(!titulo || !link){
     alert('Preencha o título e o link do vídeo.');
     return;
@@ -2762,7 +2824,7 @@ function enviarAulaAdmin(){
   const minhaConta = academiasContas.find(c => c.user === currentUser);
   const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
   aulas.push({
-    titulo, link,
+    titulo, link, senha,
     autor: minhaConta ? minhaConta.nome : currentUser,
     status: 'pendente',
     data: new Date().toLocaleDateString('pt-BR')
@@ -2770,6 +2832,7 @@ function enviarAulaAdmin(){
   setDado('gingapass_aulas', JSON.stringify(aulas));
   document.getElementById('aulaTituloAd').value = '';
   document.getElementById('aulaLinkAd').value = '';
+  document.getElementById('aulaSenhaAd').value = '';
   renderAulasStatusAdmin();
   renderAulasPendentes();
   renderAulasTodas();
@@ -2779,13 +2842,14 @@ function enviarAulaAdmin(){
 function enviarAulaMatriz(){
   const titulo = document.getElementById('aulaTituloMatriz').value.trim();
   const link = document.getElementById('aulaLinkMatriz').value.trim();
+  const senha = document.getElementById('aulaSenhaMatriz').value.trim();
   if(!titulo || !link){
     alert('Preencha o título e o link do vídeo.');
     return;
   }
   const aulas = JSON.parse(localStorage.getItem('gingapass_aulas') || '[]');
   aulas.push({
-    titulo, link,
+    titulo, link, senha,
     autor: 'Matriz',
     status: 'aprovado',
     data: new Date().toLocaleDateString('pt-BR')
@@ -2793,6 +2857,7 @@ function enviarAulaMatriz(){
   setDado('gingapass_aulas', JSON.stringify(aulas));
   document.getElementById('aulaTituloMatriz').value = '';
   document.getElementById('aulaLinkMatriz').value = '';
+  document.getElementById('aulaSenhaMatriz').value = '';
   renderAulasPendentes();
   renderAulasTodas();
   renderAulas();
@@ -2923,15 +2988,44 @@ function renderAulas(){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Nenhuma aula disponível ainda.</p>';
     return;
   }
-  aprovadas.forEach(a => {
+  aprovadas.forEach((a, idx) => {
     const card = document.createElement('div');
     card.className = 'card';
+
+    const temSenha = a.senha && a.senha.trim();
+    const chaveDesbloqueio = 'gingapass_aula_desbloqueada_' + idx + '_' + (a.titulo || '');
+    const jaDesbloqueada = !temSenha || sessionStorage.getItem(chaveDesbloqueio) === '1';
+
+    if(!jaDesbloqueada){
+      card.innerHTML = '<div style="text-align:center;padding:24px 10px;background:var(--cream-2);border-radius:12px;margin-bottom:8px;">' +
+        '<div style="font-size:28px;margin-bottom:8px;">🔒</div>' +
+        '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">Aula paga — peça a senha pro seu professor.</p>' +
+        '</div>' +
+        '<input class="admin-input" id="aulaSenhaInput' + idx + '" placeholder="Digite a senha" style="margin-bottom:8px;">' +
+        '<button class="btn" id="aulaDesbloquearBtn' + idx + '">Desbloquear aula</button>' +
+        '<h4 style="margin:10px 0 0;font-size:14px;color:var(--navy-900);"></h4><p style="margin:0;font-size:11.5px;color:var(--ink-soft);"></p>';
+      card.querySelector('h4').textContent = a.titulo;
+      card.querySelector('p').textContent = 'Por ' + a.autor + ' · ' + a.data;
+      const btn = card.querySelector('#aulaDesbloquearBtn' + idx);
+      btn.onclick = () => {
+        const input = document.getElementById('aulaSenhaInput' + idx);
+        if(input.value.trim() === a.senha.trim()){
+          sessionStorage.setItem(chaveDesbloqueio, '1');
+          renderAulas();
+        } else {
+          alert('Senha incorreta.');
+        }
+      };
+      container.appendChild(card);
+      return;
+    }
+
     const embed = extrairEmbedVideo(a.link);
     let mediaHtml = '';
     if(embed){
       mediaHtml = '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;margin-bottom:8px;"><iframe src="' + embed + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen loading="lazy"></iframe></div>';
     } else {
-      mediaHtml = '<a href="' + a.link + '" target="_blank" rel="noopener" style="display:block;background:var(--navy-900);color:var(--cream);border-radius:12px;padding:20px;text-align:center;font-size:13px;font-weight:600;margin-bottom:8px;text-decoration:none;">▶ Assistir vídeo</a>';
+      mediaHtml = '<a href="' + a.link + '" target="_blank" rel="noopener" style="display:block;background:var(--navy-900);color:var(--cream);border-radius:12px;padding:20px;text-align:center;font-size:13px;font-weight:600;margin-bottom:8px;text-decoration:none;">▶ Assistir / Entrar na aula</a>';
     }
     card.innerHTML = mediaHtml + '<h4 style="margin:0 0 2px;font-size:14px;color:var(--navy-900);"></h4><p style="margin:0;font-size:11.5px;color:var(--ink-soft);"></p>';
     card.querySelector('h4').textContent = a.titulo;
@@ -3033,9 +3127,36 @@ function excluirFotoMural(id){
     const restantes = fotos.filter(f => f.id !== id);
     setDado('gingapass_fotos', JSON.stringify(restantes));
     renderFotosFeed();
+  renderLimiteFotoSemanal();
     renderGaleria();
     iniciarSlideshowMural();
   });
+}
+
+function limiteSemanalDeFotos(){
+  if(currentRole === 'aluno') return 2;
+  if(currentRole === 'academia') return 5;
+  return null;
+}
+
+function fotosPostadasNaSemana(){
+  const meuId = identificadorUsuarioAtual();
+  const todas = normalizarFotos();
+  const seteDiasAtras = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  return todas.filter(f => f.autorId === meuId && f.data >= seteDiasAtras).length;
+}
+
+function verificarLimiteFotoSemanal(quantidadeNova){
+  const limite = limiteSemanalDeFotos();
+  if(limite === null) return true;
+  const jaPostadas = fotosPostadasNaSemana();
+  if(jaPostadas + quantidadeNova > limite){
+    const restantes = Math.max(limite - jaPostadas, 0);
+    alert('Você já usou seu limite semanal de fotos (' + limite + ' por semana). ' +
+      (restantes > 0 ? 'Ainda pode postar mais ' + restantes + '.' : 'Tente de novo na próxima semana.'));
+    return false;
+  }
+  return true;
 }
 
 function publicarFotos(galeriaId){
@@ -3043,6 +3164,7 @@ function publicarFotos(galeriaId){
     alert('Selecione ao menos uma foto.');
     return;
   }
+  if(!verificarLimiteFotoSemanal(fotosSelecionadas.length)) return;
   const autor = obterNomeExibicaoAtual() || (currentRole === 'matriz' ? 'Matriz' : 'Academia');
   const salvas = normalizarFotos();
   const novas = fotosSelecionadas.map(src => ({
@@ -3053,6 +3175,7 @@ function publicarFotos(galeriaId){
   fotosSelecionadas = [];
   renderGaleria();
   renderFotosFeed();
+  renderLimiteFotoSemanal();
   iniciarSlideshowMural();
   alert('Fotos publicadas! Já aparecem no mural pra todo mundo.');
 }
@@ -3087,6 +3210,7 @@ function publicarFotoComunidade(){
     alert('Selecione ao menos uma foto pra publicar.');
     return;
   }
+  if(!verificarLimiteFotoSemanal(fotosSelecionadasComunidade.length)) return;
   const legendaInput = document.getElementById('fotoLegendaComunidade');
   const legenda = legendaInput ? legendaInput.value.trim() : '';
   const autor = obterNomeExibicaoAtual() || 'Associado';
@@ -3103,6 +3227,7 @@ function publicarFotoComunidade(){
   previewFotosComunidade();
   renderGaleria();
   renderFotosFeed();
+  renderLimiteFotoSemanal();
   iniciarSlideshowMural();
   alert('Foto publicada no mural!');
 }
@@ -3118,6 +3243,7 @@ function curtirFoto(id){
   else foto.likes.push(meuId);
   setDado('gingapass_fotos', JSON.stringify(fotos));
   renderFotosFeed();
+  renderLimiteFotoSemanal();
   iniciarSlideshowMural();
 }
 
@@ -3132,7 +3258,20 @@ function comentarFoto(id){
   foto.comentarios.push({autor: obterNomeExibicaoAtual() || 'Associado', texto, data: Date.now()});
   setDado('gingapass_fotos', JSON.stringify(fotos));
   renderFotosFeed();
+  renderLimiteFotoSemanal();
   iniciarSlideshowMural();
+}
+
+function renderLimiteFotoSemanal(){
+  const el = document.getElementById('fotoLimiteSemanalTexto');
+  if(!el) return;
+  const limite = limiteSemanalDeFotos();
+  if(limite === null){
+    el.textContent = '';
+    return;
+  }
+  const usadas = fotosPostadasNaSemana();
+  el.textContent = 'Você já postou ' + usadas + ' de ' + limite + ' fotos permitidas essa semana.';
 }
 
 function renderFotosFeed(){
@@ -4664,6 +4803,32 @@ function adicionarAcademiaRede(){
   alert('Academia adicionada à rede!');
 }
 
+function obterProfessoresReais(){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const brutos = academiasContas.map(conta => {
+    const minhaAcademia = rede.find(a => a.nome === conta.nome);
+    const nomeResolvido = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
+    return (nomeResolvido || '').trim();
+  }).filter(Boolean);
+
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const identidadeMatriz = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+  if(identidadeMatriz) brutos.push(identidadeMatriz);
+
+  const vistos = new Set();
+  const resultado = [];
+  brutos.forEach(nome => {
+    const chave = nome.toLowerCase();
+    if(!vistos.has(chave)){
+      vistos.add(chave);
+      resultado.push(nome);
+    }
+  });
+  return resultado;
+}
+
 function populaSelectsNucleoProfessor(){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const nucleos = [...new Set(rede.map(a => a.nome).filter(Boolean))];
@@ -4687,15 +4852,7 @@ function populaSelectsNucleoProfessor(){
   if(listaNucleoSugestoes){
     listaNucleoSugestoes.innerHTML = nucleos.map(n => '<option value="' + n + '"></option>').join('');
   }
-  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  const nomesComLogin = new Set(academiasContas.map(c => c.nome));
-  const professoresAfiliados = [...new Set(
-    academiasContas.map(conta => {
-      const minhaAcademia = rede.find(a => a.nome === conta.nome);
-      const nomeResolvido = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
-      return (nomeResolvido || '').trim();
-    }).filter(Boolean)
-  )];
+  const professoresAfiliados = obterProfessoresReais();
 
   ['perfilProfessorInput', 'novoAlunoProfessor', 'aulaQrProfessor', 'aulaQrProfessorMatriz'].forEach(id => {
     const sel = document.getElementById(id);
