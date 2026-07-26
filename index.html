@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_84.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_86.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1014,7 +1014,7 @@
       <button class="btn" onclick="confirmarCheckinManual()">Confirmar presença</button>
     </div>
 
-    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">Neste protótipo, o código só valida se o check-in e o QR forem gerados no mesmo navegador (já que não há servidor por trás). No app final, o código seria conferido por um servidor, funcionando entre o celular do professor e o do aluno normalmente.</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">O código é sincronizado pela nuvem entre o celular do professor e o do aluno. Se acabou de ser gerado, aguarde alguns segundos e tente de novo — pode levar um instante pra sincronizar.</p>
   </div>
 
   <!-- AULAS ONLINE -->
@@ -1494,18 +1494,18 @@ function executarModoCheckinRapido(){
     try{ return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'}); }
     catch(e){ return data; }
   })();
-  if(subEl) subEl.textContent = 'Aula de ' + dataFormatada;
+  if(subEl) subEl.textContent = 'Aula de ' + dataFormatada + ' · Verificando código...';
 
-  const codigoValido = localStorage.getItem('gingapass_qrcode_' + data);
-  if(!codigoValido || codigoValido !== codigo){
-    mostrarMsgCheckinRapido(false, 'Código expirado', 'Esse QR code não é mais válido. Peça pro professor gerar um novo.');
-    return;
-  }
-
-  window._checkinRapidoData = data;
-  window._checkinRapidoCodigo = codigo;
-
-  popularProfessoresCheckinRapido(0);
+  buscarValorFresco('gingapass_qrcode_' + data).then(function(codigoValido){
+    if(!codigoValido || codigoValido !== codigo){
+      mostrarMsgCheckinRapido(false, 'Código expirado', 'Esse QR code não é mais válido. Peça pro professor gerar um novo.');
+      return;
+    }
+    if(subEl) subEl.textContent = 'Aula de ' + dataFormatada;
+    window._checkinRapidoData = data;
+    window._checkinRapidoCodigo = codigo;
+    popularProfessoresCheckinRapido(0);
+  });
 }
 
 function popularProfessoresCheckinRapido(tentativas){
@@ -3707,23 +3707,29 @@ function confirmarCheckinManual(){
 
 function validarCheckin(codigo, dataAula){
   const data = dataAula || hojeStr();
-  const codigoValido = localStorage.getItem('gingapass_qrcode_' + data);
   const status = document.getElementById('checkinStatus');
-  if(!codigoValido){
-    if(status) status.textContent = 'Nenhum código foi gerado pela academia pra essa data ainda.';
-    alert('Nenhum código foi gerado pela academia pra essa data ainda.');
-    return;
-  }
-  if(codigo !== codigoValido){
-    if(status) status.textContent = 'Código incorreto ou expirado. Confira com o professor.';
-    alert('Código incorreto ou expirado.');
-    return;
-  }
-  if(!currentUser){
-    alert('Não identificamos seu usuário. Faça login novamente.');
-    return;
-  }
+  if(status) status.textContent = 'Verificando código...';
+  buscarValorFresco('gingapass_qrcode_' + data).then(function(codigoValido){
+    if(!codigoValido){
+      if(status) status.textContent = 'Nenhum código foi gerado pela academia pra essa data ainda.';
+      alert('Nenhum código foi gerado pela academia pra essa data ainda.');
+      return;
+    }
+    if(codigo !== codigoValido){
+      if(status) status.textContent = 'Código incorreto ou expirado. Confira com o professor.';
+      alert('Código incorreto ou expirado.');
+      return;
+    }
+    if(!currentUser){
+      alert('Não identificamos seu usuário. Faça login novamente.');
+      return;
+    }
+    finalizarCheckin(data);
+  });
+}
 
+function finalizarCheckin(data){
+  const status = document.getElementById('checkinStatus');
   const contasAluno = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const minhaContaAluno = contasAluno.find(c => c.user === currentUser);
   const diasAtraso = diasEmAtraso(minhaContaAluno);
