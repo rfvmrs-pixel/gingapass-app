@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_79.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_80.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1517,6 +1517,10 @@ function popularProfessoresCheckinRapido(tentativas){
   }
 
   select.innerHTML = '<option value="">Nenhum professor cadastrado</option>';
+  const subEl = document.getElementById('checkinRapidoSub');
+  if(subEl){
+    subEl.textContent += ' · Diagnóstico: ' + academiasContas.length + ' academia(s), ' + rede.length + ' núcleo(s) na rede.';
+  }
 }
 
 function mostrarMsgCheckinRapido(sucesso, titulo, texto){
@@ -3590,7 +3594,7 @@ function alternarScanner(){
       video.play();
       scannerAtivo = true;
       btn.textContent = 'Parar câmera';
-      status.textContent = 'Aponte pro QR code...';
+      status.textContent = 'Aponte pro QR code (fique a uns 20-30cm de distância, com boa luz, e espere focar)...';
       loopScanner();
     })
     .catch(() => {
