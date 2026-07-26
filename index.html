@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_10.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_11.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1109,7 +1109,8 @@
       <button class="btn" type="button" onclick="adicionarCampoNucleoExtra()" style="width:auto;padding:8px 14px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">+ Adicionar outro núcleo pra este professor</button>
 
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Quem é o professor/mestre DESTE professor (de quem ele também é aluno)</label>
-      <input class="admin-input" id="novaAcademiaMeuMestre" placeholder="Nome do mestre dele (opcional)">
+      <input class="admin-input" id="novaAcademiaMeuMestre" list="novaAcademiaMeuMestreSugestoes" placeholder="Nome do mestre dele (opcional)">
+      <datalist id="novaAcademiaMeuMestreSugestoes"></datalist>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Início como professor nessa rede</label>
       <input class="admin-input" id="novaAcademiaInicio" type="date">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade dele (se ele também paga)</label>
@@ -1125,8 +1126,9 @@
 
     <p class="section-title">Academias com acesso</p>
     <div class="card" id="academiasContasList"></div>
-    <button class="btn" type="button" onclick="unificarNomeProfessor()" style="margin-top:-6px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Unificar nome de professor duplicado</button>
-    <p style="font-size:11px;color:var(--ink-soft);margin:-10px 0 14px;">Use se o mesmo professor aparece com nomes diferentes em núcleos diferentes (ex: "Borracha" num lugar e "Mestrando Borracha" noutro) — isso junta o Pix, os alunos e as estatísticas dele num só nome.</p>
+    <button class="btn" type="button" onclick="unificarNomeProfessor()" style="margin-top:-6px;margin-bottom:10px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Unificar nome de professor duplicado</button>
+    <button class="btn" type="button" onclick="sincronizarVinculosMestre()" style="margin-top:0;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Sincronizar professores que já têm mestre cadastrado</button>
+    <p style="font-size:11px;color:var(--ink-soft);margin:-10px 0 14px;">O primeiro botão junta o Pix, os alunos e as estatísticas quando o mesmo professor aparece com nomes diferentes (ex: "Borracha" e "Mestrando Borracha"). O segundo transforma em aluno pagante qualquer professor que já tenha "Quem é o mestre dele" preenchido, mas ainda não apareça na lista de alunos. Pra vincular ou trocar isso professor por professor, use "Editar vínculo" em cada um, na lista acima.</p>
 
     <p class="section-title">Mensalidades dos professores</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
@@ -2558,8 +2560,12 @@ function renderAcademiasContas(){
     return;
   }
   contas.forEach((c, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+
     const row = document.createElement('div');
     row.className = 'aluno-row';
+    row.style.marginBottom = '4px';
     const span = document.createElement('span');
     span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')') + ((c.nucleosGerenciados && c.nucleosGerenciados.length > 1) ? ' · ' + c.nucleosGerenciados.length + ' núcleos' : '');
     const btnGroup = document.createElement('div');
@@ -2577,8 +2583,88 @@ function renderAcademiasContas(){
     btnGroup.appendChild(btn);
     row.appendChild(span);
     row.appendChild(btnGroup);
-    container.appendChild(row);
+    wrap.appendChild(row);
+
+    const vinculoRow = document.createElement('div');
+    vinculoRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;';
+    const vinculoTxt = document.createElement('span');
+    vinculoTxt.style.cssText = 'font-size:11px;color:var(--ink-soft);';
+    vinculoTxt.textContent = c.meuMestre ? ('Paga mensalidade como aluno de: ' + c.meuMestre) : 'Não vinculado como aluno de ninguém';
+    const vinculoBtn = document.createElement('button');
+    vinculoBtn.type = 'button';
+    vinculoBtn.textContent = c.meuMestre ? 'Editar vínculo' : 'Vincular como aluno de alguém';
+    vinculoBtn.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;padding:0;flex-shrink:0;';
+    vinculoBtn.onclick = () => editarVinculoMestre(c.user);
+    vinculoRow.appendChild(vinculoTxt);
+    vinculoRow.appendChild(vinculoBtn);
+    wrap.appendChild(vinculoRow);
+
+    container.appendChild(wrap);
   });
+}
+
+function editarVinculoMestre(userConta){
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userConta);
+  if(idx < 0) return;
+
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  const meuNome = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+
+  const sugestao = contas[idx].meuMestre || meuNome || '';
+  const nomeMestre = prompt('Vincular "' + contas[idx].nome + '" como aluno (pagante) de quem?\n\nDeixe em branco pra desvincular. Pra vincular como seu próprio aluno, digite: ' + (meuNome || '(preencha seu nome de professor primeiro)'), sugestao);
+  if(nomeMestre === null) return;
+  const nomeMestreLimpo = nomeMestre.trim();
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const minhaAcademia = rede.find(a => a.nome === contas[idx].nome);
+  const nomeProfessorFiliado = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : contas[idx].nome;
+  const graduacao = minhaAcademia ? (minhaAcademia.graduacao || '') : '';
+
+  const mestreAnterior = contas[idx].meuMestre;
+  contas[idx].meuMestre = nomeMestreLimpo;
+  setDado('gingapass_academias_contas', JSON.stringify(contas));
+
+  if(mestreAnterior && (!nomeMestreLimpo || !mesmoProfessor(mestreAnterior, nomeMestreLimpo))){
+    desvincularProfessorDoMestre(nomeProfessorFiliado, mestreAnterior);
+  }
+  if(nomeMestreLimpo){
+    garantirProfessorComoAlunoDoMestre(nomeProfessorFiliado, nomeMestreLimpo, graduacao);
+  }
+  renderAcademiasContas();
+  alert(nomeMestreLimpo ? ('Pronto! "' + nomeProfessorFiliado + '" agora paga mensalidade como aluno de "' + nomeMestreLimpo + '".') : ('Vínculo removido — "' + nomeProfessorFiliado + '" não é mais tratado como aluno de ninguém automaticamente.'));
+}
+
+function desvincularProfessorDoMestre(nomeProfessor, nomeMestre){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => mesmoProfessor(c.nome, nomeProfessor) && c.professor && mesmoProfessor(c.professor, nomeMestre) && c.semAcesso);
+  if(idx < 0) return;
+  contas.splice(idx, 1);
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  tentarChamar(function(){ renderAlunos(); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
+}
+
+function sincronizarVinculosMestre(){
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  let total = 0;
+  contas.forEach(c => {
+    if(!c.meuMestre) return;
+    const minhaAcademia = rede.find(a => a.nome === c.nome);
+    const nomeProfessorFiliado = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : c.nome;
+    const graduacao = minhaAcademia ? (minhaAcademia.graduacao || '') : '';
+    const jaExiste = alunos.some(al => mesmoProfessor(al.nome, nomeProfessorFiliado) && al.professor && mesmoProfessor(al.professor, c.meuMestre));
+    if(!jaExiste){
+      garantirProfessorComoAlunoDoMestre(nomeProfessorFiliado, c.meuMestre, graduacao);
+      total++;
+    }
+  });
+  renderAcademiasContas();
+  alert(total > 0 ? ('Pronto! ' + total + ' professor(es) vinculado(s) como aluno do respectivo mestre, com base no que já estava preenchido em "Quem é o mestre dele".') : 'Todos os professores com mestre cadastrado já estavam vinculados.');
 }
 
 function adicionarNucleoAProfessorExistente(userConta){
@@ -6083,6 +6169,10 @@ function populaSelectsNucleoProfessor(){
   const listaSugestoes = document.getElementById('cfgProfessorSugestoes');
   if(listaSugestoes){
     listaSugestoes.innerHTML = professores.map(p => '<option value="' + p + '"></option>').join('');
+  }
+  const listaMestreSugestoes = document.getElementById('novaAcademiaMeuMestreSugestoes');
+  if(listaMestreSugestoes){
+    listaMestreSugestoes.innerHTML = professores.map(p => '<option value="' + p + '"></option>').join('');
   }
 }
 
