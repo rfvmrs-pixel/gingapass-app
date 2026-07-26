@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_80.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_81.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1500,6 +1500,11 @@ function popularProfessoresCheckinRapido(tentativas){
     }).filter(Boolean)
   )];
 
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const identidadeMatriz = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+  if(identidadeMatriz && !professores.includes(identidadeMatriz)) professores.push(identidadeMatriz);
+
   if(professores.length > 0){
     select.innerHTML = '<option value="">Selecione o professor...</option>' + professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
     return;
@@ -1509,7 +1514,9 @@ function popularProfessoresCheckinRapido(tentativas){
     select.innerHTML = '<option value="">Carregando professores...</option>';
     Promise.all([
       buscarValorFresco('gingapass_rede_academias'),
-      buscarValorFresco('gingapass_academias_contas')
+      buscarValorFresco('gingapass_academias_contas'),
+      buscarValorFresco('gingapass_professor_matriz'),
+      buscarValorFresco('gingapass_config_geral')
     ]).then(function(){
       setTimeout(function(){ popularProfessoresCheckinRapido(tentativas + 1); }, 800);
     });
@@ -3597,8 +3604,8 @@ function alternarScanner(){
       status.textContent = 'Aponte pro QR code (fique a uns 20-30cm de distância, com boa luz, e espere focar)...';
       loopScanner();
     })
-    .catch(() => {
-      status.textContent = 'Não foi possível acessar a câmera. Use o código manual abaixo.';
+    .catch((erro) => {
+      status.textContent = 'Não foi possível acessar a câmera (' + (erro && erro.name ? erro.name : 'erro desconhecido') + '). Verifique se você permitiu o acesso à câmera pra esse site nas configurações do navegador, ou use o código manual abaixo.';
     });
 }
 
