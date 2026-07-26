@@ -1,0 +1,25 @@
+{
+  "background_color": "#fbf3e4",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "GingaPass — Seu app de treinos",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "GingaPass",
+  "start_url": "/",
+  "theme_color": "#042C53",
+  "icons": [
+    {
+      "src": "file:///C:/Users/rafael.souza/Downloads/icon-192.png",
+      "isSquare": false,
+      "isPng": true,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "description": "App de gestão de treinos, presença e mensalidade para academias de capoeira"
+}
