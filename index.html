@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_86.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_87.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1185,6 +1185,13 @@
     <p class="section-title">Quem mais visita</p>
     <div class="card" id="rankingMaisVisitam"></div>
 
+    <p class="section-title">Check-ins de alunos por dia</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alunos com conta que fizeram check-in nesse dia. Use "Excluir" se algum check-in foi registrado por engano.</p>
+    <div class="card">
+      <input class="admin-input" id="checkinAlunoData" type="date" onchange="renderCheckinsAlunos()" style="margin-bottom:0;">
+    </div>
+    <div class="card" id="checkinsAlunosList"></div>
+
     <p class="section-title">Check-ins rápidos (sem login) por dia</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Contagem de quem confirmou presença escaneando o QR direto pela câmera do celular, sem entrar no app.</p>
     <div class="card">
@@ -1935,6 +1942,7 @@ function aplicarPermissoes(){
   renderHistoricoAluno();
   renderEstatisticas();
   renderCheckinsAvulsos();
+  renderCheckinsAlunos();
   renderAulas();
   renderAulasStatusAdmin();
   renderAulasPendentes();
@@ -1990,6 +1998,7 @@ function showScreen(id, btn){
   if(id === 'estatisticas'){
     renderEstatisticas();
   renderCheckinsAvulsos();
+  renderCheckinsAlunos();
   }
   if(id === 'chat'){
     atualizarNuvemManual(null);
@@ -4111,6 +4120,91 @@ function renderHistoricoAluno(){
   });
 }
 
+function renderCheckinsAlunos(){
+  const container = document.getElementById('checkinsAlunosList');
+  if(!container) return;
+  const dataInput = document.getElementById('checkinAlunoData');
+  if(dataInput && !dataInput.value) dataInput.value = hojeStr();
+  const data = dataInput ? dataInput.value : hojeStr();
+
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const meuNome = (currentRole === 'academia') ? obterMeuNomeProfessor() : null;
+
+  let doDia = log.filter(r => r.data === data);
+  if(currentRole === 'academia' && meuNome){
+    doDia = doDia.filter(r => (r.professor || '').trim().toLowerCase() === meuNome.trim().toLowerCase());
+  }
+
+  container.innerHTML = '';
+  const titulo = document.createElement('p');
+  titulo.style.cssText = 'font-weight:600;font-size:14px;color:var(--navy-900);margin:0 0 10px;';
+  titulo.textContent = doDia.length + ' check-in(s) nesse dia';
+  container.appendChild(titulo);
+
+  if(doDia.length === 0){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:12.5px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Nenhum check-in registrado nessa data ainda.';
+    container.appendChild(vazio);
+    return;
+  }
+
+  doDia.forEach(r => {
+    const conta = contas.find(c => c.user === r.aluno);
+    const nome = conta ? conta.nome : r.aluno;
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const info = document.createElement('div');
+    info.innerHTML = '<b>' + nome + '</b><br><span style="font-size:11px;color:var(--ink-soft);">Prof. ' + (r.professor || '—') + '</span>';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = 'Excluir';
+    delBtn.className = 'aluno-del';
+    delBtn.style.flexShrink = '0';
+    delBtn.onclick = () => excluirCheckinAluno(data, r.aluno, r.professor, nome);
+    row.appendChild(info);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function excluirCheckinAluno(data, alunoUser, professor, nome){
+  if(!confirm('Excluir a presença de "' + nome + '" nesse dia?')) return;
+  buscarValorFresco('gingapass_checkin_log').then(function(valorFresco){
+    const log = JSON.parse(valorFresco || '[]');
+    const idx = log.findIndex(r => r.data === data && r.aluno === alunoUser && (r.professor || '') === (professor || ''));
+    if(idx >= 0) log.splice(idx, 1);
+    setDado('gingapass_checkin_log', JSON.stringify(log));
+
+    const aindaTemOutro = log.some(r => r.data === data && r.aluno === alunoUser);
+    if(!aindaTemOutro){
+      buscarValorFresco('gingapass_checkin_' + data).then(function(valorFresco2){
+        const registro = JSON.parse(valorFresco2 || '{}');
+        delete registro[alunoUser];
+        setDado('gingapass_checkin_' + data, JSON.stringify(registro));
+        renderCheckinsAlunos();
+        renderEstatisticas();
+      });
+    } else {
+      renderCheckinsAlunos();
+      renderEstatisticas();
+    }
+  });
+}
+
+function excluirCheckinAvulso(data, hora, nome){
+  if(!confirm('Excluir a presença de "' + nome + '" nesse dia?')) return;
+  const chave = 'gingapass_checkin_avulso_' + data;
+  buscarValorFresco(chave).then(function(valorFresco){
+    const lista = JSON.parse(valorFresco || '[]');
+    const restantes = lista.filter(c => !(c.hora === hora && c.nome === nome));
+    setDado(chave, JSON.stringify(restantes));
+    renderCheckinsAvulsos();
+  renderCheckinsAlunos();
+  });
+}
+
 function renderCheckinsAvulsos(){
   const container = document.getElementById('checkinsAvulsosList');
   if(!container) return;
@@ -4141,10 +4235,19 @@ function renderCheckinsAvulsos(){
 
   filtrados.sort((a, b) => a.hora - b.hora).forEach(c => {
     const row = document.createElement('div');
-    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
     const hora = new Date(c.hora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-    row.innerHTML = '<b>' + c.nome + '</b>' + (c.graduacao ? ' — ' + c.graduacao : '') +
+    const info = document.createElement('div');
+    info.innerHTML = '<b>' + c.nome + '</b>' + (c.graduacao ? ' — ' + c.graduacao : '') +
       '<br><span style="font-size:11px;color:var(--ink-soft);">' + hora + (currentRole !== 'academia' ? ' · Prof. ' + c.professor : '') + '</span>';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = 'Excluir';
+    delBtn.className = 'aluno-del';
+    delBtn.style.flexShrink = '0';
+    delBtn.onclick = () => excluirCheckinAvulso(data, c.hora, c.nome);
+    row.appendChild(info);
+    row.appendChild(delBtn);
     container.appendChild(row);
   });
 }
