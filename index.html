@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_83.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_84.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3615,7 +3615,7 @@ function alternarScanner(){
     status.textContent = 'Este navegador não permite acesso à câmera. Use o código manual abaixo.';
     return;
   }
-  navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}})
+  navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment', width: {ideal: 1920}, height: {ideal: 1080}, advanced: [{focusMode: 'continuous'}]}})
     .then(stream => {
       scannerStream = stream;
       video.srcObject = stream;
@@ -3650,7 +3650,7 @@ function loopScanner(){
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   if(typeof jsQR !== 'undefined'){
-    const resultado = jsQR(imageData.data, canvas.width, canvas.height);
+    const resultado = jsQR(imageData.data, canvas.width, canvas.height, {inversionAttempts: 'attemptBoth'});
     if(resultado && resultado.data){
       processarCodigoEscaneado(resultado.data);
       return;
