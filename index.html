@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_75.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_76.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -544,8 +544,8 @@
       <div id="idiomaLoginSwatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
       <p id="loginEntrarTexto">Entre com seu usuário e senha</p>
       <div class="role-toggle">
-        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
-        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
+        <button class="role-btn" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
+        <button class="role-btn active" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
       </div>
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
@@ -1448,6 +1448,18 @@ function verificarModoCheckinRapido(){
   if(window._checkinRapidoJaVerificado) return;
   window._checkinRapidoJaVerificado = true;
 
+  try{
+    executarModoCheckinRapido();
+  } catch(erro){
+    const overlay = document.getElementById('checkinRapidoOverlay');
+    if(overlay){
+      overlay.style.display = 'block';
+      overlay.innerHTML = '<h2 style="color:#C0392B;">Erro ao carregar</h2><p style="color:#5B6B7A;font-size:13px;word-break:break-word;">' + (erro && erro.message ? erro.message : String(erro)) + '</p>';
+    }
+  }
+}
+
+function executarModoCheckinRapido(){
   const params = new URLSearchParams(location.search);
   if(params.get('checkin') !== '1') return;
 
