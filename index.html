@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_81.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_82.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1002,7 +1002,7 @@
     <p class="subgreeting">Escaneie o QR code que o professor mostrar na academia</p>
 
     <div class="card" style="text-align:center;">
-      <video id="checkinVideo" style="width:100%;border-radius:12px;display:none;background:#000;" playsinline=""></video>
+      <video id="checkinVideo" style="width:100%;border-radius:12px;display:none;background:#000;" playsinline="" muted="" autoplay=""></video>
       <canvas id="checkinCanvas" style="display:none;"></canvas>
       <p id="checkinStatus" style="font-size:13px;color:var(--ink-soft);margin:8px 0;">Aponte a câmera pro QR code do professor.</p>
       <button class="btn" id="checkinScanBtn" onclick="alternarScanner()">Escanear QR code</button>
@@ -3597,8 +3597,14 @@ function alternarScanner(){
     .then(stream => {
       scannerStream = stream;
       video.srcObject = stream;
+      video.muted = true;
       video.style.display = 'block';
-      video.play();
+      const promessaPlay = video.play();
+      if(promessaPlay && promessaPlay.catch){
+        promessaPlay.catch(function(erroPlay){
+          status.textContent = 'Câmera conectada, mas não conseguiu iniciar o vídeo (' + (erroPlay && erroPlay.name ? erroPlay.name : 'erro') + '). Tente tocar na tela ou usar o código manual abaixo.';
+        });
+      }
       scannerAtivo = true;
       btn.textContent = 'Parar câmera';
       status.textContent = 'Aponte pro QR code (fique a uns 20-30cm de distância, com boa luz, e espere focar)...';
