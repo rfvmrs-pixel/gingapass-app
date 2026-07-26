@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_11.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_12.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-</head>
+<script src="./index_files/firebase-app-compat.js.baixados"></script><script src="./index_files/firebase-firestore-compat.js.baixados"></script></head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -834,6 +834,26 @@
   <div class="screen" id="admin">
     <p class="greeting" style="font-size:18px;">Painel do professor</p>
     <p class="subgreeting">Publique eventos e fotos da sua unidade — veja a aba Eventos</p>
+
+    <div id="minhaMensalidadeProfessorBloco" style="display:none;">
+      <p class="section-title">Minha mensalidade (como aluno do meu mestre)</p>
+      <div class="pay-hero">
+        <div class="status">Situação atual</div>
+        <div class="amount" id="minhaMensalidadeStatusProfessor">Em dia</div>
+        <div class="due" id="minhaMensalidadeDueProfessor">—</div>
+        <button class="btn" id="btnPagarPixProfessor" type="button" onclick="abrirPagamentoProfessor(&#39;pix&#39;)" style="display:none;">Pagar com Pix</button>
+        <button class="btn" id="btnPagarCartaoProfessor" type="button" onclick="abrirPagamentoProfessor(&#39;cartao&#39;)" style="display:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Pagar com cartão</button>
+        <p id="pagamentoAvisoProfessor" style="font-size:11.5px;color:#B9CBDD;margin:8px 0 0;display:none;">Seu mestre ainda não cadastrou a forma de pagamento.</p>
+      </div>
+      <div class="card" style="margin-top:10px;">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Depois de pagar, envie o comprovante direto pro seu mestre.</p>
+        <input type="file" id="comprovanteInputProfessor" accept="image/*" onchange="previewComprovanteProfessor()" style="font-size:12px;margin-bottom:8px;">
+        <div id="comprovantePreviewProfessor" style="margin-bottom:8px;"></div>
+        <button class="btn" type="button" onclick="enviarComprovantePagamentoProfessor()">Enviar comprovante pro meu mestre</button>
+        <p id="comprovanteStatusMsgProfessor" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+      </div>
+      <div id="comprovantesEnviadosListaProfessor"></div>
+    </div>
 
     <p class="section-title">Aulas online (link do YouTube/Vimeo)</p>
     <div class="card">
@@ -1176,7 +1196,6 @@
       <datalist id="cfgNucleoSugestoes"></datalist>
       <input class="admin-input" id="cfgProfessor" list="cfgProfessorSugestoes" placeholder="Seu nome como professor">
       <datalist id="cfgProfessorSugestoes"></datalist>
-      <input class="admin-input" id="cfgFrequencia" placeholder="Frequência no mês (ex: 92%)">
       <button class="btn" onclick="publicarConfigGeral()">Salvar configurações</button>
     </div>
 
@@ -1650,6 +1669,7 @@ function iniciarFirebase(tentativas){
       _setLocal('gingapass_comprovantes', JSON.stringify(comprovantes));
       if(typeof currentRole !== 'undefined' && currentRole){
         if(typeof renderComprovantesAluno === 'function') renderComprovantesAluno();
+        if(typeof renderMinhaMensalidadeProfessor === 'function') renderMinhaMensalidadeProfessor();
         if(typeof renderMensalidadesAlunos === 'function'){
           renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
           renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
@@ -2324,6 +2344,8 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderTelaChat(); });
   tentarChamar(function(){ renderPagamentoAluno(); });
   tentarChamar(function(){ renderComprovantesAluno(); });
+  tentarChamar(function(){ renderMinhaFrequencia(); });
+  tentarChamar(function(){ renderMinhaMensalidadeProfessor(); });
   if(currentRole === 'academia'){
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
     const minhaConta = academiasContas.find(c => c.user === currentUser);
@@ -4230,6 +4252,174 @@ function renderPagamentoAluno(){
   if(aviso) aviso.style.display = (pixFinal || cartaoFinal) ? 'none' : 'block';
 }
 
+// Acha o registro de "aluno" que representa o usuário logado, mesmo quando ele é um professor
+// (login "academia") que também paga mensalidade pro mestre dele.
+function resolverContaAlunoDoProfessor(){
+  if(currentRole !== 'academia' || !currentUser) return null;
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  if(!minhaConta) return null;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+  const nomeProfessorFiliado = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+  const alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  return alunos.find(al => mesmoProfessor(al.nome, nomeProfessorFiliado) && al.professor) || null;
+}
+
+let pagamentoAtualProfessor = {pix: '', cartao: ''};
+
+function renderMinhaMensalidadeProfessor(){
+  const bloco = document.getElementById('minhaMensalidadeProfessorBloco');
+  if(!bloco) return;
+  const minhaContaAluno = resolverContaAlunoDoProfessor();
+  if(!minhaContaAluno){
+    bloco.style.display = 'none';
+    return;
+  }
+  bloco.style.display = 'block';
+
+  const statusEl = document.getElementById('minhaMensalidadeStatusProfessor');
+  const dueEl = document.getElementById('minhaMensalidadeDueProfessor');
+  if(statusEl) statusEl.textContent = minhaContaAluno.mensalidadeStatus || 'Em dia';
+  if(dueEl){
+    if(minhaContaAluno.vencimentoMensalidade){
+      const vencTxt = new Date(minhaContaAluno.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
+      const diasVenc = diasParaVencimento(minhaContaAluno);
+      const diasTxt = diasVenc === null ? '' : (diasVenc < 0 ? (' · venceu há ' + Math.abs(diasVenc) + ' dia(s)') : (diasVenc === 0 ? ' · vence hoje' : (' · faltam ' + diasVenc + ' dia(s)')));
+      dueEl.textContent = 'Próximo vencimento: ' + vencTxt + diasTxt;
+    } else {
+      dueEl.textContent = 'Seu mestre ainda não definiu a data de vencimento.';
+    }
+  }
+
+  const btnPix = document.getElementById('btnPagarPixProfessor');
+  const btnCartao = document.getElementById('btnPagarCartaoProfessor');
+  const aviso = document.getElementById('pagamentoAvisoProfessor');
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  let origem = rede.find(a => a.nome === minhaContaAluno.nucleo && (a.pix || a.cartao));
+  if(!origem && minhaContaAluno.professor){
+    origem = rede.find(a => mesmoProfessor(a.professor, minhaContaAluno.professor) && (a.pix || a.cartao));
+  }
+  const pixFinal = (origem && origem.pix) ? origem.pix.trim() : '';
+  const cartaoFinal = (origem && origem.cartao) ? origem.cartao.trim() : '';
+  pagamentoAtualProfessor = {pix: pixFinal, cartao: cartaoFinal};
+  if(btnPix) btnPix.style.display = pixFinal ? '' : 'none';
+  if(btnCartao) btnCartao.style.display = cartaoFinal ? '' : 'none';
+  if(aviso) aviso.style.display = (pixFinal || cartaoFinal) ? 'none' : 'block';
+
+  renderComprovantesProfessor(minhaContaAluno.user);
+}
+
+function abrirPagamentoProfessor(tipo){
+  const valor = tipo === 'pix' ? pagamentoAtualProfessor.pix : pagamentoAtualProfessor.cartao;
+  if(!valor) return;
+  const ehLink = /^https?:\/\//i.test(valor);
+  if(ehLink){
+    window.open(valor, '_blank', 'noopener');
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(valor).then(() => {
+      alert('Chave Pix copiada: ' + valor + '\nCole no app do seu banco pra pagar.');
+    }).catch(() => {
+      alert('Chave Pix: ' + valor);
+    });
+  } else {
+    alert('Chave Pix: ' + valor);
+  }
+}
+
+let comprovanteSelecionadoProfessor = null;
+
+function previewComprovanteProfessor(){
+  const input = document.getElementById('comprovanteInputProfessor');
+  const preview = document.getElementById('comprovantePreviewProfessor');
+  if(!input || !input.files || !input.files[0]){
+    comprovanteSelecionadoProfessor = null;
+    if(preview) preview.innerHTML = '';
+    return;
+  }
+  comprimirImagem(input.files[0], 900, 0.7).then(function(dataUrl){
+    comprovanteSelecionadoProfessor = dataUrl;
+    if(preview) preview.innerHTML = '<img src="' + dataUrl + '" style="max-width:160px;border-radius:10px;display:block;">';
+  });
+}
+
+function enviarComprovantePagamentoProfessor(){
+  const statusMsg = document.getElementById('comprovanteStatusMsgProfessor');
+  if(!comprovanteSelecionadoProfessor){
+    if(statusMsg) statusMsg.textContent = 'Escolha uma imagem do comprovante antes de enviar.';
+    return;
+  }
+  const minhaContaAluno = resolverContaAlunoDoProfessor();
+  if(!minhaContaAluno){
+    if(statusMsg) statusMsg.textContent = 'Não achamos seu vínculo como aluno de um mestre.';
+    return;
+  }
+  const comprovante = {
+    id: 'comp_' + Math.random().toString(36).slice(2, 10),
+    alunoUser: minhaContaAluno.user,
+    alunoNome: minhaContaAluno.nome,
+    professor: minhaContaAluno.professor || '',
+    nucleo: minhaContaAluno.nucleo || '',
+    imagem: comprovanteSelecionadoProfessor,
+    data: Date.now(),
+    status: 'pendente'
+  };
+  const locais = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  locais.unshift(comprovante);
+  _setLocal('gingapass_comprovantes', JSON.stringify(locais));
+  renderComprovantesProfessor(minhaContaAluno.user);
+
+  const input = document.getElementById('comprovanteInputProfessor');
+  if(input) input.value = '';
+  comprovanteSelecionadoProfessor = null;
+  const preview = document.getElementById('comprovantePreviewProfessor');
+  if(preview) preview.innerHTML = '';
+  if(statusMsg) statusMsg.textContent = 'Enviando...';
+
+  salvarComprovanteNaNuvem(comprovante).then(function(ok){
+    if(statusMsg) statusMsg.textContent = ok ? 'Comprovante enviado! Seu mestre vai receber e confirmar por aqui.' : 'Comprovante salvo neste aparelho, mas não sincronizou com a nuvem — verifique sua conexão.';
+    tentarChamar(function(){
+      renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+      renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+    });
+  });
+}
+
+function renderComprovantesProfessor(userAlunoRepresentante){
+  const container = document.getElementById('comprovantesEnviadosListaProfessor');
+  if(!container) return;
+  const todos = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
+  const meus = todos.filter(c => c.alunoUser === userAlunoRepresentante);
+  container.innerHTML = '';
+  if(meus.length === 0) return;
+  const titulo = document.createElement('p');
+  titulo.className = 'section-title';
+  titulo.textContent = 'Comprovantes enviados';
+  container.appendChild(titulo);
+  const card = document.createElement('div');
+  card.className = 'card';
+  meus.forEach(c => {
+    const linha = document.createElement('div');
+    linha.style.cssText = 'display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const img = document.createElement('img');
+    img.src = c.imagem;
+    img.style.cssText = 'width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;';
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;';
+    const dataTxt = new Date(c.data).toLocaleDateString('pt-BR');
+    const statusTxt = c.status === 'confirmado' ? '✅ Confirmado' : (c.status === 'recusado' ? '❌ Recusado — envie de novo ou fale com seu mestre' : '⏳ Aguardando confirmação');
+    info.innerHTML = '<span style="font-size:12px;color:var(--ink);display:block;">' + dataTxt + '</span><span style="font-size:11px;font-weight:600;">' + statusTxt + '</span>';
+    linha.appendChild(img);
+    linha.appendChild(info);
+    card.appendChild(linha);
+  });
+  const ultima = card.lastElementChild;
+  if(ultima) ultima.style.borderBottom = 'none';
+  container.appendChild(card);
+}
+
 function abrirPagamento(tipo){
   const valor = tipo === 'pix' ? pagamentoAtual.pix : pagamentoAtual.cartao;
   if(!valor) return;
@@ -4852,6 +5042,7 @@ function finalizarCheckin(data){
   const avisoAtraso = (diasAtraso > 0 && diasAtraso < 10) ? ('\n\nAtenção: sua mensalidade está atrasada há ' + diasAtraso + ' dia(s). Com 10 dias de atraso o check-in é bloqueado.') : '';
   if(status) status.textContent = 'Presença confirmada' + comQuem + '! Bom treino 🥋' + (avisoAtraso ? ' ⚠️' : '');
   document.getElementById('checkinCodigoManual').value = '';
+  tentarChamar(function(){ renderMinhaFrequencia(); });
   alert('Check-in feito com sucesso' + comQuem + '!' + avisoAtraso);
 }
 
@@ -6027,12 +6218,11 @@ function publicarConfigGeral(){
   const horarioLabel = document.getElementById('cfgHorarioLabel').value.trim();
   const nucleo = document.getElementById('cfgNucleo').value.trim();
   const professor = document.getElementById('cfgProfessor').value.trim();
-  const frequencia = document.getElementById('cfgFrequencia').value.trim();
   if(!nucleo || !professor){
     alert('Preencha ao menos o núcleo e o professor.');
     return;
   }
-  setDado('gingapass_config_geral', JSON.stringify({turma, horario, horarioLabel, nucleo, professor, frequencia}));
+  setDado('gingapass_config_geral', JSON.stringify({turma, horario, horarioLabel, nucleo, professor}));
   renderConfigGeral();
   renderPerfil();
   alert('Configurações salvas! Já aparecem pros alunos.');
@@ -6045,23 +6235,35 @@ function renderConfigGeral(){
   const aulaTitulo = document.getElementById('proximaAulaTitulo');
   const aulaHora = document.getElementById('proximaAulaHora');
   const aulaLabel = document.getElementById('proximaAulaLabel');
-  const frequenciaView = document.getElementById('frequenciaView');
 
   if(aulaInfo) aulaInfo.textContent = 'Prof. ' + cfg.professor + ' · Núcleo ' + cfg.nucleo;
   if(aulaTitulo && cfg.turma) aulaTitulo.textContent = cfg.turma;
   if(aulaHora && cfg.horario) aulaHora.textContent = cfg.horario;
   if(aulaLabel && cfg.horarioLabel) aulaLabel.textContent = cfg.horarioLabel;
-  if(frequenciaView && cfg.frequencia) frequenciaView.textContent = cfg.frequencia;
 
   const campos = {
     cfgTurma: cfg.turma, cfgHorario: cfg.horario, cfgHorarioLabel: cfg.horarioLabel,
-    cfgNucleo: cfg.nucleo, cfgProfessor: cfg.professor,
-    cfgFrequencia: cfg.frequencia
+    cfgNucleo: cfg.nucleo, cfgProfessor: cfg.professor
   };
   Object.keys(campos).forEach(id => {
     const el = document.getElementById(id);
     if(el && !el.value && campos[id]) el.value = campos[id];
   });
+}
+
+function renderMinhaFrequencia(){
+  const frequenciaView = document.getElementById('frequenciaView');
+  if(!frequenciaView || currentRole !== 'aluno' || !currentUser) return;
+  const diasCheckin = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const totalDias = diasCheckin.length;
+  if(totalDias === 0){
+    frequenciaView.textContent = '0%';
+    return;
+  }
+  const diasPresente = new Set(log.filter(r => r.aluno === currentUser).map(r => r.data)).size;
+  const frequencia = Math.round((diasPresente / totalDias) * 100);
+  frequenciaView.textContent = frequencia + '%';
 }
 
 function adicionarAcademiaRede(){
