@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_3.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_4.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1943,6 +1943,7 @@ function fazerLogin(){
   // se o usuário digitar exatamente o usuário e senha que a matriz criou no primeiro acesso.
   const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
   if(master && user === master.user && pass === master.senha){
+    currentUser = user;
     entrar('matriz');
     return;
   }
@@ -3466,13 +3467,20 @@ function publicarFotos(galeriaId){
     id: 'foto_' + Math.random().toString(36).slice(2, 10),
     src, legenda: '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
-  setDado('gingapass_fotos', JSON.stringify(salvas.concat(novas)));
-  fotosSelecionadas = [];
-  renderGaleria();
-  renderFotosFeed();
-  renderLimiteFotoSemanal();
-  iniciarSlideshowMural();
-  alert('Fotos publicadas! Já aparecem no mural pra todo mundo.');
+  let todasFotos = salvas.concat(novas);
+  todasFotos = podarFotosSeNecessario(todasFotos);
+  setDado('gingapass_fotos', JSON.stringify(todasFotos)).then(function(ok){
+    fotosSelecionadas = [];
+    renderGaleria();
+    renderFotosFeed();
+    renderLimiteFotoSemanal();
+    iniciarSlideshowMural();
+    if(ok){
+      alert('Fotos publicadas! Já aparecem no mural pra todo mundo.');
+    } else {
+      alert('As fotos ficaram salvas neste aparelho, mas NÃO sincronizaram com a nuvem (mural grande demais). Apague fotos antigas no Perfil (seção Armazenamento) e tente de novo.');
+    }
+  });
 }
 
 function renderGaleria(){
@@ -3514,17 +3522,35 @@ function publicarFotoComunidade(){
     id: 'foto_' + Math.random().toString(36).slice(2, 10),
     src, legenda: i === 0 ? legenda : '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
-  setDado('gingapass_fotos', JSON.stringify(salvas.concat(novas)));
-  fotosSelecionadasComunidade = [];
-  if(legendaInput) legendaInput.value = '';
-  const inputFile = document.getElementById('fotoInputComunidade');
-  if(inputFile) inputFile.value = '';
-  previewFotosComunidade();
-  renderGaleria();
-  renderFotosFeed();
-  renderLimiteFotoSemanal();
-  iniciarSlideshowMural();
-  alert('Foto publicada no mural!');
+  let todasFotos = salvas.concat(novas);
+  todasFotos = podarFotosSeNecessario(todasFotos);
+  setDado('gingapass_fotos', JSON.stringify(todasFotos)).then(function(ok){
+    fotosSelecionadasComunidade = [];
+    if(legendaInput) legendaInput.value = '';
+    const inputFile = document.getElementById('fotoInputComunidade');
+    if(inputFile) inputFile.value = '';
+    previewFotosComunidade();
+    renderGaleria();
+    renderFotosFeed();
+    renderLimiteFotoSemanal();
+    iniciarSlideshowMural();
+    if(ok){
+      alert('Foto publicada no mural!');
+    } else {
+      alert('A foto ficou salva neste aparelho, mas NÃO sincronizou com a nuvem (provavelmente o mural está grande demais). Ela pode não aparecer em outros aparelhos. Peça pra apagar fotos antigas do mural no Perfil (seção Armazenamento) e tente publicar de novo.');
+    }
+  });
+}
+
+function podarFotosSeNecessario(fotos){
+  let tamanho = JSON.stringify(fotos).length;
+  const limite = 900 * 1024; // margem de segurança abaixo de 1MB
+  let podadas = fotos.slice();
+  while(tamanho > limite && podadas.length > 5){
+    podadas.shift();
+    tamanho = JSON.stringify(podadas).length;
+  }
+  return podadas;
 }
 
 function curtirFoto(id){
