@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_89.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_93.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -686,6 +686,12 @@
       </div>
     </div>
     <button class="btn" id="perfilEditBtn" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="alternarEdicaoPerfil()">Editar perfil</button>
+
+    <p class="section-title">Link de demonstração</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Gere um link pra mandar pra quem quiser conhecer o app. Quem abrir só visualiza — nada que a pessoa fizer afeta seus dados reais.</p>
+      <button class="btn" onclick="copiarLinkDemo()">Copiar link de demonstração</button>
+    </div>
 
     <p class="section-title">Aparência</p>
     <div class="card">
@@ -1922,8 +1928,29 @@ function verificarSessaoUnica(){
   }
 }
 
+function copiarLinkDemo(){
+  const link = 'https://rfvmrs-pixel.github.io/gingapass-app/?demo=1';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(function(){
+      alert('Link copiado!\n\n' + link + '\n\nManda por WhatsApp, e-mail, onde quiser.');
+    }).catch(function(){
+      alert('Aqui está o link (copie manualmente):\n\n' + link);
+    });
+  } else {
+    alert('Aqui está o link (copie manualmente):\n\n' + link);
+  }
+}
+
+function tentarChamar(fn){
+  try{
+    fn();
+  } catch(e){
+    console.error('Erro numa parte da tela (isolado, resto continua funcionando):', e);
+  }
+}
+
 function aplicarPermissoes(){
-  verificarSessaoUnica();
+  tentarChamar(function(){ verificarSessaoUnica(); });
   const adminTab = document.querySelector('.tab[data-target="admin"]');
   const alunosTab = document.querySelector('.tab[data-target="alunos"]');
   const chatTab = document.querySelector('.tab[data-target="chat"]');
@@ -1945,46 +1972,46 @@ function aplicarPermissoes(){
   if(alunosCriarAdmin) alunosCriarAdmin.style.display = (currentRole === 'academia') ? 'block' : 'none';
   if(alunosCriarMatriz) alunosCriarMatriz.style.display = (currentRole === 'matriz') ? 'block' : 'none';
 
-  renderSaudacao();
-  aplicarAparenciaAtual();
-  populaSelectsNucleoProfessor();
+  tentarChamar(function(){ renderSaudacao(); });
+  tentarChamar(function(){ aplicarAparenciaAtual(); });
+  tentarChamar(function(){ populaSelectsNucleoProfessor(); });
   const eventosCriarAdmin = document.getElementById('eventosCriarBoxAdmin');
   const eventosCriarMatriz = document.getElementById('eventosCriarBoxMatriz');
   if(eventosCriarAdmin) eventosCriarAdmin.style.display = (currentRole === 'academia') ? 'block' : 'none';
   if(eventosCriarMatriz) eventosCriarMatriz.style.display = (currentRole === 'matriz') ? 'block' : 'none';
-  renderEventos();
-  renderEventosGerenciar();
-  renderGaleria();
-  renderFotosFeed();
-  renderLimiteFotoSemanal();
-  iniciarSlideshowMural();
-  renderAviso();
-  renderAlunos();
-  renderPerfil();
-  renderAcademiasContas();
-  renderAlunosContas();
-  renderEnderecos();
-  renderCheckin();
-  renderMensalidade();
-  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
-  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
-  renderMensalidadesProfessores();
-  renderRedeAcademias();
-  renderConfigGeral();
-  renderAcademiasScreen();
-  renderQrHoje();
-  renderQrHoje('Matriz');
-  renderHistoricoGerenciar();
-  renderHistoricoAluno();
-  renderEstatisticas();
-  renderCheckinsAvulsos();
-  renderCheckinsAlunos();
-  renderAulas();
-  renderAulasStatusAdmin();
-  renderAulasPendentes();
-  renderAulasTodas();
-  renderTelaChat();
-  renderPagamentoAluno();
+  tentarChamar(function(){ renderEventos(); });
+  tentarChamar(function(){ renderEventosGerenciar(); });
+  tentarChamar(function(){ renderGaleria(); });
+  tentarChamar(function(){ renderFotosFeed(); });
+  tentarChamar(function(){ renderLimiteFotoSemanal(); });
+  tentarChamar(function(){ iniciarSlideshowMural(); });
+  tentarChamar(function(){ renderAviso(); });
+  tentarChamar(function(){ renderAlunos(); });
+  tentarChamar(function(){ renderPerfil(); });
+  tentarChamar(function(){ renderAcademiasContas(); });
+  tentarChamar(function(){ renderAlunosContas(); });
+  tentarChamar(function(){ renderEnderecos(); });
+  tentarChamar(function(){ renderCheckin(); });
+  tentarChamar(function(){ renderMensalidade(); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
+  tentarChamar(function(){ renderMensalidadesProfessores(); });
+  tentarChamar(function(){ renderRedeAcademias(); });
+  tentarChamar(function(){ renderConfigGeral(); });
+  tentarChamar(function(){ renderAcademiasScreen(); });
+  tentarChamar(function(){ renderQrHoje(); });
+  tentarChamar(function(){ renderQrHoje('Matriz'); });
+  tentarChamar(function(){ renderHistoricoGerenciar(); });
+  tentarChamar(function(){ renderHistoricoAluno(); });
+  tentarChamar(function(){ renderEstatisticas(); });
+  tentarChamar(function(){ renderCheckinsAvulsos(); });
+  tentarChamar(function(){ renderCheckinsAlunos(); });
+  tentarChamar(function(){ renderAulas(); });
+  tentarChamar(function(){ renderAulasStatusAdmin(); });
+  tentarChamar(function(){ renderAulasPendentes(); });
+  tentarChamar(function(){ renderAulasTodas(); });
+  tentarChamar(function(){ renderTelaChat(); });
+  tentarChamar(function(){ renderPagamentoAluno(); });
   if(currentRole === 'academia'){
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
     const minhaConta = academiasContas.find(c => c.user === currentUser);
@@ -2004,7 +2031,7 @@ function aplicarPermissoes(){
     const dados = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
     if(dados && dados.nome) meuProfInput.value = dados.nome;
   }
-  aplicarIdiomaUI();
+  tentarChamar(function(){ aplicarIdiomaUI(); });
 }
 
 function showScreen(id, btn){
