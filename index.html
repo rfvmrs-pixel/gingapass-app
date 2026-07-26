@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_7.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_8.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1115,6 +1115,8 @@
 
     <p class="section-title">Academias com acesso</p>
     <div class="card" id="academiasContasList"></div>
+    <button class="btn" type="button" onclick="unificarNomeProfessor()" style="margin-top:-6px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Unificar nome de professor duplicado</button>
+    <p style="font-size:11px;color:var(--ink-soft);margin:-10px 0 14px;">Use se o mesmo professor aparece com nomes diferentes em núcleos diferentes (ex: "Borracha" num lugar e "Mestrando Borracha" noutro) — isso junta o Pix, os alunos e as estatísticas dele num só nome.</p>
 
     <p class="section-title">Mensalidades dos professores</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
@@ -2279,7 +2281,7 @@ function aplicarPermissoes(){
       const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
       const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
       const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
-      const comPagamento = rede.find(a => (a.professor || '').trim().toLowerCase() === nomeProfessor.trim().toLowerCase() && (a.pix || a.cartao));
+      const comPagamento = rede.find(a => mesmoProfessor(a.professor, nomeProfessor) && (a.pix || a.cartao));
       const referencia = comPagamento || minhaAcademia;
       const pixInput = document.getElementById('admPix');
       const cartaoInput = document.getElementById('admCartao');
@@ -2295,7 +2297,7 @@ function aplicarPermissoes(){
     const nomeProfessor = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
     if(nomeProfessor){
       const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-      const comPagamento = rede.find(a => (a.professor || '').trim().toLowerCase() === nomeProfessor.toLowerCase() && (a.pix || a.cartao));
+      const comPagamento = rede.find(a => mesmoProfessor(a.professor, nomeProfessor) && (a.pix || a.cartao));
       const pixInput = document.getElementById('matrizPix');
       const cartaoInput = document.getElementById('matrizCartao');
       if(comPagamento){
@@ -2464,6 +2466,10 @@ function criarAcessoAcademia(){
     }
   });
   setDado('gingapass_rede_academias', JSON.stringify(rede));
+
+  if(meuMestre){
+    garantirProfessorComoAlunoDoMestre(professor, meuMestre, graduacao);
+  }
 
   const cfgAtual = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
   if(!cfgAtual || !cfgAtual.nucleo || !cfgAtual.professor){
@@ -3959,12 +3965,24 @@ function publicarContato(){
   alert('Contato salvo!');
 }
 
+function normalizarNomeProfessor(nome){
+  return (nome || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function mesmoProfessor(nomeA, nomeB){
+  const a = normalizarNomeProfessor(nomeA);
+  const b = normalizarNomeProfessor(nomeB);
+  if(!a || !b) return false;
+  if(a === b) return true;
+  // reconhece apelido dentro do nome completo (ex: "Borracha" dentro de "Mestrando Borracha")
+  return a.includes(b) || b.includes(a);
+}
+
 function salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-  const chave = (nomeProfessor || '').trim().toLowerCase();
   let algumEncontrado = false;
   rede.forEach(a => {
-    if((a.professor || '').trim().toLowerCase() === chave){
+    if(mesmoProfessor(a.professor, nomeProfessor)){
       a.pix = pix;
       a.cartao = cartao;
       algumEncontrado = true;
@@ -4152,6 +4170,88 @@ function alternarAcessoNovoAluno(contexto, comAcesso){
 function gerarUsuarioSemAcesso(nome){
   const base = (nome || 'aluno').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_');
   return 'semacesso_' + base + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function garantirProfessorComoAlunoDoMestre(nomeProfessor, nomeMestre, graduacao){
+  if(!nomeProfessor || !nomeMestre) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const jaExiste = contas.some(c => mesmoProfessor(c.nome, nomeProfessor) && c.professor && mesmoProfessor(c.professor, nomeMestre));
+  if(jaExiste) return;
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nucleoDoMestre = rede.find(a => mesmoProfessor(a.professor, nomeMestre));
+  const nucleo = nucleoDoMestre ? nucleoDoMestre.nome : '';
+
+  contas.push({
+    nome: nomeProfessor,
+    user: gerarUsuarioSemAcesso(nomeProfessor),
+    senha: '',
+    corda: graduacao || '',
+    nucleo,
+    professor: nomeMestre,
+    inicioTreinos: '',
+    vencimentoMensalidade: '',
+    desde: new Date().getFullYear().toString(),
+    pergunta: '',
+    resposta: '',
+    semAcesso: true
+  });
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  tentarChamar(function(){ renderAlunos(); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
+  tentarChamar(function(){ renderEstatisticas(); });
+}
+
+function unificarNomeProfessor(){
+  const nomeErrado = (prompt('Nome/apelido que está duplicado ou errado, como aparece hoje em algum lugar (ex: Borracha):') || '').trim();
+  if(!nomeErrado) return;
+  const nomeCorreto = (prompt('Nome completo e correto que deve ficar em todo lugar (ex: Mestrando Borracha):') || '').trim();
+  if(!nomeCorreto) return;
+  if(!confirmarSenhaMaster()) return;
+
+  let alterados = 0;
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  rede.forEach(a => {
+    if(a.professor && mesmoProfessor(a.professor, nomeErrado) && a.professor !== nomeCorreto){
+      a.professor = nomeCorreto;
+      alterados++;
+    }
+  });
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+
+  const alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  alunos.forEach(al => {
+    if(al.professor && mesmoProfessor(al.professor, nomeErrado) && al.professor !== nomeCorreto){
+      al.professor = nomeCorreto;
+      alterados++;
+    }
+  });
+  setDado('gingapass_alunos_contas', JSON.stringify(alunos));
+
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  if(cfg && cfg.professor && mesmoProfessor(cfg.professor, nomeErrado) && cfg.professor !== nomeCorreto){
+    cfg.professor = nomeCorreto;
+    setDado('gingapass_config_geral', JSON.stringify(cfg));
+    alterados++;
+  }
+
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  if(profMatriz && profMatriz.nome && mesmoProfessor(profMatriz.nome, nomeErrado) && profMatriz.nome !== nomeCorreto){
+    setDado('gingapass_professor_matriz', JSON.stringify({nome: nomeCorreto}));
+    alterados++;
+  }
+
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  renderListaProfessoresPublica();
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  renderMensalidadesProfessores();
+  renderEstatisticas();
+  renderPagamentoAluno();
+  alert(alterados > 0 ? ('Pronto! ' + alterados + ' registro(s) atualizado(s) pra "' + nomeCorreto + '". O Pix/cartão e os alunos desse professor agora ficam unificados em todos os núcleos dele.') : 'Não encontrei nenhum registro com esse nome pra unificar.');
 }
 
 function criarAcessoAlunoAcademia(){
