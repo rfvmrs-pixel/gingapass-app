@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_8.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_9.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3773,13 +3773,14 @@ function renderListaProfessoresPublica(){
     return;
   }
   professores.forEach(nome => {
-    const academia = rede.find(a => (a.professor || '').trim().toLowerCase() === nome.trim().toLowerCase());
+    const academias = rede.filter(a => mesmoProfessor(a.professor, nome));
     const row = document.createElement('div');
     row.style.cssText = 'display:grid;grid-template-columns:44px 1fr;column-gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;text-align:left;';
     const iniciais = nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+    const subtitulo = academias.map(a => a.nome + (a.diasAulas ? ' (' + a.diasAulas + ')' : '')).join(' · ') + (academias[0] && academias[0].graduacao ? ' · ' + academias[0].graduacao : '');
     row.innerHTML = '<div class="avatar" style="width:44px;height:44px;font-size:15px;justify-self:start;">' + (iniciais || '?') + '</div>' +
       '<div style="text-align:left;min-width:0;"><b style="font-size:13.5px;color:var(--navy-900);display:block;text-align:left;">' + nome + '</b>' +
-      (academia ? '<span style="font-size:11.5px;color:var(--ink-soft);display:block;text-align:left;">' + academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + (academia.diasAulas ? ' · ' + academia.diasAulas : '') + '</span>' : '') +
+      (academias.length > 0 ? '<span style="font-size:11.5px;color:var(--ink-soft);display:block;text-align:left;">' + subtitulo + '</span>' : '') +
       '</div>';
     row.onclick = () => abrirPerfilPublico('professor', nome);
     container.appendChild(row);
@@ -3800,8 +3801,14 @@ function abrirPerfilPublico(tipo, identificador){
     nome = identificador;
     tagEl.textContent = 'Professor';
     const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-    const academia = rede.find(a => (a.professor || '').trim().toLowerCase() === nome.trim().toLowerCase());
-    infoEl.textContent = academia ? (academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + (academia.endereco ? ' · ' + academia.endereco : '')) : '';
+    const academias = rede.filter(a => mesmoProfessor(a.professor, nome));
+    if(academias.length > 0){
+      const graduacao = academias[0].graduacao;
+      const listaNucleos = academias.map(a => a.nome + (a.endereco ? ' (' + a.endereco + ')' : '')).join(' · ');
+      infoEl.textContent = listaNucleos + (graduacao ? ' · ' + graduacao : '');
+    } else {
+      infoEl.textContent = '';
+    }
     autorNomeAlvo = nome;
   } else {
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
@@ -4061,10 +4068,19 @@ function renderPagamentoAluno(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const minhaConta = contas.find(c => c.user === currentUser);
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-  const minhaAcademia = minhaConta ? rede.find(a => a.nome === minhaConta.nucleo) : null;
 
-  const pix = (minhaAcademia && minhaAcademia.pix) ? minhaAcademia.pix.trim() : '';
-  const cartao = (minhaAcademia && minhaAcademia.cartao) ? minhaAcademia.cartao.trim() : '';
+  let origem = null;
+  if(minhaConta){
+    // 1) tenta pelo núcleo exato, já com pagamento cadastrado
+    origem = rede.find(a => a.nome === minhaConta.nucleo && (a.pix || a.cartao));
+    // 2) se não achou, tenta por qualquer núcleo do MESMO professor do aluno (cobre nomes de núcleo com pequenas diferenças)
+    if(!origem && minhaConta.professor){
+      origem = rede.find(a => mesmoProfessor(a.professor, minhaConta.professor) && (a.pix || a.cartao));
+    }
+  }
+
+  const pix = (origem && origem.pix) ? origem.pix.trim() : '';
+  const cartao = (origem && origem.cartao) ? origem.cartao.trim() : '';
   let pixFinal = pix, cartaoFinal = cartao;
   if(!pixFinal || !cartaoFinal){
     const dadosMatriz = JSON.parse(localStorage.getItem('gingapass_pagamento_matriz') || 'null');
@@ -5882,7 +5898,15 @@ function renderRedeAcademias(){
     const span = document.createElement('span');
     span.textContent = a.nome + ' — ' + a.endereco + (a.professor ? ' (Prof. ' + a.professor + (a.graduacao ? ', ' + a.graduacao : '') + ')' : '');
     const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:10px;';
+    actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
+    if(currentRole === 'matriz'){
+      const meuBtn = document.createElement('button');
+      meuBtn.className = 'aluno-del';
+      meuBtn.style.color = 'var(--navy-700)';
+      meuBtn.textContent = 'É meu núcleo';
+      meuBtn.onclick = () => marcarNucleoComoMeu(i);
+      actions.appendChild(meuBtn);
+    }
     const editBtn = document.createElement('button');
     editBtn.className = 'aluno-del';
     editBtn.style.color = 'var(--navy-700)';
@@ -5911,15 +5935,34 @@ function editarAcademiaRede(i){
   if(professor === null) return;
   const distancia = prompt('Distância (ex: 0,8 km):', a.distancia || '');
   if(distancia === null) return;
-  rede[i] = {
+  rede[i] = Object.assign({}, a, {
     nome: nome.trim() || a.nome,
     endereco: endereco.trim() || a.endereco,
     professor: professor.trim(),
     distancia: distancia.trim()
-  };
+  });
   setDado('gingapass_rede_academias', JSON.stringify(rede));
   renderRedeAcademias();
   renderAcademiasScreen();
+}
+
+function marcarNucleoComoMeu(i){
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  const meuNome = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+  if(!meuNome){
+    alert('Preencha primeiro seu nome como professor em "Configurações gerais", ali em cima.');
+    return;
+  }
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  if(!rede[i]) return;
+  rede[i].professor = meuNome;
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  renderListaProfessoresPublica();
+  renderPagamentoAluno();
+  alert('Pronto! "' + rede[i].nome + '" agora está marcado como seu núcleo, professor "' + meuNome + '". Se você já tem Pix/cartão cadastrado em "Forma de pagamento", volta lá e clica em "Salvar forma de pagamento" de novo pra ele valer aqui também.');
 }
 
 function removerAcademiaRede(i){
@@ -6204,25 +6247,40 @@ function salvarPagamentoAtalho(){
       return;
     }
     const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-    const idx = rede.findIndex(a => a.nome === minhaConta.nome);
-    if(idx >= 0){
-      rede[idx].pix = pix;
-      rede[idx].cartao = cartao;
-    } else {
-      rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
+    const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+    const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+    const encontrouAlgum = salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao);
+    if(!encontrouAlgum){
+      const rede2 = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      const idx = rede2.findIndex(a => a.nome === minhaConta.nome);
+      if(idx >= 0){
+        rede2[idx].pix = pix;
+        rede2[idx].cartao = cartao;
+      } else {
+        rede2.push({nome: minhaConta.nome, endereco: '', professor: nomeProfessor, distancia: '', pix, cartao});
+      }
+      setDado('gingapass_rede_academias', JSON.stringify(rede2));
+      renderRedeAcademias();
+      renderAcademiasScreen();
     }
-    setDado('gingapass_rede_academias', JSON.stringify(rede));
-    renderRedeAcademias();
-    renderAcademiasScreen();
     const pixInput = document.getElementById('admPix');
     const cartaoInput = document.getElementById('admCartao');
     if(pixInput) pixInput.value = pix;
     if(cartaoInput) cartaoInput.value = cartao;
   } else if(currentRole === 'matriz'){
+    const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+    const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    const nomeProfessor = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+    if(nomeProfessor) salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao);
     setDado('gingapass_pagamento_matriz', JSON.stringify({pix, cartao}));
+    const pixInputM = document.getElementById('matrizPix');
+    const cartaoInputM = document.getElementById('matrizCartao');
+    if(pixInputM) pixInputM.value = pix;
+    if(cartaoInputM) cartaoInputM.value = cartao;
   } else {
     return;
   }
+  renderPagamentoAluno();
   alert('Forma de pagamento salva! Já aparece pros seus alunos.');
 }
 
