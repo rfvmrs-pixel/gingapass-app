@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_6.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_7.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1166,6 +1166,14 @@
       <button class="btn" onclick="publicarConfigGeral()">Salvar configurações</button>
     </div>
 
+    <p class="section-title">Forma de pagamento (seus alunos, como professor)</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Isso aparece direto pros alunos cadastrados com você como professor, em qualquer núcleo que você dê aula.</p>
+      <input class="admin-input" id="matrizPix" placeholder="Chave Pix ou link de pagamento Pix">
+      <input class="admin-input" id="matrizCartao" placeholder="Link de pagamento com cartão">
+      <button class="btn" onclick="publicarPagamentoMatriz()">Salvar forma de pagamento</button>
+    </div>
+
     <p class="section-title">Academias da rede</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Use isto só para listar uma academia sem dar acesso de login a ela ainda. Se você já concedeu acesso acima, ela já está aqui.</p>
     <div class="card">
@@ -2270,11 +2278,29 @@ function aplicarPermissoes(){
     if(minhaConta){
       const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
       const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+      const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+      const comPagamento = rede.find(a => (a.professor || '').trim().toLowerCase() === nomeProfessor.trim().toLowerCase() && (a.pix || a.cartao));
+      const referencia = comPagamento || minhaAcademia;
       const pixInput = document.getElementById('admPix');
       const cartaoInput = document.getElementById('admCartao');
-      if(minhaAcademia){
-        if(pixInput && !pixInput.value && minhaAcademia.pix) pixInput.value = minhaAcademia.pix;
-        if(cartaoInput && !cartaoInput.value && minhaAcademia.cartao) cartaoInput.value = minhaAcademia.cartao;
+      if(referencia){
+        if(pixInput && !pixInput.value && referencia.pix) pixInput.value = referencia.pix;
+        if(cartaoInput && !cartaoInput.value && referencia.cartao) cartaoInput.value = referencia.cartao;
+      }
+    }
+  }
+  if(currentRole === 'matriz'){
+    const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+    const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    const nomeProfessor = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+    if(nomeProfessor){
+      const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      const comPagamento = rede.find(a => (a.professor || '').trim().toLowerCase() === nomeProfessor.toLowerCase() && (a.pix || a.cartao));
+      const pixInput = document.getElementById('matrizPix');
+      const cartaoInput = document.getElementById('matrizCartao');
+      if(comPagamento){
+        if(pixInput && !pixInput.value && comPagamento.pix) pixInput.value = comPagamento.pix;
+        if(cartaoInput && !cartaoInput.value && comPagamento.cartao) cartaoInput.value = comPagamento.cartao;
       }
     }
   }
@@ -3933,6 +3959,23 @@ function publicarContato(){
   alert('Contato salvo!');
 }
 
+function salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const chave = (nomeProfessor || '').trim().toLowerCase();
+  let algumEncontrado = false;
+  rede.forEach(a => {
+    if((a.professor || '').trim().toLowerCase() === chave){
+      a.pix = pix;
+      a.cartao = cartao;
+      algumEncontrado = true;
+    }
+  });
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  return algumEncontrado;
+}
+
 function publicarPagamento(){
   const pix = document.getElementById('admPix').value.trim();
   const cartao = document.getElementById('admCartao').value.trim();
@@ -3943,17 +3986,50 @@ function publicarPagamento(){
     return;
   }
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-  const idx = rede.findIndex(a => a.nome === minhaConta.nome);
-  if(idx >= 0){
-    rede[idx].pix = pix;
-    rede[idx].cartao = cartao;
-  } else {
-    rede.push({nome: minhaConta.nome, endereco: '', professor: '', distancia: '', pix, cartao});
+  const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+  const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+  const encontrouAlgum = salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao);
+  if(!encontrouAlgum){
+    // sem nenhum núcleo casando pelo nome do professor ainda — garante que ao menos o núcleo principal fique salvo
+    const idx = rede.findIndex(a => a.nome === minhaConta.nome);
+    if(idx >= 0){
+      rede[idx].pix = pix;
+      rede[idx].cartao = cartao;
+    } else {
+      rede.push({nome: minhaConta.nome, endereco: '', professor: nomeProfessor, distancia: '', pix, cartao});
+    }
+    setDado('gingapass_rede_academias', JSON.stringify(rede));
+    renderRedeAcademias();
+    renderAcademiasScreen();
   }
-  setDado('gingapass_rede_academias', JSON.stringify(rede));
-  renderRedeAcademias();
-  renderAcademiasScreen();
-  alert('Forma de pagamento salva! Já aparece pros seus alunos.');
+  alert('Forma de pagamento salva! Já aparece pros seus alunos, em todos os núcleos onde você dá aula.');
+}
+
+function publicarPagamentoMatriz(){
+  const pix = document.getElementById('matrizPix').value.trim();
+  const cartao = document.getElementById('matrizCartao').value.trim();
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const profMatriz = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+  const nomeProfessor = (profMatriz && profMatriz.nome) ? profMatriz.nome.trim() : ((cfg && cfg.professor) ? cfg.professor.trim() : '');
+  if(!nomeProfessor){
+    alert('Preencha primeiro seu nome como professor em "Configurações gerais", ali em cima.');
+    return;
+  }
+  const encontrouAlgum = salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao);
+  if(!encontrouAlgum && cfg && cfg.nucleo){
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const idx = rede.findIndex(a => a.nome === cfg.nucleo);
+    if(idx >= 0){
+      rede[idx].pix = pix;
+      rede[idx].cartao = cartao;
+    } else {
+      rede.push({nome: cfg.nucleo, endereco: '', professor: nomeProfessor, distancia: '', pix, cartao});
+    }
+    setDado('gingapass_rede_academias', JSON.stringify(rede));
+    renderRedeAcademias();
+    renderAcademiasScreen();
+  }
+  alert('Forma de pagamento salva! Já aparece direto pros seus alunos, em qualquer núcleo onde você dá aula.');
 }
 
 let pagamentoAtual = {pix: '', cartao: ''};
