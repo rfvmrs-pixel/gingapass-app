@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_1.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_2.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -716,6 +716,11 @@
       <div id="idiomaSwatches" style="display:flex;flex-wrap:wrap;gap:8px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
     </div>
 
+    <div class="card" id="perfilMensalidadeResumoBox" style="display:none;">
+      <div class="card-label">Minha mensalidade</div>
+      <p id="perfilMensalidadeResumoTexto" style="font-size:12.5px;color:var(--ink);margin:0;line-height:1.6;"></p>
+    </div>
+
     <p class="section-title">Trocar senha</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Só você consegue trocar sua própria senha, confirmando a atual.</p>
@@ -1157,13 +1162,9 @@
 
     <p class="section-title">Mensalidade</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Só a matriz pode alterar valor, situação e histórico de mensalidade.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Valor e vencimento padrão da rede (só a matriz edita). A situação de cada aluno é individual — veja em "Mensalidades e check-in", na aba Alunos.</p>
       <input class="admin-input" id="mensalidadeValor" placeholder="Valor (ex: R$ 120,00)">
       <input class="admin-input" id="mensalidadeVencimento" placeholder="Vencimento (ex: 05 de agosto)">
-      <select class="admin-input" id="mensalidadeStatus">
-        <option value="Em dia">Em dia</option>
-        <option value="Atrasado">Atrasado</option>
-      </select>
       <button class="btn" onclick="publicarMensalidade()">Salvar mensalidade</button>
     </div>
 
@@ -2808,7 +2809,25 @@ function renderPerfil(){
       }
       desdeView.style.display = '';
     }
+    const mensalidadeBox = document.getElementById('perfilMensalidadeResumoBox');
+    const mensalidadeTexto = document.getElementById('perfilMensalidadeResumoTexto');
+    if(mensalidadeBox && mensalidadeTexto){
+      mensalidadeBox.style.display = 'block';
+      const dias = diasEmAtraso(minhaConta);
+      const situacao = dias >= 10 ? '🔴 Atrasada há ' + dias + ' dias'
+        : dias > 0 ? '🟡 Atrasada há ' + dias + ' dia(s)'
+        : '🟢 Em dia';
+      const ultimo = minhaConta.ultimoPagamento
+        ? new Date(minhaConta.ultimoPagamento).toLocaleDateString('pt-BR')
+        : 'nenhum registrado ainda';
+      mensalidadeTexto.innerHTML = 'Situação: <b>' + situacao + '</b><br>' +
+        'Último pagamento: ' + ultimo + '<br>' +
+        'Total de mensalidades pagas: ' + (minhaConta.pagamentosFeitos || 0) + '<br>' +
+        (minhaConta.vencimentoMensalidade ? ('Vencimento: ' + new Date(minhaConta.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR')) : 'Vencimento ainda não definido');
+    }
   } else {
+    const mensalidadeBox2 = document.getElementById('perfilMensalidadeResumoBox');
+    if(mensalidadeBox2) mensalidadeBox2.style.display = 'none';
     if(nucleoView) nucleoView.textContent = cfg.nucleo || 'Ainda não definido';
     if(profView) profView.textContent = cfg.professor || 'Ainda não definido';
     if(cordaView) cordaView.style.display = 'none';
@@ -4255,12 +4274,11 @@ function finalizarCheckin(data){
 function publicarMensalidade(){
   const valor = document.getElementById('mensalidadeValor').value.trim();
   const vencimento = document.getElementById('mensalidadeVencimento').value.trim();
-  const status = document.getElementById('mensalidadeStatus').value;
   if(!valor || !vencimento){
     alert('Preencha o valor e o vencimento.');
     return;
   }
-  setDado('gingapass_mensalidade', JSON.stringify({valor, vencimento, status}));
+  setDado('gingapass_mensalidade', JSON.stringify({valor, vencimento}));
   renderMensalidade();
   alert('Mensalidade atualizada para todos os alunos.');
 }
@@ -4428,6 +4446,23 @@ function alterarDataAluno(userAluno, campo, valor){
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
 }
 
+function registrarPagamentoAluno(userAluno){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userAluno);
+  if(idx < 0) return;
+  if(!confirm('Confirmar que o pagamento de ' + contas[idx].nome + ' foi recebido?')) return;
+  contas[idx].mensalidadeStatus = 'Em dia';
+  contas[idx].atrasadoDesde = null;
+  contas[idx].ultimoPagamento = Date.now();
+  contas[idx].pagamentosFeitos = (contas[idx].pagamentosFeitos || 0) + 1;
+  if(!contas[idx].historicoPagamentos) contas[idx].historicoPagamentos = [];
+  contas[idx].historicoPagamentos.push(Date.now());
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  renderMensalidade();
+}
+
 function alterarMensalidadeAluno(userAluno, novoStatus){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idx = contas.findIndex(c => c.user === userAluno);
@@ -4531,6 +4566,22 @@ function renderMensalidadesAlunos(containerId, escopo){
       badge.textContent = '🟢 Check-in liberado pra próxima aula';
     }
     wrap.appendChild(badge);
+
+    const infoPagamento = document.createElement('p');
+    infoPagamento.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin:4px 0 0;';
+    const ultimoTexto = aluno.ultimoPagamento
+      ? ('Último pagamento: ' + new Date(aluno.ultimoPagamento).toLocaleDateString('pt-BR'))
+      : 'Último pagamento: nenhum registrado ainda';
+    infoPagamento.textContent = ultimoTexto + ' · Total de pagamentos: ' + (aluno.pagamentosFeitos || 0);
+    wrap.appendChild(infoPagamento);
+
+    const btnPagamento = document.createElement('button');
+    btnPagamento.type = 'button';
+    btnPagamento.className = 'btn';
+    btnPagamento.style.cssText = 'margin-top:8px;width:auto;padding:6px 14px;font-size:11.5px;background:#1E9C71;color:#fff;';
+    btnPagamento.textContent = '✓ Registrar pagamento recebido';
+    btnPagamento.onclick = () => registrarPagamentoAluno(aluno.user);
+    wrap.appendChild(btnPagamento);
 
     container.appendChild(wrap);
   });
