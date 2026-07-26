@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_97.html -->
+<!-- saved from url=(0050)file:///C:/Users/rafael.souza/Downloads/index.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -883,6 +883,26 @@
   </div>
 
   <!-- CHAT -->
+  <!-- PROFESSORES (lista pública) -->
+  <div class="screen" id="professores">
+    <p class="greeting" style="font-size:18px;">Professores</p>
+    <p class="subgreeting">Conheça quem ensina na rede — clique pra ver o perfil</p>
+    <div class="card" id="listaProfessoresPublica"></div>
+  </div>
+
+  <!-- PERFIL PÚBLICO (reutilizável: professor ou aluno) -->
+  <div class="screen" id="perfilPublico">
+    <button class="btn" type="button" onclick="showScreen(&#39;professores&#39;, null)" style="width:auto;padding:8px 14px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">← Voltar</button>
+    <div class="card" style="text-align:center;">
+      <div class="avatar" id="perfilPublicoAvatar" style="margin:0 auto 12px;">?</div>
+      <p class="greeting" id="perfilPublicoNome" style="font-size:18px;margin-bottom:2px;">Nome</p>
+      <p class="subgreeting" id="perfilPublicoTag">Professor</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;" id="perfilPublicoInfo"></p>
+    </div>
+    <p class="section-title">Fotos publicadas</p>
+    <div id="perfilPublicoFotos"></div>
+  </div>
+
   <!-- ALUNOS (gerenciamento centralizado) -->
   <div class="screen" id="alunos">
     <p class="greeting" style="font-size:18px;">Gerenciar alunos</p>
@@ -1254,6 +1274,10 @@
     <button class="tab" data-target="admin" onclick="showScreen(&#39;admin&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path></svg>
       <span data-i18n="tabProfessor">Professor</span>
+    </button>
+    <button class="tab" data-target="professores" onclick="showScreen(&#39;professores&#39;, this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
+      <span data-i18n="tabProfessores">Professores</span>
     </button>
     <button class="tab" data-target="alunos" onclick="showScreen(&#39;alunos&#39;, this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"></circle><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"></path><circle cx="17" cy="8" r="2.5"></circle><path d="M17 13.5c2.5 0.3 4.5 2.2 4.5 4.5" stroke-dasharray="1 0"></path></svg>
@@ -2103,6 +2127,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderAlunos(); });
   tentarChamar(function(){ renderPerfil(); });
   tentarChamar(function(){ renderArmazenamento(); });
+  tentarChamar(function(){ renderListaProfessoresPublica(); });
   tentarChamar(function(){ renderAcademiasContas(); });
   tentarChamar(function(){ renderAlunosContas(); });
   tentarChamar(function(){ renderEnderecos(); });
@@ -2190,7 +2215,12 @@ function showScreen(id, btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn){
+    btn.classList.add('active');
+  } else {
+    const tabCorrespondente = document.querySelector('.tab[data-target="' + id + '"]');
+    if(tabCorrespondente) tabCorrespondente.classList.add('active');
+  }
 }
 
 function criarAcessoAcademia(){
@@ -3425,6 +3455,99 @@ function renderLimiteFotoSemanal(){
   el.textContent = 'Você já postou ' + usadas + ' de ' + limite + ' fotos permitidas essa semana.';
 }
 
+function renderListaProfessoresPublica(){
+  const container = document.getElementById('listaProfessoresPublica');
+  if(!container) return;
+  const professores = obterProfessoresReais();
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  container.innerHTML = '';
+  if(professores.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p>';
+    return;
+  }
+  professores.forEach(nome => {
+    const academia = rede.find(a => (a.professor || '').trim().toLowerCase() === nome.trim().toLowerCase());
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;';
+    const iniciais = nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+    row.innerHTML = '<div class="avatar" style="width:44px;height:44px;font-size:15px;">' + (iniciais || '?') + '</div>' +
+      '<div><b style="font-size:13.5px;color:var(--navy-900);">' + nome + '</b>' +
+      (academia ? '<br><span style="font-size:11.5px;color:var(--ink-soft);">' + academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + '</span>' : '') +
+      '</div>';
+    row.onclick = () => abrirPerfilPublico('professor', nome);
+    container.appendChild(row);
+  });
+}
+
+function abrirPerfilPublico(tipo, identificador){
+  const avatar = document.getElementById('perfilPublicoAvatar');
+  const nomeEl = document.getElementById('perfilPublicoNome');
+  const tagEl = document.getElementById('perfilPublicoTag');
+  const infoEl = document.getElementById('perfilPublicoInfo');
+  const fotosEl = document.getElementById('perfilPublicoFotos');
+  if(!avatar || !nomeEl) return;
+
+  let nome = '', autorIdAlvo = null, autorNomeAlvo = null;
+
+  if(tipo === 'professor'){
+    nome = identificador;
+    tagEl.textContent = 'Professor';
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const academia = rede.find(a => (a.professor || '').trim().toLowerCase() === nome.trim().toLowerCase());
+    infoEl.textContent = academia ? (academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + (academia.endereco ? ' · ' + academia.endereco : '')) : '';
+    autorNomeAlvo = nome;
+  } else {
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const aluno = contas.find(c => c.user === identificador);
+    nome = aluno ? aluno.nome : identificador;
+    tagEl.textContent = 'Aluno';
+    infoEl.textContent = aluno ? ((aluno.corda ? 'Corda ' + aluno.corda : '') + (aluno.nucleo ? ' · ' + aluno.nucleo : '')) : '';
+    autorIdAlvo = 'aluno:' + identificador;
+  }
+
+  const iniciais = nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+  avatar.textContent = iniciais || '?';
+  avatar.style.backgroundImage = 'none';
+  nomeEl.textContent = nome;
+
+  const todasFotos = normalizarFotos().slice().reverse();
+  const minhasFotos = todasFotos.filter(f => {
+    if(autorIdAlvo) return f.autorId === autorIdAlvo;
+    return (f.autor || '').trim().toLowerCase() === (autorNomeAlvo || '').trim().toLowerCase();
+  });
+
+  fotosEl.innerHTML = '';
+  if(minhasFotos.length === 0){
+    fotosEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Nenhuma foto publicada ainda.</p>';
+  } else {
+    minhasFotos.forEach(foto => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const meuId = identificadorUsuarioAtual();
+      const curti = foto.likes.includes(meuId);
+      const img = document.createElement('img');
+      img.src = foto.src;
+      img.style.cssText = 'width:100%;border-radius:12px;display:block;';
+      card.appendChild(img);
+      if(foto.legenda){
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:12.5px;color:var(--ink);margin:8px 0 0;';
+        p.textContent = foto.legenda;
+        card.appendChild(p);
+      }
+      const likeBtn = document.createElement('button');
+      likeBtn.type = 'button';
+      likeBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;padding:0;color:' + (curti ? '#C0392B' : 'var(--ink-soft)') + ';';
+      likeBtn.textContent = (curti ? '❤️' : '🤍') + ' ' + foto.likes.length;
+      likeBtn.onclick = () => { curtirFoto(foto.id); abrirPerfilPublico(tipo, identificador); };
+      card.appendChild(likeBtn);
+      fotosEl.appendChild(card);
+    });
+  }
+
+  showScreen('perfilPublico', null);
+}
+
 function renderFotosFeed(){
   const container = document.getElementById('feedFotos');
   if(!container || !currentRole) return;
@@ -3445,6 +3568,15 @@ function renderFotosFeed(){
     autorEl.style.cssText = 'font-weight:600;font-size:13px;color:var(--navy-900);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;';
     const autorTexto = document.createElement('span');
     autorTexto.textContent = foto.autor + (dataTxt ? ' · ' + dataTxt : '');
+    autorTexto.style.cursor = 'pointer';
+    autorTexto.style.textDecoration = 'underline';
+    autorTexto.onclick = () => {
+      if(foto.autorRole === 'aluno' && foto.autorId){
+        abrirPerfilPublico('aluno', foto.autorId.split(':')[1]);
+      } else {
+        abrirPerfilPublico('professor', foto.autor);
+      }
+    };
     autorEl.appendChild(autorTexto);
     if(podeExcluirFoto(foto)){
       const delFotoBtn = document.createElement('button');
