@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_5.html -->
+<!-- saved from url=(0052)file:///C:/Users/rafael.souza/Downloads/index_6.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1092,6 +1092,7 @@
       <input class="admin-input" id="novaAcademiaEndereco" placeholder="Endereço">
       <input class="admin-input" id="novaAcademiaProfessor" placeholder="Nome do professor responsável">
       <input class="admin-input" id="novaAcademiaGraduacao" placeholder="Graduação do professor (ex: Contra-Mestre)">
+      <input class="admin-input" id="novaAcademiaDiasAulas" placeholder="Dias das aulas (ex: Terças e Quintas)">
       <input class="admin-input" id="novaAcademiaDistancia" placeholder="Distância (ex: 0,8 km) — opcional">
 
       <div id="nucleosExtrasContainer"></div>
@@ -1203,6 +1204,7 @@
     <p class="greeting" style="font-size:18px;">Estatísticas</p>
     <p class="subgreeting">Frequência, faltas e mensalidade dos alunos</p>
     <div class="card" id="estatisticasList"></div>
+    <div class="card" id="resumoMensalidadesEstatisticas" style="margin-top:10px;"></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado. A situação da mensalidade, neste protótipo, é a mesma para todos os alunos (ainda não existe cobrança individual por aluno).</p>
 
     <p class="section-title">Filtrar período</p>
@@ -2346,6 +2348,7 @@ function adicionarCampoNucleoExtra(){
   bloco.innerHTML = '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;font-weight:600;">Núcleo adicional</p>' +
     '<input class="admin-input" id="nucleoExtraNome' + id + '" placeholder="Nome do núcleo/academia">' +
     '<input class="admin-input" id="nucleoExtraEndereco' + id + '" placeholder="Endereço">' +
+    '<input class="admin-input" id="nucleoExtraDiasAulas' + id + '" placeholder="Dias das aulas (ex: Segundas e Quartas)">' +
     '<input class="admin-input" id="nucleoExtraDistancia' + id + '" placeholder="Distância (opcional)" style="margin-bottom:0;">' +
     '<button type="button" onclick="document.getElementById(\'nucleoExtra' + id + '\').remove()" style="border:none;background:none;color:#C0392B;font-size:11.5px;margin-top:6px;cursor:pointer;padding:0;">Remover este núcleo</button>';
   container.appendChild(bloco);
@@ -2364,6 +2367,7 @@ function criarAcessoAcademia(){
   const endereco = document.getElementById('novaAcademiaEndereco').value.trim();
   const professor = document.getElementById('novaAcademiaProfessor').value.trim();
   const graduacao = document.getElementById('novaAcademiaGraduacao').value.trim();
+  const diasAulas = document.getElementById('novaAcademiaDiasAulas').value.trim();
   const distancia = document.getElementById('novaAcademiaDistancia').value.trim();
   const meuMestre = document.getElementById('novaAcademiaMeuMestre').value.trim();
   const inicio = document.getElementById('novaAcademiaInicio').value;
@@ -2390,9 +2394,10 @@ function criarAcessoAcademia(){
       const idNum = bloco.id.replace('nucleoExtra', '');
       const nomeExtra = (document.getElementById('nucleoExtraNome' + idNum) || {}).value || '';
       const enderecoExtra = (document.getElementById('nucleoExtraEndereco' + idNum) || {}).value || '';
+      const diasAulasExtra = (document.getElementById('nucleoExtraDiasAulas' + idNum) || {}).value || '';
       const distanciaExtra = (document.getElementById('nucleoExtraDistancia' + idNum) || {}).value || '';
-      if(nomeExtra.trim() && enderecoExtra.trim()){
-        nucleosExtras.push({nome: nomeExtra.trim(), endereco: enderecoExtra.trim(), distancia: distanciaExtra.trim()});
+      if(nomeExtra.trim()){
+        nucleosExtras.push({nome: nomeExtra.trim(), endereco: enderecoExtra.trim(), diasAulas: diasAulasExtra.trim(), distancia: distanciaExtra.trim()});
       }
     });
   }
@@ -2410,7 +2415,7 @@ function criarAcessoAcademia(){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const existente = rede.findIndex(a => a.nome === nome);
   const entrada = {
-    nome, endereco, professor, graduacao, distancia,
+    nome, endereco, professor, graduacao, distancia, diasAulas,
     pix: existente >= 0 ? (rede[existente].pix || '') : '',
     cartao: existente >= 0 ? (rede[existente].cartao || '') : ''
   };
@@ -2422,7 +2427,7 @@ function criarAcessoAcademia(){
   nucleosExtras.forEach(extra => {
     const idxExtra = rede.findIndex(a => a.nome === extra.nome);
     const entradaExtra = {
-      nome: extra.nome, endereco: extra.endereco, professor, graduacao, distancia: extra.distancia,
+      nome: extra.nome, endereco: extra.endereco, professor, graduacao, distancia: extra.distancia, diasAulas: extra.diasAulas,
       pix: idxExtra >= 0 ? (rede[idxExtra].pix || '') : '',
       cartao: idxExtra >= 0 ? (rede[idxExtra].cartao || '') : ''
     };
@@ -2444,6 +2449,7 @@ function criarAcessoAcademia(){
   document.getElementById('novaAcademiaEndereco').value = '';
   document.getElementById('novaAcademiaProfessor').value = '';
   document.getElementById('novaAcademiaGraduacao').value = '';
+  document.getElementById('novaAcademiaDiasAulas').value = '';
   document.getElementById('novaAcademiaDistancia').value = '';
   document.getElementById('novaAcademiaMeuMestre').value = '';
   document.getElementById('novaAcademiaInicio').value = '';
@@ -2475,15 +2481,65 @@ function renderAcademiasContas(){
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
-    span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
+    span.textContent = c.nome + (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')') + ((c.nucleosGerenciados && c.nucleosGerenciados.length > 1) ? ' · ' + c.nucleosGerenciados.length + ' núcleos' : '');
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center;';
+    const btnNucleo = document.createElement('button');
+    btnNucleo.type = 'button';
+    btnNucleo.textContent = '+ Núcleo';
+    btnNucleo.style.cssText = 'border:none;background:none;color:var(--navy-900);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnNucleo.onclick = () => adicionarNucleoAProfessorExistente(c.user);
     const btn = document.createElement('button');
     btn.className = 'aluno-del';
     btn.textContent = 'Revogar';
     btn.onclick = () => revogarAcademia(i);
+    btnGroup.appendChild(btnNucleo);
+    btnGroup.appendChild(btn);
     row.appendChild(span);
-    row.appendChild(btn);
+    row.appendChild(btnGroup);
     container.appendChild(row);
   });
+}
+
+function adicionarNucleoAProfessorExistente(userConta){
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userConta);
+  if(idx < 0) return;
+  const nomeNucleo = (prompt('Nome do novo núcleo/academia pra este professor:') || '').trim();
+  if(!nomeNucleo) return;
+  const endereco = (prompt('Endereço do núcleo (opcional):') || '').trim();
+  const diasAulas = (prompt('Dias das aulas nesse núcleo (ex: Segundas e Quartas — opcional):') || '').trim();
+  const distancia = (prompt('Distância (opcional):') || '').trim();
+
+  if(!contas[idx].nucleosGerenciados || contas[idx].nucleosGerenciados.length === 0){
+    contas[idx].nucleosGerenciados = [contas[idx].nome];
+  }
+  if(!contas[idx].nucleosGerenciados.includes(nomeNucleo)){
+    contas[idx].nucleosGerenciados.push(nomeNucleo);
+  }
+  setDado('gingapass_academias_contas', JSON.stringify(contas));
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nomeProfessor = contas[idx].nome;
+  const redeExistente = rede.find(a => a.nome === contas[idx].nome);
+  const professorReal = redeExistente ? redeExistente.professor : nomeProfessor;
+  const graduacaoReal = redeExistente ? redeExistente.graduacao : '';
+  const idxRede = rede.findIndex(a => a.nome === nomeNucleo);
+  const entrada = {
+    nome: nomeNucleo, endereco, professor: professorReal, graduacao: graduacaoReal, distancia, diasAulas,
+    pix: idxRede >= 0 ? (rede[idxRede].pix || '') : '',
+    cartao: idxRede >= 0 ? (rede[idxRede].cartao || '') : ''
+  };
+  if(idxRede >= 0){
+    rede[idxRede] = entrada;
+  } else {
+    rede.push(entrada);
+  }
+  setDado('gingapass_rede_academias', JSON.stringify(rede));
+  renderAcademiasContas();
+  renderRedeAcademias();
+  renderAcademiasScreen();
+  alert('Núcleo "' + nomeNucleo + '" adicionado! Esse professor agora gerencia esse núcleo também, com o mesmo login.');
 }
 
 function confirmarSenhaMaster(){
@@ -3687,11 +3743,11 @@ function renderListaProfessoresPublica(){
   professores.forEach(nome => {
     const academia = rede.find(a => (a.professor || '').trim().toLowerCase() === nome.trim().toLowerCase());
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;';
+    row.style.cssText = 'display:grid;grid-template-columns:44px 1fr;column-gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;text-align:left;';
     const iniciais = nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
-    row.innerHTML = '<div class="avatar" style="width:44px;height:44px;font-size:15px;">' + (iniciais || '?') + '</div>' +
-      '<div><b style="font-size:13.5px;color:var(--navy-900);">' + nome + '</b>' +
-      (academia ? '<br><span style="font-size:11.5px;color:var(--ink-soft);">' + academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + '</span>' : '') +
+    row.innerHTML = '<div class="avatar" style="width:44px;height:44px;font-size:15px;justify-self:start;">' + (iniciais || '?') + '</div>' +
+      '<div style="text-align:left;min-width:0;"><b style="font-size:13.5px;color:var(--navy-900);display:block;text-align:left;">' + nome + '</b>' +
+      (academia ? '<span style="font-size:11.5px;color:var(--ink-soft);display:block;text-align:left;">' + academia.nome + (academia.graduacao ? ' · ' + academia.graduacao : '') + (academia.diasAulas ? ' · ' + academia.diasAulas : '') + '</span>' : '') +
       '</div>';
     row.onclick = () => abrirPerfilPublico('professor', nome);
     container.appendChild(row);
@@ -4653,12 +4709,53 @@ function registrarPagamentoAluno(userAluno){
   const idx = contas.findIndex(c => c.user === userAluno);
   if(idx < 0) return;
   if(!confirm('Confirmar que o pagamento de ' + contas[idx].nome + ' foi recebido?')) return;
+  const forma = (prompt('Forma de pagamento (ex: Pix, Cartão, Dinheiro) — opcional:') || '').trim();
+  const obs = (prompt('Referência do pagamento (ex: comprovante/link do Pix) — opcional:') || '').trim();
   contas[idx].mensalidadeStatus = 'Em dia';
   contas[idx].atrasadoDesde = null;
   contas[idx].ultimoPagamento = Date.now();
   contas[idx].pagamentosFeitos = (contas[idx].pagamentosFeitos || 0) + 1;
   if(!contas[idx].historicoPagamentos) contas[idx].historicoPagamentos = [];
-  contas[idx].historicoPagamentos.push(Date.now());
+  contas[idx].historicoPagamentos.push({data: Date.now(), forma, obs});
+  contas[idx].vencimentoMensalidade = calcularProximoVencimento(contas[idx].vencimentoMensalidade);
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  renderMensalidade();
+}
+
+function calcularProximoVencimento(vencimentoAtual){
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  let base = hoje;
+  if(vencimentoAtual){
+    const dataAnterior = new Date(vencimentoAtual + 'T00:00:00');
+    // se o vencimento anterior não está muito atrasado, conta o próximo mês a partir dele; senão, a partir de hoje
+    if(dataAnterior > new Date(hoje.getTime() - 45 * 86400000)) base = dataAnterior;
+  }
+  const proximo = new Date(base);
+  proximo.setMonth(proximo.getMonth() + 1);
+  return proximo.toISOString().slice(0, 10);
+}
+
+function diasParaVencimento(conta){
+  if(!conta || !conta.vencimentoMensalidade) return null;
+  const venc = new Date(conta.vencimentoMensalidade + 'T00:00:00');
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  return Math.round((venc - hoje) / 86400000);
+}
+
+function excluirPagamentoAluno(userAluno, indice){
+  if(!confirm('Excluir esse pagamento do histórico? Use isso se foi lançado por engano.')) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userAluno);
+  if(idx < 0 || !contas[idx].historicoPagamentos || !contas[idx].historicoPagamentos[indice]) return;
+  contas[idx].historicoPagamentos.splice(indice, 1);
+  contas[idx].pagamentosFeitos = Math.max((contas[idx].pagamentosFeitos || 1) - 1, 0);
+  const restantes = contas[idx].historicoPagamentos;
+  const ultimo = restantes.length > 0 ? restantes[restantes.length - 1] : null;
+  contas[idx].ultimoPagamento = ultimo ? (typeof ultimo === 'object' ? ultimo.data : ultimo) : null;
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
@@ -4777,6 +4874,15 @@ function renderMensalidadesAlunos(containerId, escopo){
     infoPagamento.textContent = ultimoTexto + ' · Total de pagamentos: ' + (aluno.pagamentosFeitos || 0);
     wrap.appendChild(infoPagamento);
 
+    const diasVenc = diasParaVencimento(aluno);
+    if(diasVenc !== null){
+      const vencInfo = document.createElement('p');
+      const cor = diasVenc < 0 ? '#C0392B' : (diasVenc <= 5 ? '#B5762A' : '#1E9C71');
+      vencInfo.style.cssText = 'font-size:10.5px;font-weight:600;margin:2px 0 0;color:' + cor + ';';
+      vencInfo.textContent = diasVenc < 0 ? ('Venceu há ' + Math.abs(diasVenc) + ' dia(s)') : (diasVenc === 0 ? 'Vence hoje' : 'Faltam ' + diasVenc + ' dia(s) pro próximo vencimento');
+      wrap.appendChild(vencInfo);
+    }
+
     const btnPagamento = document.createElement('button');
     btnPagamento.type = 'button';
     btnPagamento.className = 'btn';
@@ -4784,6 +4890,34 @@ function renderMensalidadesAlunos(containerId, escopo){
     btnPagamento.textContent = '✓ Registrar pagamento recebido';
     btnPagamento.onclick = () => registrarPagamentoAluno(aluno.user);
     wrap.appendChild(btnPagamento);
+
+    if(aluno.historicoPagamentos && aluno.historicoPagamentos.length > 0){
+      const histWrap = document.createElement('div');
+      histWrap.style.cssText = 'margin-top:8px;padding:8px 10px;background:var(--cream-2);border-radius:10px;';
+      const histTitulo = document.createElement('p');
+      histTitulo.style.cssText = 'font-size:10.5px;font-weight:600;color:var(--ink-soft);margin:0 0 6px;';
+      histTitulo.textContent = 'Histórico de pagamentos (' + aluno.historicoPagamentos.length + '):';
+      histWrap.appendChild(histTitulo);
+      aluno.historicoPagamentos.slice().reverse().forEach((pg, revIdx) => {
+        const idxReal = aluno.historicoPagamentos.length - 1 - revIdx;
+        const dataPg = typeof pg === 'object' ? pg.data : pg;
+        const formaPg = typeof pg === 'object' && pg.forma ? pg.forma : '';
+        const obsPg = typeof pg === 'object' && pg.obs ? pg.obs : '';
+        const linha = document.createElement('div');
+        linha.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--ink);padding:3px 0;';
+        const txt = document.createElement('span');
+        txt.textContent = new Date(dataPg).toLocaleDateString('pt-BR') + (formaPg ? ' · ' + formaPg : '') + (obsPg ? ' · ' + obsPg : '');
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.textContent = 'Excluir';
+        del.style.cssText = 'border:none;background:none;color:#C0392B;font-size:10.5px;font-weight:600;cursor:pointer;padding:0;flex-shrink:0;';
+        del.onclick = () => excluirPagamentoAluno(aluno.user, idxReal);
+        linha.appendChild(txt);
+        linha.appendChild(del);
+        histWrap.appendChild(linha);
+      });
+      wrap.appendChild(histWrap);
+    }
 
     container.appendChild(wrap);
   });
@@ -5103,6 +5237,8 @@ function renderEstatisticas(){
   container.innerHTML = '';
   if(alunos.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p>';
+    const resumoVazio = document.getElementById('resumoMensalidadesEstatisticas');
+    if(resumoVazio) resumoVazio.innerHTML = '';
   } else {
     const totalDias = diasCheckin.length;
     const linhas = alunos.map(a => {
@@ -5133,10 +5269,78 @@ function renderEstatisticas(){
     renderGraficoFrequenciaDiaria(log, alunos, meuNome);
     renderGraficoFrequenciaMensal(log, alunos);
     renderRankingFrequencia(linhas);
+    renderResumoMensalidadesEstatisticas(alunos, linhas);
   }
   renderGraficoVisitantes(meuNome);
   renderGraficoVisitantesMensal(meuNome);
   renderRankingVisitantes(meuNome);
+}
+
+function renderResumoMensalidadesEstatisticas(alunos, linhas){
+  const container = document.getElementById('resumoMensalidadesEstatisticas');
+  if(!container) return;
+  container.innerHTML = '';
+
+  const totalRecebidas = alunos.reduce((soma, a) => soma + (a.pagamentosFeitos || 0), 0);
+  const totalFaltas = linhas.reduce((soma, l) => soma + l.faltas, 0);
+  const emDia = alunos.filter(a => (a.mensalidadeStatus || 'Em dia') === 'Em dia').length;
+  const atrasados = alunos.length - emDia;
+
+  const porMes = {};
+  alunos.forEach(a => {
+    (a.historicoPagamentos || []).forEach(pg => {
+      const dataPg = typeof pg === 'object' ? pg.data : pg;
+      if(!dataPg) return;
+      const d = new Date(dataPg);
+      const chave = d.toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+      porMes[chave] = (porMes[chave] || 0) + 1;
+    });
+  });
+  const mesesOrdenados = Object.keys(porMes).sort((a, b) => {
+    const parse = s => { const partes = s.split(' de '); return new Date(partes[1], 0, 1).getTime() + (['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'].indexOf(partes[0])); };
+    return parse(b) - parse(a);
+  });
+
+  const titulo = document.createElement('p');
+  titulo.className = 'card-label';
+  titulo.textContent = 'Resumo de mensalidades e faltas';
+  container.appendChild(titulo);
+
+  const gradeResumo = document.createElement('div');
+  gradeResumo.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;';
+  const itens = [
+    {label: 'Mensalidades recebidas', valor: totalRecebidas},
+    {label: 'Total de faltas', valor: totalFaltas},
+    {label: 'Alunos em dia', valor: emDia},
+    {label: 'Alunos atrasados', valor: atrasados}
+  ];
+  itens.forEach(it => {
+    const box = document.createElement('div');
+    box.style.cssText = 'flex:1;min-width:100px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;';
+    box.innerHTML = '<b style="font-size:18px;color:var(--navy-900);display:block;">' + it.valor + '</b><span style="font-size:10.5px;color:var(--ink-soft);">' + it.label + '</span>';
+    gradeResumo.appendChild(box);
+  });
+  container.appendChild(gradeResumo);
+
+  if(mesesOrdenados.length > 0){
+    const subTitulo = document.createElement('p');
+    subTitulo.style.cssText = 'font-size:11px;font-weight:600;color:var(--ink-soft);margin:6px 0;';
+    subTitulo.textContent = 'Mensalidades recebidas por mês:';
+    container.appendChild(subTitulo);
+    mesesOrdenados.forEach(mes => {
+      const linha = document.createElement('div');
+      linha.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;';
+      linha.innerHTML = '<span style="text-transform:capitalize;">' + mes + '</span><b>' + porMes[mes] + '</b>';
+      container.appendChild(linha);
+    });
+    const ultimaLinha = container.lastElementChild;
+    if(ultimaLinha) ultimaLinha.style.borderBottom = 'none';
+  } else {
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Nenhuma mensalidade registrada no histórico ainda.';
+    container.appendChild(vazio);
+  }
 }
 
 function gerarIntervaloDatas(diasCustom){
