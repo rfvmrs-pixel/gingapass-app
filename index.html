@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_13.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_14.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-</head>
+<script src="./index_files/firebase-app-compat.js.baixados"></script><script src="./index_files/firebase-firestore-compat.js.baixados"></script></head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -1248,6 +1248,16 @@
     <div class="card" id="resumoMensalidadesEstatisticas" style="margin-top:10px;"></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado. A situação da mensalidade, neste protótipo, é a mesma para todos os alunos (ainda não existe cobrança individual por aluno).</p>
 
+    <p class="section-title">Corrigir check-ins de um dia (presença e falta)</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Escolha uma data: quem fez check-in aparece embaixo com "Excluir" (presença lançada por engano); quem faltou aparece na segunda lista com "Excluir falta" (justifica e some do cálculo de frequência).</p>
+    <div class="card">
+      <input class="admin-input" id="checkinAlunoData" type="date" onchange="renderCheckinsAlunos(); renderFaltasAlunos();" style="margin-bottom:0;">
+    </div>
+    <p style="font-size:11px;font-weight:600;color:var(--navy-900);margin:10px 0 4px;">Presenças</p>
+    <div class="card" id="checkinsAlunosList"></div>
+    <p style="font-size:11px;font-weight:600;color:var(--navy-900);margin:10px 0 4px;">Faltas</p>
+    <div class="card" id="faltasAlunosList"></div>
+
     <p class="section-title">Filtrar período</p>
     <div class="card">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
@@ -1285,17 +1295,6 @@
 
     <p class="section-title">Quem mais visita</p>
     <div class="card" id="rankingMaisVisitam"></div>
-
-    <p class="section-title">Check-ins de alunos por dia</p>
-    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alunos com conta que fizeram check-in nesse dia. Use "Excluir" se algum check-in foi registrado por engano.</p>
-    <div class="card">
-      <input class="admin-input" id="checkinAlunoData" type="date" onchange="renderCheckinsAlunos(); renderFaltasAlunos();" style="margin-bottom:0;">
-    </div>
-    <div class="card" id="checkinsAlunosList"></div>
-
-    <p class="section-title">Faltas do dia</p>
-    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alunos que não fizeram check-in nesse dia (mesma data escolhida acima). Use "Excluir falta" pra justificar/desconsiderar — some da conta de faltas dele e não entra no cálculo de frequência.</p>
-    <div class="card" id="faltasAlunosList"></div>
 
     <p class="section-title">Check-ins rápidos (sem login) por dia</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Contagem de quem confirmou presença escaneando o QR direto pela câmera do celular, sem entrar no app.</p>
@@ -4231,14 +4230,26 @@ function publicarPagamentoMatriz(){
 
 let pagamentoAtual = {pix: '', cartao: ''};
 
+// Acha o registro de "aluno" que representa o usuário logado — funciona tanto pra quem
+// entrou como aluno de verdade quanto pra um professor (login "academia") vinculado a um mestre.
+function resolverMinhaContaComoAluno(){
+  if(currentRole === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    return contas.find(c => c.user === currentUser) || null;
+  }
+  if(currentRole === 'academia'){
+    return resolverContaAlunoDoProfessor();
+  }
+  return null;
+}
+
 function renderPagamentoAluno(){
   const btnPix = document.getElementById('btnPagarPix');
   const btnCartao = document.getElementById('btnPagarCartao');
   const aviso = document.getElementById('pagamentoAviso');
-  if(!btnPix || currentRole !== 'aluno') return;
+  if(!btnPix || (currentRole !== 'aluno' && currentRole !== 'academia')) return;
 
-  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const minhaConta = contas.find(c => c.user === currentUser);
+  const minhaConta = resolverMinhaContaComoAluno();
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
 
   let origem = null;
@@ -4254,7 +4265,7 @@ function renderPagamentoAluno(){
   const pix = (origem && origem.pix) ? origem.pix.trim() : '';
   const cartao = (origem && origem.cartao) ? origem.cartao.trim() : '';
   let pixFinal = pix, cartaoFinal = cartao;
-  if(!pixFinal || !cartaoFinal){
+  if((!pixFinal || !cartaoFinal) && currentRole === 'aluno'){
     const dadosMatriz = JSON.parse(localStorage.getItem('gingapass_pagamento_matriz') || 'null');
     if(dadosMatriz){
       if(!pixFinal && dadosMatriz.pix) pixFinal = dadosMatriz.pix.trim();
@@ -5084,9 +5095,8 @@ function renderMensalidade(){
   let vencimento = dados ? dados.vencimento : null;
   let status = dados ? dados.status : null;
 
-  if(currentRole === 'aluno' && currentUser){
-    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-    const minhaConta = contas.find(c => c.user === currentUser);
+  if((currentRole === 'aluno' || currentRole === 'academia') && currentUser){
+    const minhaConta = resolverMinhaContaComoAluno();
     if(minhaConta && minhaConta.mensalidadeStatus) status = minhaConta.mensalidadeStatus;
     if(minhaConta && minhaConta.vencimentoMensalidade){
       vencimento = new Date(minhaConta.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
@@ -5143,15 +5153,14 @@ function enviarComprovantePagamento(){
     if(statusMsg) statusMsg.textContent = 'Escolha uma imagem do comprovante antes de enviar.';
     return;
   }
-  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const minhaConta = contas.find(c => c.user === currentUser);
+  const minhaConta = resolverMinhaContaComoAluno();
   if(!minhaConta){
     if(statusMsg) statusMsg.textContent = 'Não identificamos seu cadastro. Faça login novamente.';
     return;
   }
   const comprovante = {
     id: 'comp_' + Math.random().toString(36).slice(2, 10),
-    alunoUser: currentUser,
+    alunoUser: minhaConta.user,
     alunoNome: minhaConta.nome,
     professor: minhaConta.professor || '',
     nucleo: minhaConta.nucleo || '',
@@ -5182,9 +5191,14 @@ function enviarComprovantePagamento(){
 
 function renderComprovantesAluno(){
   const container = document.getElementById('comprovantesEnviadosLista');
-  if(!container || currentRole !== 'aluno') return;
+  if(!container || (currentRole !== 'aluno' && currentRole !== 'academia')) return;
+  const minhaConta = resolverMinhaContaComoAluno();
+  if(!minhaConta){
+    container.innerHTML = '';
+    return;
+  }
   const todos = JSON.parse(localStorage.getItem('gingapass_comprovantes') || '[]');
-  const meus = todos.filter(c => c.alunoUser === currentUser);
+  const meus = todos.filter(c => c.alunoUser === minhaConta.user);
   container.innerHTML = '';
   if(meus.length === 0) return;
   const titulo = document.createElement('p');
@@ -6348,18 +6362,20 @@ function renderConfigGeral(){
 
 function renderMinhaFrequencia(){
   const frequenciaView = document.getElementById('frequenciaView');
-  if(!frequenciaView || currentRole !== 'aluno' || !currentUser) return;
+  if(!frequenciaView || (currentRole !== 'aluno' && currentRole !== 'academia') || !currentUser) return;
+  const minhaConta = resolverMinhaContaComoAluno();
+  const userChave = minhaConta ? minhaConta.user : currentUser;
   const diasCheckin = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
   const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
   const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
-  const diasExcluidos = new Set(excluidas.filter(f => f.aluno === currentUser).map(f => f.data));
+  const diasExcluidos = new Set(excluidas.filter(f => f.aluno === userChave).map(f => f.data));
   const diasValidos = diasCheckin.filter(d => !diasExcluidos.has(d));
   const totalDias = diasValidos.length;
   if(totalDias === 0){
     frequenciaView.textContent = '0%';
     return;
   }
-  const diasPresente = new Set(log.filter(r => r.aluno === currentUser && diasValidos.includes(r.data)).map(r => r.data)).size;
+  const diasPresente = new Set(log.filter(r => r.aluno === userChave && diasValidos.includes(r.data)).map(r => r.data)).size;
   const frequencia = Math.round((diasPresente / totalDias) * 100);
   frequenciaView.textContent = frequencia + '%';
 }
