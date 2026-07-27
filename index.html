@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_14.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_15.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-<script src="./index_files/firebase-app-compat.js.baixados"></script><script src="./index_files/firebase-firestore-compat.js.baixados"></script></head>
+</head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -2295,7 +2295,7 @@ function aplicarPermissoes(){
   alunosTab.style.display = (currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
   chatTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
   matrizTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
-  checkinTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
+  checkinTab.style.display = (currentRole === 'aluno' || currentRole === 'academia') ? 'flex' : 'none';
   estatisticasTab.style.display = (currentRole === 'matriz' || currentRole === 'academia') ? 'flex' : 'none';
   aulasTab.style.display = (currentRole === 'aluno') ? 'flex' : 'none';
 
@@ -2399,7 +2399,7 @@ function showScreen(id, btn){
     alert('Apenas a matriz pode acessar esta área.');
     return;
   }
-  if(id === 'checkin' && currentRole !== 'aluno'){
+  if(id === 'checkin' && currentRole !== 'aluno' && currentRole !== 'academia'){
     alert('O check-in por QR code é uma área do aluno.');
     return;
   }
@@ -5045,8 +5045,14 @@ function validarCheckin(codigo, dataAula){
 
 function finalizarCheckin(data){
   const status = document.getElementById('checkinStatus');
-  const contasAluno = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const minhaContaAluno = contasAluno.find(c => c.user === currentUser);
+  const minhaContaAluno = resolverMinhaContaComoAluno();
+  if(currentRole === 'academia' && !minhaContaAluno){
+    const msg = 'Você ainda não está vinculado como aluno de nenhum mestre. Peça pra sua matriz vincular seu cadastro em Dados → Academias com acesso → Editar vínculo.';
+    if(status) status.textContent = msg;
+    alert(msg);
+    return;
+  }
+  const userChave = minhaContaAluno ? minhaContaAluno.user : currentUser;
   const diasAtraso = diasEmAtraso(minhaContaAluno);
   if(diasAtraso >= 10){
     const msg = 'Sua mensalidade está atrasada há ' + diasAtraso + ' dias. Fale com seu professor pra regularizar antes de fazer check-in.';
@@ -5057,12 +5063,12 @@ function finalizarCheckin(data){
 
   const key = 'gingapass_checkin_' + data;
   const registro = JSON.parse(localStorage.getItem(key) || '{}');
-  registro[currentUser] = true;
+  registro[userChave] = true;
   setDado(key, JSON.stringify(registro));
 
   const meta = JSON.parse(localStorage.getItem('gingapass_qrcode_meta_' + data) || '{}');
   const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
-  log.push({data: data, aluno: currentUser, professor: meta.professor || '', nucleo: meta.nucleo || ''});
+  log.push({data: data, aluno: userChave, professor: meta.professor || '', nucleo: meta.nucleo || ''});
   setDado('gingapass_checkin_log', JSON.stringify(log));
 
   const comQuem = meta.professor ? (' com o Prof. ' + meta.professor + (meta.nucleo ? (' · Núcleo ' + meta.nucleo) : '')) : '';
