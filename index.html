@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_12.html -->
+<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_13.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-<script src="./index_files/firebase-app-compat.js.baixados"></script><script src="./index_files/firebase-firestore-compat.js.baixados"></script></head>
+</head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -1289,9 +1289,13 @@
     <p class="section-title">Check-ins de alunos por dia</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alunos com conta que fizeram check-in nesse dia. Use "Excluir" se algum check-in foi registrado por engano.</p>
     <div class="card">
-      <input class="admin-input" id="checkinAlunoData" type="date" onchange="renderCheckinsAlunos()" style="margin-bottom:0;">
+      <input class="admin-input" id="checkinAlunoData" type="date" onchange="renderCheckinsAlunos(); renderFaltasAlunos();" style="margin-bottom:0;">
     </div>
     <div class="card" id="checkinsAlunosList"></div>
+
+    <p class="section-title">Faltas do dia</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alunos que não fizeram check-in nesse dia (mesma data escolhida acima). Use "Excluir falta" pra justificar/desconsiderar — some da conta de faltas dele e não entra no cálculo de frequência.</p>
+    <div class="card" id="faltasAlunosList"></div>
 
     <p class="section-title">Check-ins rápidos (sem login) por dia</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Contagem de quem confirmou presença escaneando o QR direto pela câmera do celular, sem entrar no app.</p>
@@ -2337,6 +2341,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderEstatisticas(); });
   tentarChamar(function(){ renderCheckinsAvulsos(); });
   tentarChamar(function(){ renderCheckinsAlunos(); });
+  tentarChamar(function(){ renderFaltasAlunos(); });
   tentarChamar(function(){ renderAulas(); });
   tentarChamar(function(){ renderAulasStatusAdmin(); });
   tentarChamar(function(){ renderAulasPendentes(); });
@@ -2414,9 +2419,20 @@ function showScreen(id, btn){
     renderEstatisticas();
   renderCheckinsAvulsos();
   renderCheckinsAlunos();
+  renderFaltasAlunos();
   }
   if(id === 'chat'){
     atualizarNuvemManual(null);
+  }
+  if(id === 'admin'){
+    renderMinhaMensalidadeProfessor();
+  }
+  if(id === 'mensalidade'){
+    renderPagamentoAluno();
+    renderComprovantesAluno();
+  }
+  if(id === 'inicio'){
+    renderMinhaFrequencia();
   }
   if(id === 'alunos'){
     renderAlunos();
@@ -5677,7 +5693,7 @@ function renderCheckinsAlunos(){
 
   let doDia = log.filter(r => r.data === data);
   if(currentRole === 'academia' && meuNome){
-    doDia = doDia.filter(r => (r.professor || '').trim().toLowerCase() === meuNome.trim().toLowerCase());
+    doDia = doDia.filter(r => mesmoProfessor(r.professor, meuNome));
   }
 
   container.innerHTML = '';
@@ -5711,6 +5727,82 @@ function renderCheckinsAlunos(){
     row.appendChild(delBtn);
     container.appendChild(row);
   });
+}
+
+function renderFaltasAlunos(){
+  const container = document.getElementById('faltasAlunosList');
+  if(!container) return;
+  const dataInput = document.getElementById('checkinAlunoData');
+  if(dataInput && !dataInput.value) dataInput.value = hojeStr();
+  const data = dataInput ? dataInput.value : hojeStr();
+
+  const diasCheckin = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
+  if(!diasCheckin.includes(data)){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum código de check-in foi gerado nesse dia — não tem como saber quem faltou.</p>';
+    return;
+  }
+
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+
+  let meusAlunos = contas;
+  if(currentRole === 'academia'){
+    const meusNucleos = obterMeusNucleos();
+    meusAlunos = meusNucleos.length > 0 ? contas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+  }
+
+  const presentesHoje = new Set(log.filter(r => r.data === data).map(r => r.aluno));
+  const ausentes = meusAlunos.filter(a => !presentesHoje.has(a.user));
+
+  container.innerHTML = '';
+  const titulo = document.createElement('p');
+  titulo.style.cssText = 'font-weight:600;font-size:14px;color:var(--navy-900);margin:0 0 10px;';
+  titulo.textContent = ausentes.length + ' falta(s) nesse dia';
+  container.appendChild(titulo);
+
+  if(ausentes.length === 0){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:12.5px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Ninguém faltou — todo mundo fez check-in nesse dia.';
+    container.appendChild(vazio);
+    return;
+  }
+
+  ausentes.forEach(a => {
+    const excluida = excluidas.some(f => f.aluno === a.user && f.data === data);
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const info = document.createElement('div');
+    info.innerHTML = '<b>' + a.nome + '</b>' + (excluida ? '<br><span style="font-size:11px;color:#1E9C71;">Justificada — não conta como falta</span>' : '');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = excluida ? 'Desfazer justificativa' : 'Excluir falta';
+    btn.className = excluida ? 'aluno-del' : '';
+    btn.style.cssText = excluida ? 'flex-shrink:0;' : 'border:none;background:none;color:var(--navy-700);font-size:12px;font-weight:600;cursor:pointer;padding:0;flex-shrink:0;';
+    btn.onclick = () => (excluida ? restaurarFalta(a.user, data) : excluirFalta(a.user, data));
+    row.appendChild(info);
+    row.appendChild(btn);
+    container.appendChild(row);
+  });
+}
+
+function excluirFalta(userAluno, data){
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+  if(!excluidas.some(f => f.aluno === userAluno && f.data === data)){
+    excluidas.push({aluno: userAluno, data});
+    setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
+  }
+  renderFaltasAlunos();
+  renderEstatisticas();
+}
+
+function restaurarFalta(userAluno, data){
+  let excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+  excluidas = excluidas.filter(f => !(f.aluno === userAluno && f.data === data));
+  setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
+  renderFaltasAlunos();
+  renderEstatisticas();
 }
 
 function excluirCheckinAluno(data, alunoUser, professor, nome){
@@ -5913,9 +6005,12 @@ function renderEstatisticas(){
     const resumoVazio = document.getElementById('resumoMensalidadesEstatisticas');
     if(resumoVazio) resumoVazio.innerHTML = '';
   } else {
-    const totalDias = diasCheckin.length;
+    const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
     const linhas = alunos.map(a => {
-      const diasPresente = new Set(log.filter(r => r.aluno === a.user).map(r => r.data)).size;
+      const diasExcluidosAluno = new Set(excluidas.filter(f => f.aluno === a.user).map(f => f.data));
+      const diasValidos = diasCheckin.filter(d => !diasExcluidosAluno.has(d));
+      const totalDias = diasValidos.length;
+      const diasPresente = new Set(log.filter(r => r.aluno === a.user && diasValidos.includes(r.data)).map(r => r.data)).size;
       const faltas = Math.max(totalDias - diasPresente, 0);
       const frequencia = totalDias > 0 ? Math.round((diasPresente / totalDias) * 100) : 0;
       return {aluno: a, diasPresente, faltas, frequencia};
@@ -6256,12 +6351,15 @@ function renderMinhaFrequencia(){
   if(!frequenciaView || currentRole !== 'aluno' || !currentUser) return;
   const diasCheckin = JSON.parse(localStorage.getItem('gingapass_dias_checkin') || '[]');
   const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
-  const totalDias = diasCheckin.length;
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+  const diasExcluidos = new Set(excluidas.filter(f => f.aluno === currentUser).map(f => f.data));
+  const diasValidos = diasCheckin.filter(d => !diasExcluidos.has(d));
+  const totalDias = diasValidos.length;
   if(totalDias === 0){
     frequenciaView.textContent = '0%';
     return;
   }
-  const diasPresente = new Set(log.filter(r => r.aluno === currentUser).map(r => r.data)).size;
+  const diasPresente = new Set(log.filter(r => r.aluno === currentUser && diasValidos.includes(r.data)).map(r => r.data)).size;
   const frequencia = Math.round((diasPresente / totalDias) * 100);
   frequenciaView.textContent = frequencia + '%';
 }
