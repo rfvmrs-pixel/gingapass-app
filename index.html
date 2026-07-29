@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0053)file:///C:/Users/rafael.souza/Downloads/index_15.html -->
+<!-- saved from url=(0056)file:///C:/Users/rafael.souza/Downloads/index%20(2).html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-</head>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script></head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -706,12 +706,19 @@
 
     <p class="section-title">Localização em tempo real</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Compartilhe sua localização ao vivo com os outros usuários do app. Fica visível pra todo mundo logado enquanto estiver ativado, e some sozinho se ficar muito tempo sem atualizar.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Compartilhe sua localização ao vivo. Escolha com quem, ative e ela atualiza sozinha enquanto a tela ficar aberta.</p>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Compartilhar com</label>
+      <select class="admin-input" id="localizacaoDestinatarioTipo" onchange="atualizarListaDestinatariosLocalizacao()">
+        <option value="todos">Todos os usuários</option>
+        <option value="academia">Uma academia/professor específico</option>
+        <option value="aluno">Um aluno específico</option>
+      </select>
+      <select class="admin-input" id="localizacaoDestinatarioEspecifico" style="display:none;"></select>
       <button class="btn" id="btnCompartilharLocalizacao" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
       <p id="statusCompartilharLocalizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
     </div>
     <div class="card">
-      <div class="card-label">Pessoas compartilhando agora</div>
+      <div class="card-label">Pessoas compartilhando comigo agora</div>
       <div id="listaLocalizacoesCompartilhadas"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém está compartilhando a localização agora.</p></div>
     </div>
 
@@ -1442,7 +1449,17 @@ function liberarEspacoLocal(){
     chaves.forEach(k => {
       try{ window.localStorage.removeItem(k); liberouAlgo = true; } catch(e){}
     });
-    return liberouAlgo;
+    if(liberouAlgo) return true;
+
+    // Último recurso: reduz o CACHE local de fotos (a nuvem continua com todas, cada uma em seu documento).
+    try{
+      const fotos = JSON.parse(window.localStorage.getItem('gingapass_fotos') || '[]');
+      if(Array.isArray(fotos) && fotos.length > 60){
+        window.localStorage.setItem('gingapass_fotos', JSON.stringify(fotos.slice(0, 60)));
+        return true;
+      }
+    } catch(e){}
+    return false;
   } catch(e){
     return false;
   }
@@ -1718,7 +1735,7 @@ function iniciarFirebase(tentativas){
     localizacoesCollection.onSnapshot(function(snapshot){
       const localizacoes = [];
       snapshot.forEach(function(doc){ localizacoes.push(doc.data()); });
-      _setLocal('gingapass_localizacoes', JSON.stringify(localizacoes));
+      window._localizacoesCache = localizacoes; // só em memória: é dado efêmero, não precisa pesar no localStorage
       if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
         renderLocalizacoesCompartilhadas();
       }
@@ -2364,6 +2381,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderFotosFeed(); });
   tentarChamar(function(){ renderLimiteFotoSemanal(); });
   tentarChamar(function(){ renderLocalizacoesCompartilhadas(); });
+  tentarChamar(function(){ atualizarListaDestinatariosLocalizacao(); });
   tentarChamar(function(){ iniciarSlideshowMural(); });
   tentarChamar(function(){ renderAviso(); });
   tentarChamar(function(){ renderAlunos(); });
@@ -3783,6 +3801,54 @@ const LOCALIZACAO_INTERVALO_MIN_MS = 15000; // não manda pra nuvem mais que 1x 
 const LOCALIZACAO_EXPIRA_MS = 5 * 60 * 1000; // some da lista se ficar 5min sem atualizar
 let mapaLocalizacaoAbertoId = null;
 
+function atualizarListaDestinatariosLocalizacao(){
+  const tipoSel = document.getElementById('localizacaoDestinatarioTipo');
+  const especificoSel = document.getElementById('localizacaoDestinatarioEspecifico');
+  if(!tipoSel || !especificoSel) return;
+  const tipo = tipoSel.value;
+
+  if(tipo === 'todos'){
+    especificoSel.style.display = 'none';
+    especificoSel.innerHTML = '';
+    return;
+  }
+
+  especificoSel.style.display = 'block';
+  especificoSel.innerHTML = '';
+  let contas = [];
+  if(tipo === 'academia'){
+    contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').filter(c => !c.semAcesso);
+  } else if(tipo === 'aluno'){
+    contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => !c.semAcesso);
+  }
+  // não faz sentido a pessoa aparecer na própria lista de destinatários
+  contas = contas.filter(c => !(currentRole === tipo && c.user === currentUser));
+
+  if(contas.length === 0){
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = tipo === 'academia' ? 'Nenhuma academia/professor cadastrado' : 'Nenhum aluno cadastrado';
+    especificoSel.appendChild(opt);
+    return;
+  }
+  contas.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = tipo + ':' + c.user;
+    opt.textContent = c.nome || c.user;
+    especificoSel.appendChild(opt);
+  });
+}
+
+function obterDestinatariosLocalizacaoSelecionados(){
+  const tipoSel = document.getElementById('localizacaoDestinatarioTipo');
+  const especificoSel = document.getElementById('localizacaoDestinatarioEspecifico');
+  const tipo = tipoSel ? tipoSel.value : 'todos';
+  if(tipo === 'todos') return 'todos';
+  const valor = especificoSel ? especificoSel.value : '';
+  if(!valor) return 'todos';
+  return [valor];
+}
+
 function alternarCompartilharLocalizacao(){
   if(compartilhandoLocalizacao){
     pararCompartilharLocalizacao();
@@ -3800,6 +3866,7 @@ function iniciarCompartilharLocalizacao(){
     alert('Faça login pra compartilhar sua localização.');
     return;
   }
+  const destinatarios = obterDestinatariosLocalizacaoSelecionados();
   const btn = document.getElementById('btnCompartilharLocalizacao');
   const status = document.getElementById('statusCompartilharLocalizacao');
   if(status) status.textContent = 'Pedindo permissão de localização...';
@@ -3822,6 +3889,7 @@ function iniciarCompartilharLocalizacao(){
       autorRole: currentRole,
       lat: pos.coords.latitude,
       lon: pos.coords.longitude,
+      destinatarios: destinatarios, // 'todos' ou array de ids tipo 'academia:usuario' / 'aluno:usuario'
       atualizado: agora
     };
     salvarLocalizacaoNaNuvem(doc).then(function(ok){
@@ -3857,13 +3925,21 @@ function pararCompartilharLocalizacao(){
   }
 }
 
+function localizacaoEhVisivelPraMim(loc, meuId){
+  if(loc.autorId === meuId) return false;
+  if(currentRole === 'matriz') return true; // matriz (master) vê tudo, mesmo se for pra uma pessoa específica
+  if(!loc.destinatarios || loc.destinatarios === 'todos') return true;
+  if(Array.isArray(loc.destinatarios)) return loc.destinatarios.indexOf(meuId) !== -1;
+  return false;
+}
+
 function renderLocalizacoesCompartilhadas(){
   const container = document.getElementById('listaLocalizacoesCompartilhadas');
   if(!container) return;
-  const todas = JSON.parse(localStorage.getItem('gingapass_localizacoes') || '[]');
+  const todas = window._localizacoesCache || [];
   const meuId = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
   const agora = Date.now();
-  const ativas = todas.filter(l => l && l.autorId && l.autorId !== meuId && l.atualizado && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS);
+  const ativas = todas.filter(l => l && l.autorId && l.atualizado && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId));
 
   container.innerHTML = '';
   if(ativas.length === 0){
@@ -3879,11 +3955,12 @@ function renderLocalizacoesCompartilhadas(){
 
     const minutosAtras = Math.max(0, Math.round((agora - loc.atualizado) / 60000));
     const textoTempo = minutosAtras === 0 ? 'agora mesmo' : ('há ' + minutosAtras + ' min');
+    const privada = loc.destinatarios && loc.destinatarios !== 'todos';
 
     const linha = document.createElement('div');
     linha.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;';
     linha.innerHTML = '<div><strong style="font-size:13px;color:var(--navy-900);">' + loc.autor + '</strong>' +
-      '<div style="font-size:11px;color:var(--ink-soft);">' + (rotulos[loc.autorRole] || 'Associado') + ' · atualizado ' + textoTempo + '</div></div>';
+      '<div style="font-size:11px;color:var(--ink-soft);">' + (rotulos[loc.autorRole] || 'Associado') + ' · atualizado ' + textoTempo + (privada ? ' · compartilhamento específico' : '') + '</div></div>';
 
     const botaoMapa = document.createElement('button');
     botaoMapa.className = 'btn';
