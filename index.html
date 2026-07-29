@@ -704,6 +704,17 @@
       <button class="btn" style="margin-top:8px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="apagarFotosAntigas()">Apagar fotos do mural com mais de 90 dias</button>
     </div>
 
+    <p class="section-title">Localização em tempo real</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Compartilhe sua localização ao vivo com os outros usuários do app. Fica visível pra todo mundo logado enquanto estiver ativado, e some sozinho se ficar muito tempo sem atualizar.</p>
+      <button class="btn" id="btnCompartilharLocalizacao" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
+      <p id="statusCompartilharLocalizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+    </div>
+    <div class="card">
+      <div class="card-label">Pessoas compartilhando agora</div>
+      <div id="listaLocalizacoesCompartilhadas"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém está compartilhando a localização agora.</p></div>
+    </div>
+
     <p class="section-title">Link de demonstração</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Gere um link pra mandar pra quem quiser conhecer o app. Quem abrir só visualiza — nada que a pessoa fizer afeta seus dados reais.</p>
@@ -1392,6 +1403,7 @@ const firebaseConfig = {
 let dbCollection = null;
 let muralFotosCollection = null;
 let comprovantesCollection = null;
+let localizacoesCollection = null;
 let firebaseSynced = false;
 
 function _setLocal(chave, valor){
@@ -1511,6 +1523,26 @@ function excluirFotoNaNuvem(id){
   });
 }
 
+function salvarLocalizacaoNaNuvem(localizacao){
+  if(modoDemo || !localizacoesCollection) return Promise.resolve(true);
+  return localizacoesCollection.doc(localizacao.autorId).set(localizacao).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao salvar localização na nuvem:', e);
+    return false;
+  });
+}
+
+function apagarLocalizacaoNaNuvem(autorId){
+  if(modoDemo || !localizacoesCollection) return Promise.resolve(true);
+  return localizacoesCollection.doc(autorId).delete().then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao apagar localização na nuvem:', e);
+    return false;
+  });
+}
+
 function salvarComprovanteNaNuvem(comprovante){
   if(modoDemo || !comprovantesCollection) return Promise.resolve(true);
   return comprovantesCollection.doc(comprovante.id).set(comprovante).then(function(){
@@ -1617,6 +1649,7 @@ function iniciarFirebase(tentativas){
     dbCollection = db.collection('gingapass');
     muralFotosCollection = db.collection('gingapass_mural_fotos');
     comprovantesCollection = db.collection('gingapass_comprovantes');
+    localizacoesCollection = db.collection('gingapass_localizacoes');
 
     const statusEl = document.getElementById('syncStatus');
 
@@ -1680,6 +1713,17 @@ function iniciarFirebase(tentativas){
       }
     }, function(e){
       console.error('Erro ao sincronizar comprovantes de pagamento:', e);
+    });
+
+    localizacoesCollection.onSnapshot(function(snapshot){
+      const localizacoes = [];
+      snapshot.forEach(function(doc){ localizacoes.push(doc.data()); });
+      _setLocal('gingapass_localizacoes', JSON.stringify(localizacoes));
+      if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
+        renderLocalizacoesCompartilhadas();
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar localizações compartilhadas:', e);
     });
   } catch(e){
     console.error('Firebase não pôde ser iniciado, o app vai funcionar só localmente:', e);
@@ -2157,6 +2201,9 @@ function entrar(role){
 }
 
 function logout(){
+  if(compartilhandoLocalizacao){
+    pararCompartilharLocalizacao();
+  }
   if(currentRole){
     const chaveSessao = 'gingapass_sessao_' + currentRole + ':' + (currentUser || 'master');
     localStorage.removeItem(chaveSessao);
@@ -2316,6 +2363,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderGaleria(); });
   tentarChamar(function(){ renderFotosFeed(); });
   tentarChamar(function(){ renderLimiteFotoSemanal(); });
+  tentarChamar(function(){ renderLocalizacoesCompartilhadas(); });
   tentarChamar(function(){ iniciarSlideshowMural(); });
   tentarChamar(function(){ renderAviso(); });
   tentarChamar(function(){ renderAlunos(); });
@@ -3727,6 +3775,151 @@ function identificadorUsuarioAtual(){
   return currentRole + ':' + currentUser;
 }
 
+/* ===================== Localização em tempo real ===================== */
+let localizacaoWatchId = null;
+let compartilhandoLocalizacao = false;
+let _ultimoEnvioLocalizacaoTs = 0;
+const LOCALIZACAO_INTERVALO_MIN_MS = 15000; // não manda pra nuvem mais que 1x a cada 15s
+const LOCALIZACAO_EXPIRA_MS = 5 * 60 * 1000; // some da lista se ficar 5min sem atualizar
+let mapaLocalizacaoAbertoId = null;
+
+function alternarCompartilharLocalizacao(){
+  if(compartilhandoLocalizacao){
+    pararCompartilharLocalizacao();
+  } else {
+    iniciarCompartilharLocalizacao();
+  }
+}
+
+function iniciarCompartilharLocalizacao(){
+  if(!navigator.geolocation){
+    alert('Seu navegador não suporta localização.');
+    return;
+  }
+  if(!currentRole || !currentUser){
+    alert('Faça login pra compartilhar sua localização.');
+    return;
+  }
+  const btn = document.getElementById('btnCompartilharLocalizacao');
+  const status = document.getElementById('statusCompartilharLocalizacao');
+  if(status) status.textContent = 'Pedindo permissão de localização...';
+
+  localizacaoWatchId = navigator.geolocation.watchPosition(function(pos){
+    compartilhandoLocalizacao = true;
+    if(btn){
+      btn.textContent = 'Parar de compartilhar minha localização';
+      btn.style.background = 'var(--white)';
+      btn.style.color = 'var(--danger)';
+      btn.style.border = '1.5px solid var(--danger)';
+    }
+    const agora = Date.now();
+    if(agora - _ultimoEnvioLocalizacaoTs < LOCALIZACAO_INTERVALO_MIN_MS) return;
+    _ultimoEnvioLocalizacaoTs = agora;
+
+    const doc = {
+      autorId: identificadorUsuarioAtual(),
+      autor: obterNomeExibicaoAtual() || currentUser,
+      autorRole: currentRole,
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude,
+      atualizado: agora
+    };
+    salvarLocalizacaoNaNuvem(doc).then(function(ok){
+      if(status){
+        status.textContent = ok
+          ? 'Compartilhando sua localização ao vivo. Atualizado agora.'
+          : 'Sua localização não sincronizou com a nuvem. Verifique a conexão.';
+      }
+    });
+  }, function(erro){
+    if(status) status.textContent = 'Não conseguimos acessar sua localização. Verifique se você permitiu o acesso ao GPS pro navegador.';
+    compartilhandoLocalizacao = false;
+  }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 15000});
+}
+
+function pararCompartilharLocalizacao(){
+  if(localizacaoWatchId !== null && navigator.geolocation){
+    navigator.geolocation.clearWatch(localizacaoWatchId);
+    localizacaoWatchId = null;
+  }
+  compartilhandoLocalizacao = false;
+  const btn = document.getElementById('btnCompartilharLocalizacao');
+  const status = document.getElementById('statusCompartilharLocalizacao');
+  if(btn){
+    btn.textContent = 'Compartilhar minha localização';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.border = '';
+  }
+  if(status) status.textContent = 'Você não está compartilhando sua localização.';
+  if(currentRole && currentUser){
+    apagarLocalizacaoNaNuvem(identificadorUsuarioAtual());
+  }
+}
+
+function renderLocalizacoesCompartilhadas(){
+  const container = document.getElementById('listaLocalizacoesCompartilhadas');
+  if(!container) return;
+  const todas = JSON.parse(localStorage.getItem('gingapass_localizacoes') || '[]');
+  const meuId = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
+  const agora = Date.now();
+  const ativas = todas.filter(l => l && l.autorId && l.autorId !== meuId && l.atualizado && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS);
+
+  container.innerHTML = '';
+  if(ativas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém está compartilhando a localização agora.</p>';
+    mapaLocalizacaoAbertoId = null;
+    return;
+  }
+
+  const rotulos = {aluno: 'Aluno', academia: 'Professor', matriz: 'Matriz'};
+  ativas.sort((a, b) => b.atualizado - a.atualizado).forEach(loc => {
+    const bloco = document.createElement('div');
+    bloco.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+
+    const minutosAtras = Math.max(0, Math.round((agora - loc.atualizado) / 60000));
+    const textoTempo = minutosAtras === 0 ? 'agora mesmo' : ('há ' + minutosAtras + ' min');
+
+    const linha = document.createElement('div');
+    linha.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;';
+    linha.innerHTML = '<div><strong style="font-size:13px;color:var(--navy-900);">' + loc.autor + '</strong>' +
+      '<div style="font-size:11px;color:var(--ink-soft);">' + (rotulos[loc.autorRole] || 'Associado') + ' · atualizado ' + textoTempo + '</div></div>';
+
+    const botaoMapa = document.createElement('button');
+    botaoMapa.className = 'btn';
+    botaoMapa.style.cssText = 'width:auto;padding:8px 12px;font-size:12px;margin:0;';
+    botaoMapa.textContent = (mapaLocalizacaoAbertoId === loc.autorId) ? 'Ocultar mapa' : 'Ver no mapa';
+    botaoMapa.onclick = function(){ alternarMapaLocalizacao(loc.autorId); };
+    linha.appendChild(botaoMapa);
+    bloco.appendChild(linha);
+
+    if(mapaLocalizacaoAbertoId === loc.autorId){
+      const mapaWrap = document.createElement('div');
+      mapaWrap.style.cssText = 'margin-top:10px;border-radius:12px;overflow:hidden;border:1px solid #EFE6D2;';
+      const iframe = document.createElement('iframe');
+      iframe.src = 'https://maps.google.com/maps?q=' + loc.lat + ',' + loc.lon + '&z=15&output=embed';
+      iframe.style.cssText = 'width:100%;height:220px;border:0;';
+      iframe.loading = 'lazy';
+      mapaWrap.appendChild(iframe);
+      bloco.appendChild(mapaWrap);
+    }
+
+    container.appendChild(bloco);
+  });
+}
+
+function alternarMapaLocalizacao(autorId){
+  mapaLocalizacaoAbertoId = (mapaLocalizacaoAbertoId === autorId) ? null : autorId;
+  renderLocalizacoesCompartilhadas();
+}
+
+setInterval(function(){
+  if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
+    renderLocalizacoesCompartilhadas();
+  }
+}, 30000);
+/* =================== fim: Localização em tempo real =================== */
+
 function normalizarFotos(){
   const salvas = JSON.parse(localStorage.getItem('gingapass_fotos') || '[]');
   let mudou = false;
@@ -3775,7 +3968,8 @@ function excluirFotoMural(id){
 }
 
 function limiteSemanalDeFotos(){
-  if(currentRole === 'aluno') return 2;
+  // Aluno e academia: 5 fotos por semana. Matriz (conta master): sem limite (retorna null).
+  if(currentRole === 'aluno') return 5;
   if(currentRole === 'academia') return 5;
   return null;
 }
