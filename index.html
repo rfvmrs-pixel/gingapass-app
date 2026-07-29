@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0056)file:///C:/Users/rafael.souza/Downloads/index%20(2).html -->
+<!-- saved from url=(0056)file:///C:/Users/rafael.souza/Downloads/index%20(3).html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -522,7 +522,7 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script></head>
+</head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -1413,6 +1413,116 @@ let comprovantesCollection = null;
 let localizacoesCollection = null;
 let firebaseSynced = false;
 
+/* ===================== Cache local de fotos (IndexedDB) =====================
+   As fotos do mural são as maiores consumidoras de espaço no navegador (imagens em
+   base64). Elas já ficam salvas de verdade na nuvem (Firestore, uma por documento);
+   isso aqui é só uma CÓPIA local pra abrir rápido/offline. Antes ficava no
+   localStorage (limite de 5-10MB, cheio fácil). Agora fica no IndexedDB, que aguenta
+   muito mais espaço, mantendo o resto do app 100% síncrono igual antes: as fotos
+   ficam também num array em memória (window._fotosMemCache), e todas as funções que
+   já existiam continuam lendo/escrevendo nesse array na hora, sem precisar de
+   "await" em lugar nenhum nem mudar a lógica delas. */
+window._fotosMemCache = [];
+let _idbFotosDb = null;
+let _idbFotosAbrindo = null;
+
+function _idbAbrirFotos(){
+  if(_idbFotosDb) return Promise.resolve(_idbFotosDb);
+  if(_idbFotosAbrindo) return _idbFotosAbrindo;
+  if(!window.indexedDB){
+    _idbFotosAbrindo = Promise.resolve(null);
+    return _idbFotosAbrindo;
+  }
+  _idbFotosAbrindo = new Promise(function(resolve){
+    try{
+      const req = window.indexedDB.open('gingapass_cache_local', 1);
+      req.onupgradeneeded = function(){
+        const db = req.result;
+        if(!db.objectStoreNames.contains('fotos')){
+          db.createObjectStore('fotos', {keyPath: 'id'});
+        }
+      };
+      req.onsuccess = function(){ _idbFotosDb = req.result; resolve(_idbFotosDb); };
+      req.onerror = function(){ console.error('Não deu pra abrir o IndexedDB local:', req.error); resolve(null); };
+    } catch(e){
+      console.error('Erro ao abrir IndexedDB:', e);
+      resolve(null);
+    }
+  });
+  return _idbFotosAbrindo;
+}
+
+// Migração única: quem já usava o app antes tinha as fotos salvas no localStorage
+// (isso que enchia o armazenamento). Aqui a gente resgata esses dados pro cache em
+// memória/IndexedDB e libera o espaço do localStorage de uma vez.
+function migrarCacheFotosDoLocalStorage(){
+  try{
+    const bruto = window.localStorage.getItem('gingapass_fotos');
+    if(bruto === null) return;
+    try{
+      const fotos = JSON.parse(bruto);
+      if(Array.isArray(fotos) && window._fotosMemCache.length === 0){
+        window._fotosMemCache = fotos;
+        idbSalvarFotos(fotos);
+      }
+    } catch(e){}
+    window.localStorage.removeItem('gingapass_fotos');
+  } catch(e){
+    console.error('Erro ao migrar cache antigo de fotos:', e);
+  }
+}
+
+// Lê o cache local salvo (usado só uma vez, ao carregar o app) e preenche o array em memória.
+function idbCarregarFotosNaMemoria(){
+  return _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    return new Promise(function(resolve){
+      try{
+        const tx = db.transaction('fotos', 'readonly');
+        const store = tx.objectStore('fotos');
+        const req = store.getAll();
+        req.onsuccess = function(){
+          if(Array.isArray(req.result) && req.result.length > 0 && window._fotosMemCache.length === 0){
+            window._fotosMemCache = req.result;
+            tentarChamar(function(){ renderFotosFeed(); });
+            tentarChamar(function(){ renderGaleria(); });
+            tentarChamar(function(){ renderLimiteFotoSemanal(); });
+            tentarChamar(function(){ iniciarSlideshowMural(); });
+          }
+          resolve();
+        };
+        req.onerror = function(){ resolve(); };
+      } catch(e){ resolve(); }
+    });
+  }).catch(function(){});
+}
+
+// Grava o array inteiro no IndexedDB em segundo plano (não trava a tela, e se falhar
+// o app continua funcionando normalmente com o array em memória).
+function idbSalvarFotos(fotos){
+  _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    try{
+      const tx = db.transaction('fotos', 'readwrite');
+      const store = tx.objectStore('fotos');
+      store.clear();
+      fotos.forEach(function(f){ try{ store.put(f); } catch(e){} });
+    } catch(e){
+      console.error('Erro ao salvar fotos no IndexedDB:', e);
+    }
+  });
+}
+
+// Substitui, em todo o app, a leitura/escrita de localStorage.getItem/_setLocal('gingapass_fotos', ...).
+function lerFotosLocais(){
+  return window._fotosMemCache || [];
+}
+function salvarFotosLocais(fotos){
+  window._fotosMemCache = fotos;
+  idbSalvarFotos(fotos);
+}
+/* =================== fim: Cache local de fotos (IndexedDB) =================== */
+
 function _setLocal(chave, valor){
   try{
     window.localStorage.setItem(chave, valor);
@@ -1449,17 +1559,7 @@ function liberarEspacoLocal(){
     chaves.forEach(k => {
       try{ window.localStorage.removeItem(k); liberouAlgo = true; } catch(e){}
     });
-    if(liberouAlgo) return true;
-
-    // Último recurso: reduz o CACHE local de fotos (a nuvem continua com todas, cada uma em seu documento).
-    try{
-      const fotos = JSON.parse(window.localStorage.getItem('gingapass_fotos') || '[]');
-      if(Array.isArray(fotos) && fotos.length > 60){
-        window.localStorage.setItem('gingapass_fotos', JSON.stringify(fotos.slice(0, 60)));
-        return true;
-      }
-    } catch(e){}
-    return false;
+    return liberouAlgo;
   } catch(e){
     return false;
   }
@@ -1706,7 +1806,7 @@ function iniciarFirebase(tentativas){
     muralFotosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
       const fotos = [];
       snapshot.forEach(function(doc){ fotos.push(doc.data()); });
-      _setLocal('gingapass_fotos', JSON.stringify(fotos));
+      salvarFotosLocais(fotos);
       if(typeof currentRole !== 'undefined' && currentRole){
         if(typeof renderFotosFeed === 'function') renderFotosFeed();
         if(typeof renderGaleria === 'function') renderGaleria();
@@ -2295,8 +2395,10 @@ function apagarFotosAntigas(){
   const fotos = normalizarFotos();
   const limite = Date.now() - (90 * 24 * 60 * 60 * 1000);
   const restantes = fotos.filter(f => f.data >= limite);
-  const removidas = fotos.length - restantes.length;
-  setDado('gingapass_fotos', JSON.stringify(restantes));
+  const antigas = fotos.filter(f => f.data < limite);
+  const removidas = antigas.length;
+  salvarFotosLocais(restantes);
+  antigas.forEach(function(f){ excluirFotoNaNuvem(f.id); });
   renderFotosFeed();
   renderGaleria();
   iniciarSlideshowMural();
@@ -3998,7 +4100,7 @@ setInterval(function(){
 /* =================== fim: Localização em tempo real =================== */
 
 function normalizarFotos(){
-  const salvas = JSON.parse(localStorage.getItem('gingapass_fotos') || '[]');
+  const salvas = lerFotosLocais();
   let mudou = false;
   const normalizadas = salvas.map(item => {
     if(typeof item === 'string'){
@@ -4012,7 +4114,7 @@ function normalizarFotos(){
     if(item.autorRole === undefined){ item.autorRole = ''; mudou = true; }
     return item;
   });
-  if(mudou) _setLocal('gingapass_fotos', JSON.stringify(normalizadas));
+  if(mudou) salvarFotosLocais(normalizadas);
   return normalizadas;
 }
 
@@ -4036,7 +4138,7 @@ function excluirFotoMural(id){
   if(!confirm('Apagar essa foto do mural? Os comentários e curtidas somem junto.')) return;
   const fotos = normalizarFotos();
   const restantes = fotos.filter(f => f.id !== id);
-  _setLocal('gingapass_fotos', JSON.stringify(restantes));
+  salvarFotosLocais(restantes);
   renderFotosFeed();
   renderLimiteFotoSemanal();
   renderGaleria();
@@ -4084,7 +4186,7 @@ function publicarFotos(galeriaId){
     src, legenda: '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
   let todasFotos = limitarFotosLocais(novas.concat(salvas));
-  _setLocal('gingapass_fotos', JSON.stringify(todasFotos));
+  salvarFotosLocais(todasFotos);
   fotosSelecionadas = [];
   renderGaleria();
   renderFotosFeed();
@@ -4140,7 +4242,7 @@ function publicarFotoComunidade(){
     src, legenda: i === 0 ? legenda : '', autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
   }));
   let todasFotos = limitarFotosLocais(novas.concat(salvas));
-  _setLocal('gingapass_fotos', JSON.stringify(todasFotos));
+  salvarFotosLocais(todasFotos);
   fotosSelecionadasComunidade = [];
   if(legendaInput) legendaInput.value = '';
   const inputFile = document.getElementById('fotoInputComunidade');
@@ -4169,7 +4271,7 @@ function curtirFoto(id){
   const idx = foto.likes.indexOf(meuId);
   if(idx >= 0) foto.likes.splice(idx, 1);
   else foto.likes.push(meuId);
-  _setLocal('gingapass_fotos', JSON.stringify(fotos));
+  salvarFotosLocais(fotos);
   renderFotosFeed();
   renderLimiteFotoSemanal();
   iniciarSlideshowMural();
@@ -4185,7 +4287,7 @@ function comentarFoto(id){
   const foto = fotos.find(f => f.id === id);
   if(!foto) return;
   foto.comentarios.push({autor: obterNomeExibicaoAtual() || 'Associado', texto, data: Date.now()});
-  _setLocal('gingapass_fotos', JSON.stringify(fotos));
+  salvarFotosLocais(fotos);
   renderFotosFeed();
   renderLimiteFotoSemanal();
   iniciarSlideshowMural();
@@ -8057,6 +8159,8 @@ document.addEventListener('DOMContentLoaded', function(){
   if(new URLSearchParams(location.search).get('ck') === '1'){
     document.body.innerHTML = '<div style="max-width:420px;margin:0 auto;min-height:100vh;background:#FBF3E4;padding:28px 20px;font-family:sans-serif;"><h2 style="color:#042C53;">Check-in de treino</h2><p style="color:#5B6B7A;">Carregando...</p></div>';
   }
+  migrarCacheFotosDoLocalStorage();
+  idbCarregarFotosNaMemoria();
   iniciarFirebase();
 
   function ligarFotoInput(inputId, galeriaId){
