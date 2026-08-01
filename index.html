@@ -4,9 +4,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GingaPass Capoeira Team — Protótipo</title>
-<link rel="manifest" href="file:///C:/Users/rafael.souza/Downloads/manifest.json">
-<link rel="icon" href="file:///C:/Users/rafael.souza/Downloads/icon-192-v2.png">
-<link rel="apple-touch-icon" href="file:///C:/Users/rafael.souza/Downloads/icon-192-v2.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" href="icon-192-v2.png">
 <meta name="theme-color" content="#042C53">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="GingaPass">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="file:///C:/Users/rafael.souza/Downloads/GingaPass%20Capoeira%20Team%20%E2%80%94%20Prot%C3%B3tipo_files/css2" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy-900:#042C53;
@@ -518,6 +518,32 @@
     font-size:12.5px;font-weight:500;color:var(--ink);cursor:pointer;text-decoration:none;
   }
 
+  .msg-toast{
+    position:absolute;
+    top:calc(14px + env(safe-area-inset-top));
+    left:12px; right:12px;
+    background:var(--navy-900);
+    color:var(--cream);
+    border-radius:16px;
+    padding:12px 14px;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    box-shadow:0 12px 28px rgba(4,18,33,0.35);
+    z-index:1500;
+    cursor:pointer;
+    animation:msgToastIn 0.25s ease-out;
+  }
+  .msg-toast .msg-toast-icon{font-size:20px;line-height:1;flex-shrink:0;}
+  .msg-toast .msg-toast-body{min-width:0;flex:1;}
+  .msg-toast .msg-toast-nome{font-size:12.5px;font-weight:700;margin:0 0 2px;color:var(--cream);}
+  .msg-toast .msg-toast-texto{font-size:12px;margin:0;color:#DCE7F2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .msg-toast .msg-toast-fechar{background:none;border:none;color:#B9CBDD;font-size:16px;line-height:1;cursor:pointer;flex-shrink:0;padding:2px;}
+  @keyframes msgToastIn{
+    from{opacity:0;transform:translateY(-14px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
   .aluno-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EDE3D0;font-size:13px;}
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
@@ -551,9 +577,9 @@
       <input id="loginPass" type="password" placeholder="Senha">
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
-      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarSetupMaster();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Primeiro acesso? Criar cadastro master</a>
-      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:10px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
-      <a href="file:///C:/Users/rafael.souza/Downloads/index_23.html#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master e a resposta de segurança? Recomeçar cadastro master</a>
+      <a href="#" onclick="alternarSetupMaster();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Primeiro acesso? Criar cadastro master</a>
+      <a href="#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:10px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
+      <a href="#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master e a resposta de segurança? Recomeçar cadastro master</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
@@ -844,6 +870,13 @@
       <p id="fotoLimiteSemanalTexto" style="font-size:11px;color:var(--amber-700);margin:4px 0 0;font-weight:600;"></p>
     </div>
 
+    <div class="card">
+      <div class="card-label">Publicar um vídeo curto</div>
+      <input type="file" id="videoInputComunidade" accept="video/*" style="font-size:12px;margin-bottom:8px;">
+      <button class="btn" type="button" onclick="publicarVideoComunidade('videoInputComunidade')">Publicar vídeo</button>
+      <p style="font-size:11px;color:var(--ink-soft);margin:8px 0 0;">Vídeos curtos, até 20MB. Diferente das fotos, o vídeo fica salvo só neste aparelho (não sincroniza pra outros celulares).</p>
+    </div>
+
     <p class="section-title">Mural</p>
     <div id="feedFotos"></div>
   </div>
@@ -1042,6 +1075,7 @@
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button type="button" class="role-btn active" id="chatCatProfessorBtn" onclick="mudarCategoriaChatAluno(&#39;professor&#39;)" style="flex:1;">Professor</button>
         <button type="button" class="role-btn" id="chatCatColegaBtn" onclick="mudarCategoriaChatAluno(&#39;colega&#39;)" style="flex:1;">Colegas de treino</button>
+        <button type="button" class="role-btn" id="chatCatGrupoBtn" onclick="mudarCategoriaChatAluno(&#39;grupo&#39;)" style="flex:1;">Grupo</button>
       </div>
 
       <div id="chatCatProfessorBox">
@@ -1066,6 +1100,10 @@
         </div>
         <div id="chatThreadColegaSelecionado"></div>
       </div>
+
+      <div id="chatCatGrupoBox" style="display:none;">
+        <div id="chatGrupoThread"></div>
+      </div>
     </div>
 
     <!-- Visão do professor/afiliado e da matriz: caixa de mensagens recebidas -->
@@ -1073,6 +1111,7 @@
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button type="button" class="role-btn active" id="chatModoAlunosBtn" onclick="mudarModoChatProfessor(&#39;alunos&#39;)" style="flex:1;">Bate-papo com alunos</button>
         <button type="button" class="role-btn" id="chatModoProfsBtn" onclick="mudarModoChatProfessor(&#39;professores&#39;)" style="flex:1;">Bate-papo com professores</button>
+        <button type="button" class="role-btn" id="chatModoGrupoBtn" onclick="mudarModoChatProfessor(&#39;grupo&#39;)" style="flex:1;">Grupo da turma</button>
       </div>
 
       <div id="chatModoAlunosBox">
@@ -1089,6 +1128,11 @@
           <select class="admin-input" id="chatProfSelect" style="margin-bottom:0;" onchange="selecionarProfChat()"><option value="">Selecione o professor...</option></select>
         </div>
         <div id="chatThreadProfSelecionado"></div>
+      </div>
+
+      <div id="chatModoGrupoBox" style="display:none;">
+        <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Mensagem visível pra todos os seus alunos de uma vez.</p>
+        <div id="chatGrupoThreadProfessor"></div>
       </div>
 
       <p class="section-title">Forma de pagamento</p>
@@ -1393,10 +1437,10 @@
   </div>
 </div>
 
-<script src="file:///C:/Users/rafael.souza/Downloads/index_files/qrcode.min.js.baixados"></script>
-<script src="file:///C:/Users/rafael.souza/Downloads/index_files/jsQR.js.baixados"></script>
-<script src="file:///C:/Users/rafael.souza/Downloads/index_files/firebase-app-compat.js.baixados"></script>
-<script src="file:///C:/Users/rafael.souza/Downloads/index_files/firebase-firestore-compat.js.baixados"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
@@ -1435,11 +1479,14 @@ function _idbAbrirFotos(){
   }
   _idbFotosAbrindo = new Promise(function(resolve){
     try{
-      const req = window.indexedDB.open('gingapass_cache_local', 1);
+      const req = window.indexedDB.open('gingapass_cache_local', 2);
       req.onupgradeneeded = function(){
         const db = req.result;
         if(!db.objectStoreNames.contains('fotos')){
           db.createObjectStore('fotos', {keyPath: 'id'});
+        }
+        if(!db.objectStoreNames.contains('videos')){
+          db.createObjectStore('videos', {keyPath: 'id'});
         }
       };
       req.onsuccess = function(){ _idbFotosDb = req.result; resolve(_idbFotosDb); };
@@ -1451,6 +1498,109 @@ function _idbAbrirFotos(){
   });
   return _idbFotosAbrindo;
 }
+
+/* ===================== Cache local de vídeos curtos (IndexedDB) =====================
+   Mesma ideia das fotos: vídeos curtos do mural ficam guardados como Blob no IndexedDB
+   deste aparelho (o IndexedDB aguenta MUITO mais espaço que o localStorage — geralmente
+   até uma boa fatia do espaço livre do aparelho). Importante: vídeo não vai pra nuvem
+   (o Firestore só aceita ~1MB por documento, pouco pra vídeo), então cada vídeo fica
+   salvo só no aparelho de quem publicou e de quem já abriu o app com internet quando
+   ele foi publicado nesse MESMO aparelho. Pra vídeo sincronizar entre aparelhos de
+   verdade seria preciso ligar o Firebase Storage no projeto (armazenamento de arquivos
+   grandes), que é um passo separado no console do Firebase. */
+window._videosMemCache = [];
+const LIMITE_VIDEO_MB = 20; // tamanho máximo por vídeo, em megabytes
+const LIMITE_VIDEOS_LOCAIS = 60; // quantos vídeos manter guardados neste aparelho
+
+function idbCarregarVideosNaMemoria(){
+  return _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    return new Promise(function(resolve){
+      try{
+        const tx = db.transaction('videos', 'readonly');
+        const store = tx.objectStore('videos');
+        const req = store.getAll();
+        req.onsuccess = function(){
+          if(Array.isArray(req.result)){
+            window._videosMemCache = req.result;
+            tentarChamar(function(){ renderFotosFeed(); });
+          }
+          resolve();
+        };
+        req.onerror = function(){ resolve(); };
+      } catch(e){ resolve(); }
+    });
+  }).catch(function(){});
+}
+
+function idbSalvarVideos(videos){
+  _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    try{
+      const tx = db.transaction('videos', 'readwrite');
+      const store = tx.objectStore('videos');
+      store.clear();
+      videos.forEach(function(v){ try{ store.put(v); } catch(e){} });
+    } catch(e){
+      console.error('Erro ao salvar vídeos no IndexedDB:', e);
+    }
+  });
+}
+
+function lerVideosLocais(){
+  return window._videosMemCache || [];
+}
+function salvarVideosLocais(videos){
+  if(videos.length > LIMITE_VIDEOS_LOCAIS) videos = videos.slice(0, LIMITE_VIDEOS_LOCAIS);
+  window._videosMemCache = videos;
+  idbSalvarVideos(videos);
+}
+
+// Lê um arquivo de vídeo escolhido pelo usuário e devolve um base64 (data URL), já
+// checando o limite de tamanho antes de gastar memória/processamento.
+function lerArquivoDeVideo(arquivo){
+  return new Promise(function(resolve, reject){
+    if(!arquivo) { reject('nenhum arquivo'); return; }
+    if(!arquivo.type || arquivo.type.indexOf('video') !== 0){
+      reject('Esse arquivo não é um vídeo.');
+      return;
+    }
+    const tamanhoMB = arquivo.size / (1024 * 1024);
+    if(tamanhoMB > LIMITE_VIDEO_MB){
+      reject('Esse vídeo tem ' + tamanhoMB.toFixed(1) + 'MB. O limite é ' + LIMITE_VIDEO_MB + 'MB — grave um vídeo mais curto ou comprima antes de subir.');
+      return;
+    }
+    const leitor = new FileReader();
+    leitor.onload = function(){ resolve(leitor.result); };
+    leitor.onerror = function(){ reject('Não deu pra ler esse arquivo de vídeo.'); };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
+// Publica um vídeo curto no mural (fica salvo só neste aparelho, ver nota acima).
+function publicarVideoComunidade(inputId){
+  const input = document.getElementById(inputId || 'videoInputComunidade');
+  if(!input || !input.files || input.files.length === 0){
+    alert('Escolha um arquivo de vídeo primeiro.');
+    return;
+  }
+  const arquivo = input.files[0];
+  lerArquivoDeVideo(arquivo).then(function(src){
+    const autor = obterNomeExibicaoAtual() || 'Associado';
+    const video = {
+      id: 'video_' + Math.random().toString(36).slice(2, 10),
+      src, autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now()
+    };
+    const atuais = lerVideosLocais();
+    salvarVideosLocais([video].concat(atuais));
+    input.value = '';
+    renderFotosFeed();
+    alert('Vídeo publicado no mural! Ele fica salvo neste aparelho (vídeo não sincroniza entre aparelhos, só fotos).');
+  }).catch(function(erro){
+    alert(typeof erro === 'string' ? erro : 'Não foi possível publicar esse vídeo.');
+  });
+}
+/* =================== fim: Cache local de vídeos curtos (IndexedDB) =================== */
 
 // Migração única: quem já usava o app antes tinha as fotos salvas no localStorage
 // (isso que enchia o armazenamento). Aqui a gente resgata esses dados pro cache em
@@ -1603,7 +1753,7 @@ function buscarValorFresco(chave){
   });
 }
 
-const LIMITE_FOTOS_LOCAIS = 300; // quantas fotos manter em cache neste aparelho (a nuvem guarda todas, cada uma em seu próprio documento)
+const LIMITE_FOTOS_LOCAIS = 1500; // quantas fotos manter em cache neste aparelho (a nuvem guarda todas, cada uma em seu próprio documento). IndexedDB aguenta bem mais que o antigo limite de localStorage.
 
 function limitarFotosLocais(fotos){
   if(fotos.length <= LIMITE_FOTOS_LOCAIS) return fotos;
@@ -1737,6 +1887,96 @@ function atualizarNuvemManual(botao){
   });
 }
 
+/* ===================== Popup de nova mensagem ===================== */
+let _msgToastTimeout = null;
+function mostrarPopupNovaMensagem(nome, texto){
+  const phone = document.querySelector('.phone');
+  if(!phone) return;
+  let toast = document.getElementById('msgToastPopup');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'msgToastPopup';
+    toast.className = 'msg-toast';
+    toast.innerHTML = '<span class="msg-toast-icon">💬</span>' +
+      '<div class="msg-toast-body"><p class="msg-toast-nome" id="msgToastNome"></p><p class="msg-toast-texto" id="msgToastTexto"></p></div>' +
+      '<button type="button" class="msg-toast-fechar" id="msgToastFechar">×</button>';
+    phone.appendChild(toast);
+    toast.addEventListener('click', function(e){
+      if(e.target && e.target.id === 'msgToastFechar') return;
+      esconderPopupNovaMensagem();
+      const chatTab = document.querySelector('.tab[data-target="chat"]');
+      showScreen('chat', chatTab);
+    });
+    document.getElementById('msgToastFechar').addEventListener('click', function(e){
+      e.stopPropagation();
+      esconderPopupNovaMensagem();
+    });
+  }
+  document.getElementById('msgToastNome').textContent = nome;
+  document.getElementById('msgToastTexto').textContent = texto;
+  toast.style.display = 'flex';
+  if(_msgToastTimeout) clearTimeout(_msgToastTimeout);
+  _msgToastTimeout = setTimeout(esconderPopupNovaMensagem, 6000);
+}
+function esconderPopupNovaMensagem(){
+  const toast = document.getElementById('msgToastPopup');
+  if(toast) toast.style.display = 'none';
+  if(_msgToastTimeout){ clearTimeout(_msgToastTimeout); _msgToastTimeout = null; }
+}
+
+// Compara a versão antiga com a nova de uma das chaves de chat e mostra um popup pra
+// cada mensagem realmente nova que não foi enviada por mim (evita popup da própria
+// mensagem que acabei de mandar, e evita repetir popup de mensagem antiga).
+function verificarNovasMensagensChat(chave, valorAntigo, valorNovo){
+  if(!currentRole || !currentUser) return; // ninguém logado ainda: não tem quem notificar
+  if(valorAntigo === valorNovo) return;
+  let antigas = [], novas = [];
+  try{ antigas = JSON.parse(valorAntigo || '[]'); } catch(e){ antigas = []; }
+  try{ novas = JSON.parse(valorNovo || '[]'); } catch(e){ novas = []; }
+  if(!Array.isArray(novas) || novas.length === 0) return;
+
+  const assinatura = m => JSON.stringify(m);
+  const jaExistiam = new Set(antigas.map(assinatura));
+  const recemChegadas = novas.filter(m => !jaExistiam.has(assinatura(m)));
+  if(recemChegadas.length === 0) return;
+
+  recemChegadas.forEach(function(m){
+    if(chave === 'gingapass_chat'){
+      // aluno <-> professor
+      if(currentRole === 'aluno' && m.remetente === 'professor' && m.aluno === currentUser){
+        mostrarPopupNovaMensagem('Prof. ' + (m.professor || ''), m.texto);
+      } else if((currentRole === 'academia' || currentRole === 'matriz') && m.remetente === 'aluno'){
+        const meuNome = (obterMeuNomeProfessor() || '').trim().toLowerCase();
+        if(meuNome && (m.professor || '').trim().toLowerCase() === meuNome){
+          mostrarPopupNovaMensagem(m.nomeAluno || 'Aluno', m.texto);
+        }
+      }
+    } else if(chave === 'gingapass_chat_alunos'){
+      // colega <-> colega
+      if(m.para === currentUser && m.de !== currentUser){
+        const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+        const colega = contas.find(c => c.user === m.de);
+        mostrarPopupNovaMensagem(colega ? colega.nome : 'Colega de treino', m.texto);
+      }
+    } else if(chave === 'gingapass_chat_profs'){
+      // professor <-> professor
+      const meuNome = (obterMeuNomeProfessor() || '').trim().toLowerCase();
+      if(meuNome && (currentRole === 'academia' || currentRole === 'matriz') &&
+         (m.para || '').trim().toLowerCase() === meuNome && (m.de || '').trim().toLowerCase() !== meuNome){
+        mostrarPopupNovaMensagem('Prof. ' + m.de, m.texto);
+      }
+    } else if(chave === 'gingapass_chat_grupo'){
+      // grupo da turma
+      if(m.remetenteId === currentUser) return; // não notifica a própria mensagem
+      const meuGrupo = (_grupoIdAtual() || '').trim().toLowerCase();
+      if(meuGrupo && (m.professor || '').trim().toLowerCase() === meuGrupo){
+        mostrarPopupNovaMensagem((m.deNome || 'Alguém') + ' (grupo)', m.texto);
+      }
+    }
+  });
+}
+/* =================== fim: Popup de nova mensagem =================== */
+
 function iniciarFirebase(tentativas){
   tentativas = tentativas || 0;
   if(typeof firebase === 'undefined'){
@@ -1789,11 +2029,17 @@ function iniciarFirebase(tentativas){
 
     dbCollection.onSnapshot(function(snapshot){
       let mudou = false;
+      const CHAVES_CHAT = ['gingapass_chat', 'gingapass_chat_alunos', 'gingapass_chat_profs', 'gingapass_chat_grupo'];
       snapshot.docChanges().forEach(function(change){
         const data = change.doc.data();
         if(data && typeof data.value === 'string'){
+          const ehChaveDeChat = CHAVES_CHAT.indexOf(change.doc.id) !== -1;
+          const valorAntigo = ehChaveDeChat ? window.localStorage.getItem(change.doc.id) : null;
           _setLocal(change.doc.id, data.value);
           mudou = true;
+          if(ehChaveDeChat && change.type !== 'removed'){
+            tentarChamar(function(){ verificarNovasMensagensChat(change.doc.id, valorAntigo, data.value); });
+          }
         }
       });
       if(mudou && typeof currentRole !== 'undefined' && currentRole){
@@ -4411,10 +4657,6 @@ function renderFotosFeed(){
   if(!container || !currentRole) return;
   const fotos = normalizarFotos().slice().reverse();
   container.innerHTML = '';
-  if(fotos.length === 0){
-    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma foto publicada ainda. Seja o primeiro a postar!</p>';
-    return;
-  }
   const meuId = identificadorUsuarioAtual();
   fotos.forEach(foto => {
     const card = document.createElement('div');
@@ -4507,6 +4749,54 @@ function renderFotosFeed(){
 
     container.appendChild(card);
   });
+
+  const videos = lerVideosLocais().slice().reverse();
+  videos.forEach(video => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const dataTxt = video.data ? new Date(video.data).toLocaleDateString('pt-BR') : '';
+
+    const autorEl = document.createElement('div');
+    autorEl.style.cssText = 'font-weight:600;font-size:13px;color:var(--navy-900);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const autorTexto = document.createElement('span');
+    autorTexto.textContent = '🎥 ' + video.autor + (dataTxt ? ' · ' + dataTxt : '');
+    autorEl.appendChild(autorTexto);
+    if(video.autorId === meuId){
+      const delVideoBtn = document.createElement('button');
+      delVideoBtn.type = 'button';
+      delVideoBtn.textContent = '🗑️';
+      delVideoBtn.title = 'Apagar vídeo';
+      delVideoBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;';
+      delVideoBtn.onclick = () => excluirVideoMural(video.id);
+      autorEl.appendChild(delVideoBtn);
+    }
+    card.appendChild(autorEl);
+
+    const videoEl = document.createElement('video');
+    videoEl.src = video.src;
+    videoEl.controls = true;
+    videoEl.playsInline = true;
+    videoEl.style.cssText = 'width:100%;border-radius:12px;display:block;background:#000;';
+    card.appendChild(videoEl);
+
+    const notaEl = document.createElement('p');
+    notaEl.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin:6px 0 0;';
+    notaEl.textContent = 'Vídeo salvo neste aparelho.';
+    card.appendChild(notaEl);
+
+    container.appendChild(card);
+  });
+
+  if(fotos.length === 0 && videos.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma foto ou vídeo publicado ainda. Seja o primeiro a postar!</p>';
+  }
+}
+
+function excluirVideoMural(id){
+  if(!confirm('Apagar esse vídeo?')) return;
+  const restantes = lerVideosLocais().filter(v => v.id !== id);
+  salvarVideosLocais(restantes);
+  renderFotosFeed();
 }
 
 function publicarContato(){
@@ -7361,22 +7651,144 @@ function enviarChat(){
 function mudarCategoriaChatAluno(cat){
   const btnProf = document.getElementById('chatCatProfessorBtn');
   const btnColega = document.getElementById('chatCatColegaBtn');
+  const btnGrupo = document.getElementById('chatCatGrupoBtn');
   const boxProf = document.getElementById('chatCatProfessorBox');
   const boxColega = document.getElementById('chatCatColegaBox');
+  const boxGrupo = document.getElementById('chatCatGrupoBox');
   if(!btnProf || !btnColega || !boxProf || !boxColega) return;
+  btnProf.classList.remove('active');
+  btnColega.classList.remove('active');
+  if(btnGrupo) btnGrupo.classList.remove('active');
+  boxProf.style.display = 'none';
+  boxColega.style.display = 'none';
+  if(boxGrupo) boxGrupo.style.display = 'none';
   if(cat === 'colega'){
-    btnProf.classList.remove('active');
     btnColega.classList.add('active');
-    boxProf.style.display = 'none';
     boxColega.style.display = 'block';
     renderFiltroAcademiaColegas();
     renderSeletorColegasChat();
+  } else if(cat === 'grupo'){
+    if(btnGrupo) btnGrupo.classList.add('active');
+    if(boxGrupo) boxGrupo.style.display = 'block';
+    renderThreadGrupo('chatGrupoThread');
   } else {
-    btnColega.classList.remove('active');
     btnProf.classList.add('active');
-    boxColega.style.display = 'none';
     boxProf.style.display = 'block';
   }
+}
+
+// ===================== Grupo (mensagem em grupo) =====================
+// O "grupo" é a turma inteira de um professor: o mesmo professor que o aluno escolhe
+// no chat individual. Toda mensagem enviada no grupo fica visível pra todos os alunos
+// daquele professor e pro próprio professor — como um mural de avisos + bate-papo.
+function _grupoIdAtual(){
+  if(currentRole === 'aluno') return (obterMeuProfessorAluno() || '').trim();
+  if(currentRole === 'academia' || currentRole === 'matriz') return (obterMeuNomeProfessor() || '').trim();
+  return '';
+}
+
+function renderThreadGrupo(containerId){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const grupoId = _grupoIdAtual();
+  box.innerHTML = '';
+
+  if(!grupoId){
+    box.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">' +
+      (currentRole === 'aluno' ? 'Escolha primeiro seu professor na aba "Professor" pra liberar o grupo da turma.' : 'Defina seu nome de professor em "Configurações gerais" pra liberar o grupo da turma.') +
+      '</p>';
+    return;
+  }
+
+  const meuNome = obterNomeExibicaoAtual() || currentUser;
+  const souProfessor = (currentRole === 'academia' || currentRole === 'matriz');
+  const todas = JSON.parse(localStorage.getItem('gingapass_chat_grupo') || '[]');
+  const mensagens = todas.filter(m => (m.professor || '').trim().toLowerCase() === grupoId.toLowerCase());
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  const titulo = document.createElement('div');
+  titulo.style.cssText = 'font-weight:600;font-size:13px;color:var(--navy-900);margin-bottom:8px;';
+  titulo.textContent = 'Grupo · Prof. ' + grupoId;
+  card.appendChild(titulo);
+
+  const thread = document.createElement('div');
+  thread.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:8px;';
+  if(mensagens.length === 0){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:12px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Nenhuma mensagem no grupo ainda. Escreva um recado pra turma toda.';
+    thread.appendChild(vazio);
+  } else {
+    mensagens.forEach(m => {
+      const souEu = (m.remetenteId || '') === (currentUser || '') || (souProfessor && m.remetente === 'professor' && (m.deNome || '').trim().toLowerCase() === grupoId.toLowerCase());
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'position:relative;max-width:85%;padding:8px 26px 8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;' +
+        (souEu ? 'background:var(--navy-900);color:var(--cream);align-self:flex-end;' : 'background:var(--cream-2);color:var(--ink);align-self:flex-start;');
+      if(!souEu){
+        const nomeEl = document.createElement('b');
+        nomeEl.style.cssText = 'display:block;font-size:11px;margin-bottom:2px;opacity:0.75;';
+        nomeEl.textContent = m.deNome + (m.remetente === 'professor' ? ' (professor)' : '');
+        bubble.appendChild(nomeEl);
+      }
+      bubble.appendChild(document.createTextNode(m.texto));
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '×';
+      delBtn.title = 'Apagar mensagem';
+      delBtn.style.cssText = 'position:absolute;top:2px;right:4px;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;color:inherit;opacity:0.6;padding:2px 4px;';
+      delBtn.onclick = () => {
+        if(!confirm('Apagar essa mensagem do grupo?')) return;
+        buscarValorFresco('gingapass_chat_grupo').then(function(valorFresco){
+          const arr = JSON.parse(valorFresco || '[]');
+          const restantes = arr.filter(x => !(x.professor === m.professor && x.remetenteId === m.remetenteId && x.data === m.data));
+          setDado('gingapass_chat_grupo', JSON.stringify(restantes));
+          renderThreadGrupo(containerId);
+        });
+      };
+      bubble.appendChild(delBtn);
+      thread.appendChild(bubble);
+    });
+  }
+  card.appendChild(thread);
+
+  const respRow = document.createElement('div');
+  respRow.style.cssText = 'display:flex;gap:6px;';
+  const respInput = document.createElement('input');
+  respInput.className = 'admin-input';
+  respInput.placeholder = 'Escrever pro grupo...';
+  respInput.style.marginBottom = '0';
+  const respBtn = document.createElement('button');
+  respBtn.className = 'btn';
+  respBtn.type = 'button';
+  respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;';
+  respBtn.textContent = 'Enviar';
+  respBtn.onclick = () => {
+    const texto = respInput.value.trim();
+    if(!texto) return;
+    respBtn.disabled = true;
+    buscarValorFresco('gingapass_chat_grupo').then(function(valorFresco){
+      const arr = JSON.parse(valorFresco || '[]');
+      arr.push({
+        professor: grupoId,
+        remetenteId: currentUser,
+        remetente: souProfessor ? 'professor' : 'aluno',
+        deNome: meuNome,
+        texto,
+        data: Date.now()
+      });
+      setDado('gingapass_chat_grupo', JSON.stringify(arr)).then(function(ok){
+        if(!ok) alert('Sua mensagem foi salva neste aparelho, mas não conseguiu sincronizar com a nuvem agora.');
+      });
+      respInput.value = '';
+      respBtn.disabled = false;
+      renderThreadGrupo(containerId);
+    });
+  };
+  respRow.appendChild(respInput);
+  respRow.appendChild(respBtn);
+  card.appendChild(respRow);
+  box.appendChild(card);
 }
 
 function renderFiltroAcademiaColegas(){
@@ -7503,19 +7915,27 @@ function renderThreadColegaSelecionado(colegaUser){
 function mudarModoChatProfessor(modo){
   const btnAlunos = document.getElementById('chatModoAlunosBtn');
   const btnProfs = document.getElementById('chatModoProfsBtn');
+  const btnGrupo = document.getElementById('chatModoGrupoBtn');
   const boxAlunos = document.getElementById('chatModoAlunosBox');
   const boxProfs = document.getElementById('chatModoProfsBox');
+  const boxGrupo = document.getElementById('chatModoGrupoBox');
   if(!btnAlunos || !btnProfs || !boxAlunos || !boxProfs) return;
+  btnAlunos.classList.remove('active');
+  btnProfs.classList.remove('active');
+  if(btnGrupo) btnGrupo.classList.remove('active');
+  boxAlunos.style.display = 'none';
+  boxProfs.style.display = 'none';
+  if(boxGrupo) boxGrupo.style.display = 'none';
   if(modo === 'professores'){
-    btnAlunos.classList.remove('active');
     btnProfs.classList.add('active');
-    boxAlunos.style.display = 'none';
     boxProfs.style.display = 'block';
     renderSeletorProfsChat();
+  } else if(modo === 'grupo'){
+    if(btnGrupo) btnGrupo.classList.add('active');
+    if(boxGrupo) boxGrupo.style.display = 'block';
+    renderThreadGrupo('chatGrupoThreadProfessor');
   } else {
-    btnProfs.classList.remove('active');
     btnAlunos.classList.add('active');
-    boxProfs.style.display = 'none';
     boxAlunos.style.display = 'block';
   }
 }
@@ -8161,6 +8581,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   migrarCacheFotosDoLocalStorage();
   idbCarregarFotosNaMemoria();
+  idbCarregarVideosNaMemoria();
   iniciarFirebase();
 
   function ligarFotoInput(inputId, galeriaId){
