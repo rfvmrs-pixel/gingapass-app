@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Portal do Cliente — Triunfo Logística</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #1D4ED8;
+    --navy-deep: #1E3A8A;
+    --paper: #F8FAFC;
+    --surface: #FFFFFF;
+    --rust: #2563EB;
+    --rust-deep: #1D4ED8;
+    --ink: #0F172A;
+    --ink-soft: #64748B;
+    --line: #E2E8F0;
+    --green: #16A34A;
+    --red: #DC2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    margin: 0;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { height: 32px; display: block; }
+  .brand .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(245,241,232,0.55);
+    border-left: 1px solid rgba(245,241,232,0.25);
+    padding-left: 12px;
+  }
+  .who { display: flex; align-items: center; gap: 16px; }
+  .cliente-logo { display: flex; align-items: center; gap: 10px; }
+  .cliente-logo img { height: 28px; display: block; background: #fff; border-radius: 3px; padding: 3px 8px; }
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    background: var(--rust);
+    color: #FBEAE0;
+    padding: 6px 12px;
+    border-radius: 3px;
+  }
+  #sair {
+    background: transparent;
+    border: 1px solid rgba(245,241,232,0.3);
+    color: #F5F1E8;
+    padding: 7px 14px;
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  #sair:hover { background: rgba(245,241,232,0.1); }
+  #sair:focus-visible { outline: 2px solid var(--rust); outline-offset: 2px; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 28px 28px 60px; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+  }
+
+  .filtros {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+  }
+  .filtros label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-right: -4px;
+  }
+  .filtros select, .filtros input[type=date] {
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .filtros button {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .filtros button:hover { background: var(--paper); }
+  .filtros .contador {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+  .tab-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--rust-deep); border-bottom-color: var(--rust); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    background: var(--rust);
+  }
+  .kpi-card .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 25px;
+    font-weight: 500;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-card .lbl {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 760px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .chart-card h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .chart-card p.chart-sub {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+  }
+  .chart-card canvas { max-height: 260px; }
+  .chart-canvas-wrap { position: relative; height: 250px; }
+  .chart-canvas-wrap canvas { max-height: 100% !important; }
+  .legend-manual {
+    display: flex; gap: 16px; margin-bottom: 10px;
+    font-size: 11px; color: var(--ink-soft);
+  }
+  .legend-manual span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend-manual i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .heatmap-wrap { overflow-x: auto; }
+  table.heatmap { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.heatmap th {
+    text-align: left; padding: 8px 12px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+  }
+  table.heatmap td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  table.heatmap td.num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  table.heatmap tr:last-child td { border-bottom: none; }
+  .heat-cell {
+    display: inline-block; min-width: 64px; text-align: right;
+    padding: 3px 8px; border-radius: 3px; font-weight: 500;
+  }
+
+  .frota {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .ticket {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--navy);
+    border-radius: 6px;
+    padding: 16px 18px;
+    transition: box-shadow 0.15s ease;
+  }
+  .ticket:hover { box-shadow: 0 2px 10px -4px rgba(15,23,42,0.15); }
+  .ticket .top-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .ticket .nome {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    color: var(--ink);
+  }
+  .ticket .ano {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    background: var(--paper);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .badges { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  .badge.compartilhado { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: var(--rust-deep); }
+  .peso { margin-top: 12px; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+  .peso strong { font-size: 17px; }
+  .peso .unit { color: var(--ink-soft); font-size: 11px; margin-left: 2px; }
+
+  .ledger { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft);
+    background: var(--paper); padding: 10px 16px; border-bottom: 1px solid var(--line);
+  }
+  thead th.num, td.num { text-align: right; }
+  tbody td { padding: 11px 16px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  tbody td.num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: rgba(221,213,196,0.18); }
+  .status-tag {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em;
+    padding: 2px 7px; border-radius: 3px; background: rgba(47,125,79,0.12); color: var(--green);
+  }
+  .muted { color: var(--ink-soft); font-size: 13px; padding: 20px; }
+  .nota { font-size: 12px; color: var(--ink-soft); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/logos/triunfo.png" alt="Triunfo Logística">
+    <span class="sub">Portal do cliente</span>
+  </div>
+  <div class="who">
+    <div class="cliente-logo" id="clienteLogoWrap">
+      <span class="pill" id="clienteNome"></span>
+    </div>
+    <button id="sair">Sair</button>
+  </div>
+</header>
+
+<main>
+  <div class="filtros">
+    <label for="fAno">Ano</label>
+    <select id="fAno"><option value="">Todos</option></select>
+    <label for="fMes">Mês</label>
+    <select id="fMes"><option value="">Todos</option></select>
+    <label for="fDia">Dia</label>
+    <input type="date" id="fDia">
+    <label for="fNavio">Navio</label>
+    <select id="fNavio"><option value="">Todos</option></select>
+    <button id="btnLimparFiltros" type="button">Limpar filtros</button>
+    <span class="contador" id="contadorFiltro"></span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="resumo">Resumo</button>
+    <button class="tab-btn" data-tab="navios">Navios</button>
+    <button class="tab-btn" data-tab="pesagens">Pesagens</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-resumo">
+    <div class="kpis" id="kpis"></div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Tonelagem por navio</h3>
+        <p class="chart-sub">Peso líquido — sua carga, por navio</p>
+        <div class="chart-canvas-wrap"><canvas id="chartNavios"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Pesagens ao longo do tempo</h3>
+        <p class="chart-sub">Toneladas líquidas por dia</p>
+        <div class="chart-canvas-wrap"><canvas id="chartTempo"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:16px;">
+      <h3>Peso NF × Peso Balança</h3>
+      <p class="chart-sub">Comparação por navio, com a diferença acima de cada par — como no relatório interno</p>
+      <div class="legend-manual">
+        <span><i style="background:#94A3B8"></i> NF</span>
+        <span><i style="background:#2563EB"></i> Balança</span>
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="chartComparativo"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Heatmap · Diferença Balança × Arqueado</h3>
+      <p class="chart-sub">Vermelho = balança abaixo do arqueado · Verde = acima. Cores mais fortes = maior desvio.</p>
+      <div class="heatmap-wrap">
+        <table class="heatmap">
+          <thead><tr><th>Navio</th><th class="num">Balança (t)</th><th class="num">Arqueado (t)</th><th class="num">Diferença</th></tr></thead>
+          <tbody id="tblHeatmap"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="charts-grid" style="margin-bottom:16px;">
+      <div class="chart-card">
+        <h3>Ranking · Maior divergência NF × Balança</h3>
+        <p class="chart-sub">Navios com o desvio mais relevante entre o peso nomeado em NF e o pesado na balança</p>
+        <div class="ledger" style="border:none;">
+          <table>
+            <thead><tr><th>Navio</th><th class="num">NF (t)</th><th class="num">Balança (t)</th><th class="num">Dif.</th></tr></thead>
+            <tbody id="tblRanking"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Resumo por trader e agente</h3>
+        <p class="chart-sub">Tonelagem consolidada por parceiro comercial</p>
+        <div class="ledger" style="border:none;">
+          <table>
+            <thead><tr><th>Trader / Agente</th><th class="num">Navios</th><th class="num">Toneladas (t)</th></tr></thead>
+            <tbody id="tblParceiros"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:16px;">
+      <h3>Peso por trader</h3>
+      <p class="chart-sub">Tonelagem total, agrupada por trader</p>
+      <div class="chart-canvas-wrap"><canvas id="chartTrader"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Heatmap mensal</h3>
+      <p class="chart-sub">Toneladas líquidas por navio, mês a mês</p>
+      <div class="heatmap-wrap">
+        <table class="heatmap" id="tblHeatmapMensal"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-navios">
+    <div class="frota" id="navios"><p class="muted">Carregando…</p></div>
+    <p class="eyebrow" style="margin-top:32px;">Detalhe por navio</p>
+    <div class="ledger">
+      <table>
+        <thead><tr>
+          <th>Navio</th><th>Lay days</th>
+          <th class="num">Peso NF (t)</th><th class="num">Balança (t)</th><th class="num">Arqueado (t)</th>
+          <th class="num">Dif. Balança×Arqueado (t)</th><th class="num">Dif. (%)</th>
+        </tr></thead>
+        <tbody id="tblLotes"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-pesagens">
+    <div class="ledger">
+      <table>
+        <thead><tr><th>Navio</th><th>Placa</th><th>Prefixo</th><th>Cor</th><th>Data</th><th>Hora</th><th class="num">Bruto (t)</th><th class="num">Tara (t)</th><th class="num">Líquido (t)</th></tr></thead>
+        <tbody id="tblPesagens"></tbody>
+      </table>
+    </div>
+    <p class="nota" id="notaPesagens"></p>
+  </div>
+</main>
+
+<script>
+const LOGOS_CLIENTES = {
+  'MINAS METAIS': '/logos/minas-metais.png',
+  'VETORIAL': '/logos/vetorial.png'
+};
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+let DADOS = null;
+let charts = {};
+
+function destruirGraficos() {
+  Object.values(charts).forEach(c => c && c.destroy());
+  charts = {};
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function montarFiltros() {
+  const anos = [...new Set(DADOS.navios.map(n => n.ano))].sort((a, b) => b - a);
+  document.getElementById('fAno').innerHTML = '<option value="">Todos</option>' + anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  document.getElementById('fMes').innerHTML = '<option value="">Todos</option>' + MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  const naviosOrdenados = [...DADOS.navios].sort((a, b) => a.nome.localeCompare(b.nome) || (a.ano - b.ano));
+  document.getElementById('fNavio').innerHTML = '<option value="">Todos</option>' + naviosOrdenados.map(n => `<option value="${n.id}">${n.nome} (${n.ano})</option>`).join('');
+
+  ['fAno', 'fMes', 'fDia', 'fNavio'].forEach(id => document.getElementById(id).addEventListener('change', aplicarFiltros));
+  document.getElementById('btnLimparFiltros').addEventListener('click', () => {
+    document.getElementById('fAno').value = '';
+    document.getElementById('fMes').value = '';
+    document.getElementById('fNavio').value = '';
+    document.getElementById('fDia').value = '';
+    aplicarFiltros();
+  });
+}
+
+function aplicarFiltros() {
+  const ano = document.getElementById('fAno').value;
+  const mes = document.getElementById('fMes').value;
+  const dia = document.getElementById('fDia').value;
+  const navioSel = document.getElementById('fNavio').value;
+
+  let navios = DADOS.navios;
+  if (ano) navios = navios.filter(n => String(n.ano) === ano);
+  if (navioSel) navios = navios.filter(n => n.id === navioSel);
+
+  let pesagens = navios.flatMap(n => (n.pesagens || []).map(p => ({ ...p, navioNome: n.nome })));
+  if (ano) pesagens = pesagens.filter(p => p.data && String(new Date(p.data).getUTCFullYear()) === ano);
+  if (mes) pesagens = pesagens.filter(p => p.data && (new Date(p.data).getUTCMonth() + 1) === Number(mes));
+  if (dia) pesagens = pesagens.filter(p => p.data && p.data.slice(0, 10) === dia);
+
+  const totalFiltros = [ano, mes, dia, navioSel].filter(Boolean).length;
+  document.getElementById('contadorFiltro').textContent = totalFiltros > 0
+    ? `${navios.length} navio(s), ${pesagens.length} pesagem(ns) no filtro` : '';
+
+  renderizar(navios, pesagens, !!(mes || dia));
+}
+
+function pesoPorNavio(navios, pesagens) {
+  if (pesagens.length > 0) {
+    const map = {};
+    pesagens.forEach(p => { map[p.navioNome] = (map[p.navioNome] || 0) + Number(p.peso_liquido || 0); });
+    return Object.entries(map).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor);
+  }
+  return navios.map(n => ({ nome: n.nome, valor: n.peso_total_liquido || 0 })).sort((a, b) => b.valor - a.valor);
+}
+
+function corHeat(diffPct) {
+  const a = Math.min(Math.abs(diffPct) / 3, 1); // satura em 3% de desvio (Balança x Arqueado costuma ser bem pequeno)
+  if (diffPct >= 0) return `rgba(47,125,79,${0.10 + a * 0.35})`;
+  return `rgba(163,45,45,${0.10 + a * 0.35})`;
+}
+
+function renderizar(navios, pesagens, filtroPorData) {
+  destruirGraficos();
+
+  const toneladas = filtroPorData
+    ? pesagens.reduce((s, p) => s + Number(p.peso_liquido || 0), 0)
+    : navios.reduce((s, n) => s + (n.peso_total_liquido || 0), 0);
+  document.getElementById('kpis').innerHTML = navios.length === 0 ? '' : `
+    <div class="kpi-card"><div class="val">${navios.length}</div><div class="lbl">Navios</div></div>
+    <div class="kpi-card"><div class="val">${toneladas.toLocaleString('pt-BR', {maximumFractionDigits:0})}</div><div class="lbl">Toneladas líquidas</div></div>
+    <div class="kpi-card"><div class="val">${pesagens.length.toLocaleString('pt-BR')}</div><div class="lbl">Pesagens individuais</div></div>
+  `;
+
+  if (navios.length > 0) {
+    const porNavio = pesoPorNavio(navios, pesagens).slice(0, 12);
+    const alturaNavios = Math.max(140, Math.min(250, porNavio.length * 34));
+    document.getElementById('chartNavios').parentElement.style.height = alturaNavios + 'px';
+    charts.navios = new Chart(document.getElementById('chartNavios'), {
+      type: 'bar',
+      data: { labels: porNavio.map(n => n.nome), datasets: [{ data: porNavio.map(n => n.valor), backgroundColor: '#2563EB', borderRadius: 2, barPercentage: 0.6, categoryPercentage: 0.7 }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#E2E8F0' } },
+          y: { ticks: { font: { family: 'Inter', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const porDia = {};
+  pesagens.forEach(p => { if (p.data) { const d = p.data.slice(0, 10); porDia[d] = (porDia[d] || 0) + Number(p.peso_liquido || 0); } });
+  const dias = Object.keys(porDia).sort();
+  if (dias.length > 0) {
+    charts.tempo = new Chart(document.getElementById('chartTempo'), {
+      type: 'line',
+      data: { labels: dias.map(d => d.split('-').reverse().join('/')), datasets: [{ data: dias.map(d => porDia[d]), borderColor: '#1D4ED8', backgroundColor: 'rgba(29,78,216,0.08)', fill: true, tension: 0.25, pointRadius: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { family: 'IBM Plex Mono', size: 9 }, maxRotation: 60, minRotation: 60 }, grid: { display: false } },
+          y: { ticks: { font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#E2E8F0' } }
+        }
+      }
+    });
+  }
+
+  const compNavios = [...navios]
+    .filter(n => (n.lotes[0]?.peso_nf_t || 0) > 0 || (n.lotes[0]?.peso_balanca_t || 0) > 0)
+    .sort((a, b) => (b.lotes[0]?.peso_nf_t || 0) - (a.lotes[0]?.peso_nf_t || 0))
+    .slice(0, 10);
+  if (compNavios.length > 0) {
+    const difLabelPlugin = {
+      id: 'difLabel',
+      afterDatasetsDraw(chart) {
+        const { ctx, scales: { x, y } } = chart;
+        ctx.save();
+        ctx.font = "10px 'IBM Plex Mono', monospace";
+        ctx.textAlign = 'center';
+        compNavios.forEach((n, i) => {
+          const nf = n.lotes[0]?.peso_nf_t || 0;
+          const bal = n.lotes[0]?.peso_balanca_t || 0;
+          if (!nf) return;
+          const dif = bal - nf;
+          const difPct = (dif / nf) * 100;
+          const xPos = x.getPixelForValue(i);
+          const yPos = y.getPixelForValue(Math.max(nf, bal)) - 6;
+          ctx.fillStyle = difPct >= 0 ? '#2F7D4F' : '#A32D2D';
+          ctx.fillText(`${difPct >= 0 ? '+' : ''}${difPct.toFixed(1)}%`, xPos, yPos);
+        });
+        ctx.restore();
+      }
+    };
+    charts.comparativo = new Chart(document.getElementById('chartComparativo'), {
+      type: 'bar',
+      data: {
+        labels: compNavios.map(n => n.nome),
+        datasets: [
+          { label: 'NF', data: compNavios.map(n => n.lotes[0]?.peso_nf_t || 0), backgroundColor: '#94A3B8', borderRadius: 2, barPercentage: 0.85, categoryPercentage: 0.6 },
+          { label: 'Balança', data: compNavios.map(n => n.lotes[0]?.peso_balanca_t || 0), backgroundColor: '#2563EB', borderRadius: 2, barPercentage: 0.85, categoryPercentage: 0.6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 18 } },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { family: 'IBM Plex Mono', size: 9 }, maxRotation: 60, minRotation: 60 }, grid: { display: false } },
+          y: { ticks: { font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#E2E8F0' } }
+        }
+      },
+      plugins: [difLabelPlugin]
+    });
+  }
+
+  const tblHeat = document.getElementById('tblHeatmap');
+  if (navios.length === 0) {
+    tblHeat.innerHTML = '<tr><td colspan="4" class="muted">Nenhum navio no filtro.</td></tr>';
+  } else {
+    const linhasHeat = navios.map(n => {
+      const lote = n.lotes[0] || {};
+      const bal = lote.peso_balanca_t || 0;
+      const arq = lote.peso_arqueado_t || 0;
+      const dif = bal - arq;
+      const difPct = arq > 0 ? (dif / arq) * 100 : 0;
+      return { nome: n.nome, bal, arq, dif, difPct };
+    }).sort((a, b) => Math.abs(b.difPct) - Math.abs(a.difPct));
+
+    tblHeat.innerHTML = linhasHeat.map(l => `
+      <tr>
+        <td>${l.nome}</td>
+        <td class="num">${l.bal.toLocaleString('pt-BR')}</td>
+        <td class="num">${l.arq.toLocaleString('pt-BR')}</td>
+        <td class="num"><span class="heat-cell" style="background:${corHeat(l.difPct)}">${l.difPct >= 0 ? '+' : ''}${l.difPct.toFixed(2)}%</span></td>
+      </tr>
+    `).join('');
+  }
+
+  // ---- Ranking: maior divergência NF x Balança ----
+  const tblRanking = document.getElementById('tblRanking');
+  const ranking = navios.map(n => {
+    const lote = n.lotes[0] || {};
+    const nf = lote.peso_nf_t || 0;
+    const bal = lote.peso_balanca_t || 0;
+    const dif = bal - nf;
+    const difPct = nf > 0 ? (dif / nf) * 100 : 0;
+    return { nome: n.nome, nf, bal, dif, difPct };
+  }).filter(r => r.nf > 0).sort((a, b) => Math.abs(b.difPct) - Math.abs(a.difPct)).slice(0, 8);
+  tblRanking.innerHTML = ranking.length === 0 ? '<tr><td colspan="4" class="muted">Sem dado de NF nesse filtro.</td></tr>' : ranking.map(r => `
+    <tr>
+      <td>${r.nome}</td>
+      <td class="num">${r.nf.toLocaleString('pt-BR')}</td>
+      <td class="num">${r.bal.toLocaleString('pt-BR')}</td>
+      <td class="num"><span class="heat-cell" style="background:${corHeat(r.difPct)}">${r.difPct >= 0 ? '+' : ''}${r.difPct.toFixed(2)}%</span></td>
+    </tr>
+  `).join('');
+
+  // ---- Resumo por trader e agente ----
+  const tblParceiros = document.getElementById('tblParceiros');
+  function agrupar(campo, rotulo) {
+    const grupos = {};
+    navios.forEach(n => {
+      const lote = n.lotes[0] || {};
+      const chave = (lote[campo] || '').trim();
+      if (!chave) return;
+      if (!grupos[chave]) grupos[chave] = { navios: 0, ton: 0 };
+      grupos[chave].navios++;
+      grupos[chave].ton += n.peso_total_liquido || lote.peso_balanca_t || 0;
+    });
+    return Object.entries(grupos)
+      .map(([nome, v]) => ({ rotulo, nome, ...v }))
+      .sort((a, b) => b.ton - a.ton).slice(0, 6);
+  }
+  const parceiros = [...agrupar('trader', 'Trader'), ...agrupar('agente', 'Agente')];
+  tblParceiros.innerHTML = parceiros.length === 0 ? '<tr><td colspan="3" class="muted">Sem dado nesse filtro.</td></tr>' : parceiros.map(p => `
+    <tr>
+      <td><span class="status-tag" style="background:rgba(37,99,235,0.1);color:var(--navy);">${p.rotulo}</span> ${p.nome}</td>
+      <td class="num">${p.navios}</td>
+      <td class="num">${p.ton.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+    </tr>
+  `).join('');
+
+  // ---- Gráfico: peso por trader ----
+  const porTrader = agrupar('trader', 'Trader');
+  if (porTrader.length > 0) {
+    const alturaTrader = Math.max(140, Math.min(260, porTrader.length * 34));
+    document.getElementById('chartTrader').parentElement.style.height = alturaTrader + 'px';
+    charts.trader = new Chart(document.getElementById('chartTrader'), {
+      type: 'bar',
+      data: {
+        labels: porTrader.map(p => p.nome),
+        datasets: [{ data: porTrader.map(p => p.ton), backgroundColor: '#2563EB', borderRadius: 2, barPercentage: 0.6, categoryPercentage: 0.7 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#E2E8F0' } },
+          y: { ticks: { font: { family: 'Inter', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ---- Heatmap mensal ----
+  const tblHeatMensal = document.getElementById('tblHeatmapMensal');
+  const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const matrizMensal = {};
+  const mesesPresentes = new Set();
+  pesagens.forEach(p => {
+    if (!p.data) return;
+    const d = new Date(p.data);
+    const mes = d.getUTCMonth();
+    mesesPresentes.add(mes);
+    matrizMensal[p.navioNome] = matrizMensal[p.navioNome] || {};
+    matrizMensal[p.navioNome][mes] = (matrizMensal[p.navioNome][mes] || 0) + Number(p.peso_liquido || 0);
+  });
+  const mesesOrdenados = [...mesesPresentes].sort((a, b) => a - b);
+  const naviosComDado = Object.keys(matrizMensal)
+    .sort((a, b) => Object.values(matrizMensal[b]).reduce((s, v) => s + v, 0) - Object.values(matrizMensal[a]).reduce((s, v) => s + v, 0))
+    .slice(0, 12);
+
+  if (mesesOrdenados.length === 0 || naviosComDado.length === 0) {
+    tblHeatMensal.innerHTML = '<tr><td class="muted">Sem pesagens individuais por data nesse filtro.</td></tr>';
+  } else {
+    const maxValor = Math.max(...naviosComDado.flatMap(n => mesesOrdenados.map(m => matrizMensal[n][m] || 0)));
+    tblHeatMensal.innerHTML = `
+      <thead><tr><th>Navio</th>${mesesOrdenados.map(m => `<th class="num">${MESES_ABREV[m]}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${naviosComDado.map(nome => `
+          <tr>
+            <td>${nome}</td>
+            ${mesesOrdenados.map(m => {
+              const v = matrizMensal[nome][m] || 0;
+              const intensidade = maxValor > 0 ? v / maxValor : 0;
+              const bg = v > 0 ? `rgba(37,99,235,${0.08 + intensidade * 0.45})` : 'transparent';
+              return `<td class="num"><span class="heat-cell" style="background:${bg}">${v > 0 ? v.toLocaleString('pt-BR', {maximumFractionDigits:0}) : '—'}</span></td>`;
+            }).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+  }
+
+  const naviosEl = document.getElementById('navios');
+  naviosEl.innerHTML = navios.length === 0 ? '<p class="muted">Nenhum navio encontrado com esse filtro.</p>' : navios.map(n => `
+    <div class="ticket">
+      <div class="top-row">
+        <div class="nome">${n.nome}</div>
+        <div class="ano">${n.ano}</div>
+      </div>
+      <div class="badges">
+        ${n.lotes.map(l => `
+          <span class="badge">${l.trader || 'Trader não informado'}</span>
+          ${l.compartilhado_com && l.compartilhado_com.length > 0 ? `<span class="badge compartilhado">Compartilhado com ${l.compartilhado_com.join(', ')}</span>` : ''}
+        `).join('')}
+      </div>
+      <div class="peso"><strong>${(n.peso_total_liquido || 0).toLocaleString('pt-BR')}</strong><span class="unit">t líquido — sua carga</span></div>
+    </div>
+  `).join('');
+
+  const tblLotes = document.getElementById('tblLotes');
+  const todosLotes = navios.flatMap(n => n.lotes.map(l => ({ ...l, navioNome: n.nome })));
+  tblLotes.innerHTML = todosLotes.length === 0 ? '<tr><td colspan="7" class="muted">Nenhum navio encontrado.</td></tr>' : todosLotes.map(l => {
+    const dif = (l.peso_balanca_t || 0) - (l.peso_arqueado_t || 0);
+    const difPct = (l.peso_arqueado_t || 0) > 0 ? (dif / l.peso_arqueado_t) * 100 : 0;
+    const layDays = (l.lay_day_inicio && l.lay_day_fim)
+      ? `${l.lay_day_inicio.slice(0, 10).split('-').reverse().join('/')} – ${l.lay_day_fim.slice(0, 10).split('-').reverse().join('/')}`
+      : '—';
+    return `
+    <tr>
+      <td>${l.navioNome}</td>
+      <td>${layDays}</td>
+      <td class="num">${(l.peso_nf_t || 0).toLocaleString('pt-BR')}</td>
+      <td class="num">${(l.peso_balanca_t || 0).toLocaleString('pt-BR')}</td>
+      <td class="num">${(l.peso_arqueado_t || 0).toLocaleString('pt-BR')}</td>
+      <td class="num">${dif >= 0 ? '+' : ''}${dif.toLocaleString('pt-BR', {maximumFractionDigits:0})}</td>
+      <td class="num"><span class="heat-cell" style="background:${corHeat(difPct)}">${difPct >= 0 ? '+' : ''}${difPct.toFixed(2)}%</span></td>
+    </tr>
+  `;
+  }).join('');
+
+  const tblPesagens = document.getElementById('tblPesagens');
+  const notaPesagens = document.getElementById('notaPesagens');
+  if (pesagens.length > 0) {
+    notaPesagens.textContent = '';
+    tblPesagens.innerHTML = [...pesagens].sort((a, b) => (b.data || '').localeCompare(a.data || '')).map(p => `
+      <tr>
+        <td>${p.navioNome}</td><td>${p.placa}</td>
+        <td>${p.prefixo || '—'}</td><td>${p.cor || '—'}</td>
+        <td>${p.data ? p.data.slice(0, 10).split('-').reverse().join('/') : '—'}</td>
+        <td>${p.hora}</td>
+        <td class="num">${Number(p.peso_bruto).toLocaleString('pt-BR')}</td>
+        <td class="num">${Number(p.tara).toLocaleString('pt-BR')}</td>
+        <td class="num">${Number(p.peso_liquido).toLocaleString('pt-BR')}</td>
+      </tr>
+    `).join('');
+  } else {
+    tblPesagens.innerHTML = '';
+    notaPesagens.textContent = 'Nenhuma pesagem individual por caminhão nesse filtro.';
+  }
+}
+
+async function carregar() {
+  const resp = await fetch('/api/dados');
+  if (resp.status === 401) { window.location.href = '/login.html'; return; }
+  DADOS = await resp.json();
+
+  document.getElementById('clienteNome').textContent = DADOS.cliente;
+  const logoUrl = LOGOS_CLIENTES[(DADOS.cliente || '').toUpperCase()];
+  if (logoUrl) document.getElementById('clienteLogoWrap').innerHTML = `<img src="${logoUrl}" alt="${DADOS.cliente}">`;
+
+  montarFiltros();
+  renderizar(DADOS.navios, DADOS.navios.flatMap(n => (n.pesagens || []).map(p => ({ ...p, navioNome: n.nome }))), false);
+}
+
+document.getElementById('sair').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+
+carregar();
+</script>
+</body>
+</html>
