@@ -1,0 +1,14 @@
+# Ferramentas locais de build (JDK, Android SDK, node_modules) - grandes demais e não pertencem ao repo
+.tools/
+
+# Projeto Android gerado + artefatos de build
+apk-build/.gradle/
+apk-build/app/build/
+apk-build/build/
+apk-build/gradle/
+apk-build/*.apk
+apk-build/local.properties
+
+# Segredos: NUNCA versionar a keystore de assinatura nem a senha
+apk-build/android.keystore
+apk-build/KEYSTORE-PASSWORD.txt
