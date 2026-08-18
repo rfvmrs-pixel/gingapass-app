@@ -726,6 +726,12 @@
       <p id="muralSlideshowVazio" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;display:none;">Nenhuma foto no mural ainda. Publique em "Fotos"!</p>
     </div>
 
+    <div class="card" id="eventoPublicoCard" style="display:none;">
+      <div class="card-label">🌐 Evento Público</div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-2px 0 8px;">Visível para todo mundo no app, de qualquer grupo/academia</p>
+      <div id="eventoPublicoHome"></div>
+    </div>
+
     <div class="card">
       <div class="card-label">Próxima aula</div>
       <div class="class-row">
@@ -984,6 +990,10 @@
         <input class="admin-input" id="evPagamentoMatriz" placeholder="Link de pagamento da inscrição (opcional)">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Cartaz do evento (opcional)</label>
         <input type="file" id="evFotoMatriz" accept="image/*" style="font-size:12px;margin-bottom:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);margin-bottom:10px;cursor:pointer;">
+          <input type="checkbox" id="evPublicoMatriz" style="width:auto;margin:0;">
+          🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia
+        </label>
         <button class="btn" onclick="publicarEventoMatriz()">Publicar evento</button>
       </div>
       <p class="section-title">Gerenciar todos os eventos</p>
@@ -7537,7 +7547,7 @@ function renderHistoricoMesPerfil(){
   container.innerHTML = '';
 }
 
-function adicionarEvento(titulo, data, local, pagamento, imagem){
+function adicionarEvento(titulo, data, local, pagamento, imagem, publico){
   if(!titulo || !data){
     alert('Preencha ao menos o nome e a data do evento.');
     return false;
@@ -7547,7 +7557,10 @@ function adicionarEvento(titulo, data, local, pagamento, imagem){
   // A imagem (cartaz) NUNCA vai no localStorage — fica só no IndexedDB deste aparelho
   // e sincronizada à parte pela nuvem (ver "Cartazes de evento" mais acima). O array
   // de eventos guarda só um sinalizador temImagem, então nunca fica grande.
-  eventos.push({titulo, data, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual()});
+  // "publico" marca eventos que aparecem pra TODOS os grupos/academias na tela
+  // Início (ver renderEventoPublico) — além de continuarem no feed normal do
+  // grupo de quem publicou, igual qualquer outro evento.
+  eventos.push({titulo, data, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), publico: !!publico, criadoPor: identificadorUsuarioAtual()});
   setDado('gingapass_eventos', JSON.stringify(eventos));
   if(imagem){
     salvarImagemEvento(codigoCheckin, imagem);
@@ -7593,13 +7606,16 @@ function publicarEventoMatriz(){
   const local = document.getElementById('evLocalMatriz').value.trim();
   const pagamento = document.getElementById('evPagamentoMatriz').value.trim();
   const fotoInput = document.getElementById('evFotoMatriz');
+  const publicoCheckbox = document.getElementById('evPublicoMatriz');
+  const publico = !!(publicoCheckbox && publicoCheckbox.checked);
   lerImagemComoBase64(fotoInput, imagem => {
-    if(adicionarEvento(titulo, data, local, pagamento, imagem)){
+    if(adicionarEvento(titulo, data, local, pagamento, imagem, publico)){
       document.getElementById('evTituloMatriz').value = '';
       document.getElementById('evDataMatriz').value = '';
       document.getElementById('evLocalMatriz').value = '';
       document.getElementById('evPagamentoMatriz').value = '';
       if(fotoInput) fotoInput.value = '';
+      if(publicoCheckbox) publicoCheckbox.checked = false;
     }
   });
 }
@@ -7672,6 +7688,68 @@ function renderEventos(){
     lista.appendChild(div);
   });
   });
+  renderEventoPublico();
+}
+
+// Eventos marcados como "público" aparecem pra TODO MUNDO na tela Início,
+// sem filtrar por grupo/academia (ao contrário de renderEventos, que só
+// mostra o feed do próprio grupo do usuário).
+function renderEventoPublico(){
+  const card = document.getElementById('eventoPublicoCard');
+  const lista = document.getElementById('eventoPublicoHome');
+  if(!card || !lista) return;
+  const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const eventos = todosEventos
+    .map((ev, indiceReal) => ({ev, indiceReal}))
+    .filter(x => !!x.ev.publico);
+  if(eventos.length === 0){
+    card.style.display = 'none';
+    lista.innerHTML = '';
+    return;
+  }
+  card.style.display = 'block';
+  lista.innerHTML = '';
+  eventos.forEach(({ev}) => {
+    const div = document.createElement('div');
+    div.className = 'event-row custom';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'flex-start';
+    div.style.marginBottom = '10px';
+    const localTxt = ev.local ? (' · ' + ev.local) : '';
+    div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
+    div.querySelector('h4').textContent = ev.titulo;
+    div.querySelector('p').textContent = ev.data + localTxt;
+    if(ev.temImagem || ev.imagem){
+      const src = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem;
+      if(src){
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.cssText = 'width:100%;border-radius:12px;margin:8px 0 0 0;';
+        div.appendChild(img);
+      }
+    }
+    if(ev.pagamento){
+      const ehLink = /^https?:\/\//i.test(ev.pagamento);
+      const link = document.createElement(ehLink ? 'a' : 'span');
+      if(ehLink){
+        link.href = ev.pagamento;
+        link.target = '_blank';
+        link.rel = 'noopener';
+      } else {
+        link.style.cursor = 'pointer';
+        link.onclick = () => {
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(ev.pagamento);
+          }
+          alert('Chave Pix da inscrição: ' + ev.pagamento);
+        };
+      }
+      link.textContent = ehLink ? 'Pagar inscrição' : 'Ver forma de pagamento';
+      link.style.cssText += 'display:inline-block;margin:6px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);';
+      div.appendChild(link);
+    }
+    lista.appendChild(div);
+  });
 }
 
 function renderEventosGerenciar(){
@@ -7693,7 +7771,7 @@ function renderEventosGerenciar(){
       const row = document.createElement('div');
       row.className = 'aluno-row';
       const span = document.createElement('span');
-      span.textContent = ev.titulo + ' — ' + ev.data + (ev.local ? (' · ' + ev.local) : '');
+      span.textContent = (ev.publico ? '🌐 ' : '') + ev.titulo + ' — ' + ev.data + (ev.local ? (' · ' + ev.local) : '');
       const actions = document.createElement('div');
       actions.style.cssText = 'display:flex;gap:8px;';
       const qrBtn = document.createElement('button');
@@ -8738,7 +8816,10 @@ function editarEvento(i){
     local: local.trim(),
     pagamento: pagamento.trim(),
     temImagem: !!(ev.temImagem || ev.imagem),
-    codigoCheckin: ev.codigoCheckin
+    codigoCheckin: ev.codigoCheckin,
+    grupo: ev.grupo,
+    publico: !!ev.publico,
+    criadoPor: ev.criadoPor
   };
   setDado('gingapass_eventos', JSON.stringify(eventos));
   renderEventos();
@@ -15696,6 +15777,7 @@ const IDIOMAS = {
     'Seu app de treinos':'Your training app','Entre com seu usuário e senha':'Sign in with your username and password','Aluno':'Student','Usuário':'Username','Senha':'Password','Entrar':'Sign in','Sair':'Log out',
     'Segunda-feira, 20 de julho':'Monday, July 20','Próxima aula':'Next class','Turma ainda não definida':'Class not set yet','Professor e núcleo ainda não definidos':'Teacher and school not set yet','Confirmar':'Confirm',
     'Frequência no mês':'Attendance this month','Em dia':'Up to date','Atrasado':'Late','Próximos eventos':'Upcoming events','Nenhum evento publicado ainda.':'No events published yet.',
+    '🌐 Evento Público':'🌐 Public Event','Visível para todo mundo no app, de qualquer grupo/academia':'Visible to everyone in the app, from any group/school','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Public event — shows on everyone\'s Home screen, from any group/school',
     'Academias da rede':'Network schools','Encontre um núcleo perto de você':'Find a school near you','Buscar por bairro ou cidade':'Search by neighborhood or city','Nenhuma academia cadastrada na rede ainda.':'No schools registered in the network yet.',
     'Seu plano associado GingaPass':'Your GingaPass membership plan','Situação atual':'Current status','Pagar com Pix':'Pay with Pix','Pagar com cartão':'Pay with card','Seu professor ainda não cadastrou a forma de pagamento.':'Your teacher hasn\'t set up a payment method yet.','Histórico de pagamentos':'Payment history',
     'Carregando...':'Loading...','Associado desde —':'Member since —','Corda ainda não definida':'Belt not set yet','Núcleo principal':'Main school','Ainda não definido':'Not set yet','E-mail':'Email','Telefone':'Phone','Editar perfil':'Edit profile','Editar dados':'Edit info','Nome completo':'Full name','Foto de perfil':'Profile photo',
@@ -15733,6 +15815,7 @@ const IDIOMAS = {
     'Seu app de treinos':"Votre appli d'entraînement",'Entre com seu usuário e senha':'Connectez-vous avec votre identifiant et mot de passe','Aluno':'Élève','Usuário':'Identifiant','Senha':'Mot de passe','Entrar':'Se connecter','Sair':'Déconnexion',
     'Próxima aula':'Prochain cours','Turma ainda não definida':'Classe pas encore définie','Professor e núcleo ainda não definidos':'Professeur et école pas encore définis','Confirmar':'Confirmer',
     'Frequência no mês':'Assiduité du mois','Em dia':'À jour','Atrasado':'En retard','Próximos eventos':'Prochains événements','Nenhum evento publicado ainda.':'Aucun événement publié pour le moment.',
+    '🌐 Evento Público':'🌐 Événement public','Visível para todo mundo no app, de qualquer grupo/academia':'Visible par tout le monde dans l\'app, de n\'importe quel groupe/école','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Événement public — apparaît sur l\'écran d\'accueil de tout le monde, de n\'importe quel groupe/école',
     'Academias da rede':'Écoles du réseau','Encontre um núcleo perto de você':'Trouvez une école près de chez vous','Buscar por bairro ou cidade':'Rechercher par quartier ou ville','Nenhuma academia cadastrada na rede ainda.':'Aucune école enregistrée dans le réseau pour le moment.',
     'Seu plano associado GingaPass':'Votre abonnement GingaPass','Situação atual':'Statut actuel','Pagar com Pix':'Payer avec Pix','Pagar com cartão':'Payer par carte','Seu professor ainda não cadastrou a forma de pagamento.':"Votre professeur n'a pas encore configuré de moyen de paiement.",'Histórico de pagamentos':'Historique des paiements',
     'Carregando...':'Chargement...','Associado desde —':'Membre depuis —','Corda ainda não definida':'Ceinture pas encore définie','Núcleo principal':'École principale','Ainda não definido':'Pas encore défini','E-mail':'E-mail','Telefone':'Téléphone','Editar perfil':'Modifier le profil','Editar dados':'Modifier les infos','Nome completo':'Nom complet','Foto de perfil':'Photo de profil',
@@ -15770,6 +15853,7 @@ const IDIOMAS = {
     'Seu app de treinos':'Deine Trainings-App','Entre com seu usuário e senha':'Melde dich mit Benutzername und Passwort an','Aluno':'Schüler','Usuário':'Benutzername','Senha':'Passwort','Entrar':'Anmelden','Sair':'Abmelden',
     'Próxima aula':'Nächster Kurs','Turma ainda não definida':'Klasse noch nicht festgelegt','Professor e núcleo ainda não definidos':'Lehrer und Schule noch nicht festgelegt','Confirmar':'Bestätigen',
     'Frequência no mês':'Anwesenheit diesen Monat','Em dia':'Aktuell','Atrasado':'Überfällig','Próximos eventos':'Nächste Events','Nenhum evento publicado ainda.':'Noch keine Events veröffentlicht.',
+    '🌐 Evento Público':'🌐 Öffentliches Event','Visível para todo mundo no app, de qualquer grupo/academia':'Für alle in der App sichtbar, aus jeder Gruppe/Schule','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Öffentliches Event — erscheint auf dem Startbildschirm aller, aus jeder Gruppe/Schule',
     'Academias da rede':'Netzwerk-Schulen','Encontre um núcleo perto de você':'Finde eine Schule in deiner Nähe','Buscar por bairro ou cidade':'Nach Stadtteil oder Stadt suchen','Nenhuma academia cadastrada na rede ainda.':'Noch keine Schule im Netzwerk registriert.',
     'Seu plano associado GingaPass':'Dein GingaPass-Mitgliedschaftsplan','Situação atual':'Aktueller Status','Pagar com Pix':'Mit Pix bezahlen','Pagar com cartão':'Mit Karte bezahlen','Seu professor ainda não cadastrou a forma de pagamento.':'Dein Lehrer hat noch keine Zahlungsmethode eingerichtet.','Histórico de pagamentos':'Zahlungsverlauf',
     'Carregando...':'Lädt...','Associado desde —':'Mitglied seit —','Corda ainda não definida':'Gürtel noch nicht festgelegt','Núcleo principal':'Hauptschule','Ainda não definido':'Noch nicht festgelegt','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil bearbeiten','Editar dados':'Daten bearbeiten','Nome completo':'Vollständiger Name','Foto de perfil':'Profilfoto',
@@ -15806,6 +15890,7 @@ const IDIOMAS = {
     'Início':'Start','Academias':'Schoulen','Mensalidade':'Bäitrag','Perfil':'Profil','Fotos':'Fotoen','Professor':'Enseignant','Chat':'Chat','Check-in':'Präsenz','Aulas':'Coursen','Dados':'Daten','Estatísticas':'Statistike',
     'Seu app de treinos':'Deng Training-App','Entre com seu usuário e senha':'Mell dech mat Benotzernumm a Passwuert un','Aluno':'Schüler','Usuário':'Benotzernumm','Senha':'Passwuert','Entrar':'Aloggen','Sair':'Ausloggen',
     'Próxima aula':'Nächste Coursen','Confirmar':'Bestätegen','Frequência no mês':'Präsenz dëse Mount','Em dia':'Um Dag','Atrasado':'Zeréck','Próximos eventos':'Nächst Evenementer',
+    '🌐 Evento Público':'🌐 Ëffentlecht Event','Visível para todo mundo no app, de qualquer grupo/academia':'Fir jiddereen an der App siichtbar, vun egal wéi enger Grupp/Schoul','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Ëffentlecht Event — erschéngt um Start-Écran vun jidderengem, vun egal wéi enger Grupp/Schoul',
     'Academias da rede':'Netzwierk-Schoulen','Seu plano associado GingaPass':'Däin GingaPass-Abo','Situação atual':'Aktuelle Situatioun','Pagar com Pix':'Mat Pix bezuelen','Pagar com cartão':'Mat Kaart bezuelen','Histórico de pagamentos':'Bezuelungshistorique',
     'Carregando...':'Lueden...','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil änneren','Redes sociais':'Sozial Medien','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Optik','Salvar fotos do topo':'Fotoe späicheren','Restaurar padrão':'Standard erëmhuelen','Idioma / Language / Langue / Sprache':'Sprooch',
