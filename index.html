@@ -684,6 +684,7 @@
       <div class="role-toggle">
         <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
         <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
+        <button class="role-btn" id="rolePaiBtn" onclick="setRole(&#39;pai&#39;)" type="button">Pai/Responsável</button>
       </div>
       <input id="loginUser" placeholder="Usuário">
       <input id="loginPass" type="password" placeholder="Senha">
@@ -822,6 +823,13 @@
       <div class="info-row"><span>E-mail</span><span id="perfilEmailView">cristianoborracha2024@hotmail.com</span></div>
       <div class="info-row"><span>Telefone</span><span id="perfilTelView">+55 21 99192-4296</span></div>
     </div>
+    <p class="section-title">Meu histórico por mês</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Selecione um mês pra recordar tudo que rolou nele — aulas, visitas a outras academias, eventos e faltas.</p>
+      <input class="admin-input" id="perfilMesHistorico" type="month" style="margin-bottom:10px;" onchange="renderHistoricoMesPerfil()">
+      <div id="perfilHistoricoMesResultado"></div>
+    </div>
+
     <div class="card" id="perfilEditCard" style="display:none;">
       <div class="card-label">Editar dados</div>
       <input class="admin-input" id="perfilNomeInput" placeholder="Nome completo">
@@ -843,6 +851,15 @@
       </div>
     </div>
     <button class="btn" id="perfilEditBtn" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="alternarEdicaoPerfil()">Editar perfil</button>
+
+    <div class="card" id="perfilCardCredenciaisMaster" style="display:none;margin-top:14px;background:#F6EFDD;">
+      <p class="card-label" style="margin:0 0 6px;">Usuário e senha master</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">É o login usado pra entrar como matriz (o mais alto da rede). Pra trocar, confirme a senha master atual.</p>
+      <input class="admin-input" id="masterSenhaAtualInput" type="password" placeholder="Senha master atual (obrigatório pra confirmar)">
+      <input class="admin-input" id="masterNovoUserInput" placeholder="Novo usuário (deixe em branco pra manter o atual)">
+      <input class="admin-input" id="masterNovaSenhaInput" type="password" placeholder="Nova senha (deixe em branco pra manter a atual)" style="margin-bottom:0;">
+      <button class="btn" type="button" style="margin-top:12px;" onclick="atualizarCredenciaisMaster()">Atualizar login master</button>
+    </div>
 
     <div class="card" id="perfilCardMeusNucleos" style="display:none;margin-top:14px;">
       <p class="card-label" style="margin:0 0 8px;">Minhas academias/núcleos</p>
@@ -1248,6 +1265,35 @@
     </div>
   </div>
 
+  <!-- LOJA GINGAPASS: qualquer professor/matriz publica, todo mundo (qualquer papel, sem
+       filtro de grupo) vê e pode mandar mensagem pra quem está vendendo -->
+  <div class="screen" id="loja">
+    <p class="greeting" style="font-size:18px;">Loja GingaPass</p>
+    <p class="subgreeting">Produtos e materiais à venda pelos professores da rede — visível pra todo mundo</p>
+
+    <div id="lojaPublicarBox" style="display:none;">
+      <p class="section-title">Publicar produto</p>
+      <div class="card" style="margin-bottom:14px;">
+        <input class="admin-input" id="lojaProdutoTitulo" placeholder="Nome do produto (ex: Abadá Capoeira Team, tamanho M)">
+        <textarea class="admin-input" id="lojaProdutoDescricao" placeholder="Descrição (tamanhos, cores, condição, etc.)" style="min-height:70px;resize:vertical;"></textarea>
+        <input class="admin-input" id="lojaProdutoPreco" placeholder="Preço (ex: R$ 120,00)">
+        <input type="file" id="lojaProdutoFotoInput" accept="image/*" style="font-size:12px;margin-bottom:10px;">
+        <img id="lojaProdutoFotoPreview" style="display:none;width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:10px;">
+        <input class="admin-input" id="lojaProdutoPix" placeholder="Chave Pix ou link de pagamento Pix">
+        <input class="admin-input" id="lojaProdutoCartao" placeholder="Link de pagamento com cartão">
+        <button class="btn" type="button" onclick="publicarProdutoLoja()">Publicar produto</button>
+      </div>
+    </div>
+
+    <div id="lojaMeusProdutosBox" style="display:none;">
+      <p class="section-title">Meus produtos</p>
+      <div class="card" id="lojaMeusProdutosLista" style="margin-bottom:14px;"></div>
+    </div>
+
+    <p class="section-title">Vitrine</p>
+    <div id="lojaVitrine"></div>
+  </div>
+
   <!-- PERFIL PÚBLICO (reutilizável: professor ou aluno) -->
   <!-- FICHA DO ALUNO (histórico, graduações, mensalidades, observações) -->
   <div class="screen" id="fichaAluno">
@@ -1270,7 +1316,15 @@
     <p class="section-title">Dados gerais</p>
     <div class="card">
       <p id="fichaAlunoEntrada" style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;"></p>
-      <p id="fichaAlunoVisitas" style="font-size:12.5px;color:var(--ink-soft);margin:0;"></p>
+      <p id="fichaAlunoVisitas" style="font-size:12.5px;color:var(--ink-soft);margin:0 0 8px;"></p>
+      <div id="fichaAlunoVisitasLista"></div>
+    </div>
+
+    <p class="section-title">Histórico por período</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Selecione um mês pra ver tudo que este aluno fez nele: aulas, visitas a outras academias, eventos e faltas.</p>
+      <input class="admin-input" id="fichaAlunoMesHistorico" type="month" style="margin-bottom:10px;" onchange="renderHistoricoMesFichaAluno()">
+      <div id="fichaAlunoHistoricoMesResultado"></div>
     </div>
 
     <p class="section-title">Histórico de graduações</p>
@@ -1291,8 +1345,26 @@
     <p class="section-title">Observações</p>
     <div class="card">
       <div id="fichaAlunoObservacoesLista" style="margin-bottom:10px;"></div>
+      <p style="font-size:11px;color:var(--ink-soft);margin:0 0 6px;">Frases rápidas (o responsável vinculado vê isso no painel dele):</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button type="button" class="role-btn" style="flex:none;padding:6px 10px;font-size:11.5px;" onclick="preencherObservacaoRapidaFicha(&#39;Não treinou hoje.&#39;)">Não treinou hoje</button>
+        <button type="button" class="role-btn" style="flex:none;padding:6px 10px;font-size:11.5px;" onclick="preencherObservacaoRapidaFicha(&#39;Saiu mais cedo da aula.&#39;)">Saiu mais cedo</button>
+        <button type="button" class="role-btn" style="flex:none;padding:6px 10px;font-size:11.5px;" onclick="preencherObservacaoRapidaFicha(&#39;Chegou atrasado(a).&#39;)">Chegou atrasado</button>
+      </div>
       <textarea class="admin-input" id="fichaAlunoNovaObservacao" placeholder="Escreva uma observação sobre esse aluno..." style="min-height:70px;resize:vertical;"></textarea>
       <button class="btn" type="button" onclick="adicionarObservacaoFicha()">Salvar observação</button>
+    </div>
+
+    <p class="section-title">Responsável (pai/mãe)</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">O responsável vinculado ganha um login próprio (papel "Pai/Responsável") pra acompanhar presença, observações, localização (se compartilhada) e o chat/feed do grupo — sem poder editar nada do aluno.</p>
+      <div id="fichaAlunoResponsaveisLista" style="margin-bottom:10px;"></div>
+      <div id="fichaAlunoNovoResponsavelBox">
+        <input class="admin-input" id="fichaAlunoRespNome" placeholder="Nome do responsável">
+        <input class="admin-input" id="fichaAlunoRespUser" placeholder="Usuário de acesso pro responsável">
+        <input class="admin-input" id="fichaAlunoRespSenha" placeholder="Senha de acesso pro responsável">
+        <button class="btn" type="button" onclick="vincularResponsavelFicha()">Vincular responsável</button>
+      </div>
     </div>
   </div>
 
@@ -1344,6 +1416,13 @@
           </label>
           <p style="font-size:11px;color:var(--ink-soft);margin:0;">Cria pra ele um login de Professor também, com acesso completo (cadastra os próprios alunos, agenda de aulas, etc), usando o mesmo usuário/senha. Continua contando como seu aluno pra mensalidade.</p>
         </div>
+        <div style="background:#EEF3F8;border-radius:12px;padding:12px;margin-bottom:14px;">
+          <p style="font-size:12.5px;color:var(--navy-900);font-weight:600;margin:0 0 2px;">Vincular responsável (opcional)</p>
+          <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Cria um login de "Pai/Responsável" que acompanha presença, observações e localização desse aluno. Deixe em branco se não quiser cadastrar agora — dá pra fazer depois na ficha do aluno.</p>
+          <input class="admin-input" id="novoAlunoRespNomeAd" placeholder="Nome do responsável">
+          <input class="admin-input" id="novoAlunoRespUserAd" placeholder="Usuário de acesso pro responsável">
+          <input class="admin-input" id="novoAlunoRespSenhaAd" placeholder="Senha de acesso pro responsável" style="margin-bottom:0;">
+        </div>
         <button class="btn" onclick="criarAcessoAlunoAcademia()">Adicionar aluno</button>
       </div>
       <p class="section-title">Alunos cadastrados</p>
@@ -1354,6 +1433,11 @@
     </div>
 
     <div id="alunosCriarBoxMatriz" style="display: block;">
+      <div class="card" style="background:#F6EFDD;">
+        <p class="card-label" style="margin:0 0 6px;">Corrigir núcleo dos alunos</p>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Se algum aluno ficou com o núcleo errado (diferente do núcleo onde o professor dele realmente dá aula), use o botão abaixo pra corrigir todo mundo de uma vez, sem precisar editar um por um.</p>
+        <button class="btn" type="button" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="corrigirNucleoDeTodosOsAlunos()">Corrigir núcleo de todos os alunos</button>
+      </div>
       <p class="section-title">Novo acesso de aluno</p>
       <div class="card">
         <input class="admin-input" id="novoAlunoNome" placeholder="Nome do aluno">
@@ -1369,8 +1453,8 @@
         <input class="admin-input" id="novoAlunoInicio" type="date">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade</label>
         <input class="admin-input" id="novoAlunoVencimento" type="date">
-        <select class="admin-input" id="novoAlunoNucleo"><option value="">Selecione o núcleo...</option><option value="Mestrando Borracha">Mestrando Borracha</option><option value="Nucléo Bairro Leandro - Itaguai">Nucléo Bairro Leandro - Itaguai</option><option value="Projeto Pingos Dourados">Projeto Pingos Dourados</option><option value="Polo Estrela do Céu">Polo Estrela do Céu</option><option value="PROJETO SEMEAR CAPOEIRA TEAM MANGUARIBA">PROJETO SEMEAR CAPOEIRA TEAM MANGUARIBA</option><option value="Polo de Cosmos Santa Cruz-RJ">Polo de Cosmos Santa Cruz-RJ</option><option value="Sec. de Ordem Pública Itaguaí">Sec. de Ordem Pública Itaguaí</option><option value="Vila Olímpica Jardim Bangu">Vila Olímpica Jardim Bangu</option><option value="Professor Tizil">Professor Tizil</option><option value="Instflecha">Instflecha</option><option value="Polo Angra">Polo Angra</option><option value="Vila Olímpica - Vidigal">Vila Olímpica - Vidigal</option><option value="Polo Cosmos RJ">Polo Cosmos RJ</option><option value="Psico Zone">Psico Zone</option><option value="Polo Parque Lagoa Mocambinho, Teresina PI">Polo Parque Lagoa Mocambinho, Teresina PI</option><option value="Professor Grauna">Professor Grauna</option><option value="IIGD - Sede">IIGD - Sede</option></select>
-        <select class="admin-input" id="novoAlunoProfessor"><option value="">Selecione o professor...</option><option value="Mestrando Borracha">Mestrando Borracha</option><option value="Zangado / Grad. India / Grad. Dedé">Zangado / Grad. India / Grad. Dedé</option><option value="Graduado Pelezinho">Graduado Pelezinho</option><option value="Graduado Passaro">Graduado Passaro</option><option value="Grd Malhado">Grd Malhado</option><option value="Instrutor Marreta">Instrutor Marreta</option><option value="Raposa">Raposa</option><option value="Tizil">Tizil</option><option value="Flecha">Flecha</option><option value="Instrutor Lobo">Instrutor Lobo</option><option value="Psyco">Psyco</option><option value="Big big">Big big</option><option value="Mestrando Psico">Mestrando Psico</option><option value="Mestrando Moreno">Mestrando Moreno</option><option value="Grauna">Grauna</option></select>
+        <select class="admin-input" id="novoAlunoNucleo"><option value="">Selecione o professor primeiro...</option></select>
+        <select class="admin-input" id="novoAlunoProfessor" onchange="sincronizarNucleoComProfessorEscolhido(&#39;novoAlunoProfessor&#39;,&#39;novoAlunoNucleo&#39;)"><option value="">Selecione o professor...</option><option value="Mestrando Borracha">Mestrando Borracha</option><option value="Zangado / Grad. India / Grad. Dedé">Zangado / Grad. India / Grad. Dedé</option><option value="Graduado Pelezinho">Graduado Pelezinho</option><option value="Graduado Passaro">Graduado Passaro</option><option value="Grd Malhado">Grd Malhado</option><option value="Instrutor Marreta">Instrutor Marreta</option><option value="Raposa">Raposa</option><option value="Tizil">Tizil</option><option value="Flecha">Flecha</option><option value="Instrutor Lobo">Instrutor Lobo</option><option value="Psyco">Psyco</option><option value="Big big">Big big</option><option value="Mestrando Psico">Mestrando Psico</option><option value="Mestrando Moreno">Mestrando Moreno</option><option value="Grauna">Grauna</option></select>
         <div id="alunoMatrizCamposAcesso">
         <input class="admin-input" id="novoAlunoUser" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenha" placeholder="Senha de acesso">
@@ -1383,6 +1467,13 @@
             Esse aluno também dá aula (vira professor)
           </label>
           <p style="font-size:11px;color:var(--ink-soft);margin:0;">Cria pra ele um login de Professor também, com acesso completo (cadastra os próprios alunos, agenda de aulas, etc), usando o mesmo usuário/senha. Continua contando como aluno pra mensalidade.</p>
+        </div>
+        <div style="background:#EEF3F8;border-radius:12px;padding:12px;margin-bottom:14px;">
+          <p style="font-size:12.5px;color:var(--navy-900);font-weight:600;margin:0 0 2px;">Vincular responsável (opcional)</p>
+          <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Cria um login de "Pai/Responsável" que acompanha presença, observações e localização desse aluno. Deixe em branco se não quiser cadastrar agora — dá pra fazer depois na ficha do aluno.</p>
+          <input class="admin-input" id="novoAlunoRespNome" placeholder="Nome do responsável">
+          <input class="admin-input" id="novoAlunoRespUser" placeholder="Usuário de acesso pro responsável">
+          <input class="admin-input" id="novoAlunoRespSenha" placeholder="Senha de acesso pro responsável" style="margin-bottom:0;">
         </div>
         <button class="btn" onclick="criarAcessoAluno()">Adicionar aluno</button>
       </div>
@@ -1498,6 +1589,21 @@
         <button class="btn" onclick="salvarPagamentoAtalho()">Salvar forma de pagamento</button>
       </div>
     </div>
+
+    <!-- Visão do pai/responsável: grupo da turma e avisos, igual o aluno vê -->
+    <div id="chatVisaoPai" style="display: none;">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button type="button" class="role-btn active" id="chatCatGrupoPaiBtn" onclick="mudarCategoriaChatPai(&#39;grupo&#39;)" style="flex:1;">Grupo da turma</button>
+        <button type="button" class="role-btn" id="chatCatAvisosPaiBtn" onclick="mudarCategoriaChatPai(&#39;avisos&#39;)" style="flex:1;">Avisos</button>
+      </div>
+      <div id="chatCatGrupoPaiBox">
+        <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Converse com o professor e o resto do grupo do seu filho(a).</p>
+        <div id="chatGrupoThreadPai"></div>
+      </div>
+      <div id="chatCatAvisosPaiBox" style="display:none;">
+        <div id="chatAvisosThreadPai"></div>
+      </div>
+    </div>
   </div>
 
   <!-- CHECKIN ALUNO -->
@@ -1519,6 +1625,62 @@
     </div>
 
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">O código é sincronizado pela nuvem entre o celular do professor e o do aluno. Se acabou de ser gerado, aguarde alguns segundos e tente de novo — pode levar um instante pra sincronizar.</p>
+  </div>
+
+  <!-- PAINEL DO PAI/RESPONSÁVEL -->
+  <div class="screen" id="painelPai">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div>
+        <p class="greeting" style="font-size:18px;" id="painelPaiSaudacao">Olá!</p>
+        <p class="subgreeting" id="painelPaiSubtitulo">Acompanhe seu filho(a) no GingaPass</p>
+      </div>
+      <button class="btn" type="button" onclick="logout()" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;background:var(--white);color:#C0392B;border:1.5px solid #C0392B;">Sair</button>
+    </div>
+
+    <div id="painelPaiSemFilho" style="display:none;">
+      <div class="card">
+        <p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno vinculado a esse acesso ainda. Peça pro professor do seu filho(a) vincular esse usuário na ficha do aluno (seção "Responsável").</p>
+      </div>
+    </div>
+
+    <div id="painelPaiConteudo">
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="avatar" id="painelPaiAvatar">?</div>
+          <div>
+            <p style="font-weight:600;font-size:15px;color:var(--navy-900);margin:0;" id="painelPaiFilhoNome"></p>
+            <p style="font-size:12px;color:var(--ink-soft);margin:2px 0 0;" id="painelPaiFilhoDetalhe"></p>
+          </div>
+        </div>
+        <select class="admin-input" id="painelPaiFilhoSelect" style="margin-top:10px;display:none;" onchange="renderPainelPai()"></select>
+      </div>
+
+      <p class="section-title">Presença</p>
+      <div class="card" id="painelPaiPresenca" style="margin-bottom:14px;"></div>
+
+      <p class="section-title">Observações do professor</p>
+      <div class="card" id="painelPaiObservacoes" style="margin-bottom:14px;"></div>
+
+      <p class="section-title">Localização</p>
+      <div class="card" style="margin-bottom:14px;">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Se o seu filho(a) estiver com o compartilhamento de localização ativado no aparelho dele(a), ela aparece aqui.</p>
+        <div id="painelPaiLocalizacao"></div>
+      </div>
+
+      <p class="section-title">Grupo</p>
+      <div class="card" style="margin-bottom:14px;">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Veja fotos e avisos, e converse com o grupo do seu filho(a) na aba Chat.</p>
+        <button class="btn" type="button" onclick="selecionarMenuMais('fotos', null)">📷 Ver o GingaFeed do grupo</button>
+      </div>
+
+      <p class="section-title">Minha conta</p>
+      <div class="card">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;" id="painelPaiUsuarioTexto"></p>
+        <input class="admin-input" id="painelPaiSenhaAtual" type="password" placeholder="Senha atual">
+        <input class="admin-input" id="painelPaiSenhaNova" type="password" placeholder="Nova senha">
+        <button class="btn" type="button" onclick="trocarSenhaPai()">Trocar senha</button>
+      </div>
+    </div>
   </div>
 
   <!-- GESTÃO DE AULAS (professor/matriz): QR, check-in manual, presença e falta -->
@@ -1918,6 +2080,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="9" r="3"></circle><circle cx="17" cy="9" r="3"></circle><path d="M2 20c0-3 2.2-5.2 5-5.2S12 17 12 20M12 20c0-3 2.2-5.2 5-5.2S22 17 22 20"></path></svg>
           <span>Grupos parceiros</span>
         </button>
+        <button class="menu-mais-item" data-target="loja" onclick="selecionarMenuMais(&#39;loja&#39;, this)" style="display: flex;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9"></path><path d="M9 21v-6h6v6"></path></svg>
+          <span>Loja GingaPass</span>
+        </button>
         <button class="menu-mais-item tab" data-target="admin" onclick="selecionarMenuMais(&#39;admin&#39;, this)" style="display: none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path></svg>
           <span data-i18n="tabProfessor">Professor</span>
@@ -1959,7 +2125,7 @@
   </div>
 
   <div class="tabbar">
-    <button class="tab active" data-target="home" onclick="showScreen(&#39;home&#39;, this)">
+    <button class="tab active" data-target="home" onclick="irParaTelaInicial(this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v10h14V10"></path></svg>
       <span data-i18n="tabHome">Início</span>
     </button>
@@ -2009,6 +2175,7 @@ let comprovantesCollection = null;
 let localizacoesCollection = null;
 let presencaCollection = null;
 let videosNuvemCollection = null;
+let lojaProdutosCollection = null;
 let storageBucketRef = null;
 const DIAS_EXPIRACAO_VIDEO = 3; // vídeo do mural fica visível pra todo mundo por 3 dias, depois some sozinho
 let firebaseSynced = false;
@@ -3165,6 +3332,7 @@ function iniciarFirebase(tentativas){
     presencaCollection = db.collection('gingapass_presenca');
     eventoPostersCollection = db.collection('gingapass_eventos_posters');
     videosNuvemCollection = db.collection('gingapass_videos_nuvem');
+    lojaProdutosCollection = db.collection('gingapass_loja_produtos_itens');
     try{
       if(typeof firebase.storage === 'function'){
         storageBucketRef = firebase.storage(app).ref();
@@ -3329,6 +3497,22 @@ function iniciarFirebase(tentativas){
       console.error('Erro ao sincronizar fotos do mural:', e);
     });
 
+    // Igual as fotos do GingaFeed: cada produto da Loja é o SEU PRÓPRIO documento
+    // na nuvem (não um array gigante numa chave só) — assim uma foto de produto
+    // um pouco mais pesada não estoura o limite de tamanho de documento e trava a
+    // sincronização de todos os outros produtos junto.
+    lojaProdutosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
+      const produtos = [];
+      snapshot.forEach(function(doc){ produtos.push(doc.data()); });
+      window._lojaProdutosCache = produtos;
+      _setLocal('gingapass_loja_produtos', JSON.stringify(produtos));
+      if(typeof currentRole !== 'undefined' && currentRole){
+        if(typeof renderLojaTela === 'function') renderLojaTela();
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar produtos da loja:', e);
+    });
+
     videosNuvemCollection.orderBy('data', 'desc').limit(150).onSnapshot(function(snapshot){
       const agora = Date.now();
       const videos = [];
@@ -3375,6 +3559,7 @@ function iniciarFirebase(tentativas){
       window._localizacoesCache = localizacoes; // só em memória: é dado efêmero, não precisa pesar no localStorage
       if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
         renderLocalizacoesCompartilhadas();
+        if(currentRole === 'pai') renderLocalizacoesCompartilhadas('painelPaiLocalizacao');
       }
     }, function(e){
       console.error('Erro ao sincronizar localizações compartilhadas:', e);
@@ -3464,6 +3649,10 @@ function obterMeuGrupoId(){
     const minhaConta = alunosContas.find(c => c.user === currentUser);
     if(minhaConta && minhaConta.professor) return obterGrupoIdPorNomeProfessor(minhaConta.professor);
   }
+  if(currentRole === 'pai'){
+    const filho = obterMeuFilhoPrincipal();
+    if(filho && filho.professor) return obterGrupoIdPorNomeProfessor(filho.professor);
+  }
   return 'matriz';
 }
 
@@ -3473,6 +3662,208 @@ function obterMeuGrupoId(){
 function estaNoMeuGrupo(grupoIdAlvo){
   return obterMeuGrupoId() === grupoIdAlvo;
 }
+
+// ===================== PAIS/RESPONSÁVEIS =====================
+// Um aluno pode ter um ou mais responsáveis vinculados (gingapass_pais_contas).
+// Cada conta de pai guarda a lista de "filhosUsers" (usuários de aluno) que ela
+// acompanha. O login de pai é só leitura: ele não edita nada do aluno, só
+// acompanha presença, observações do professor, localização (se compartilhada)
+// e o chat/feed do grupo — igual o professor já vê pros próprios alunos.
+function obterMeusFilhos(){
+  if(currentRole !== 'pai' || !currentUser) return [];
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const minhaConta = paisContas.find(c => c.user === currentUser);
+  if(!minhaConta) return [];
+  const filhosUsers = minhaConta.filhosUsers && minhaConta.filhosUsers.length > 0
+    ? minhaConta.filhosUsers
+    : (minhaConta.filhoUser ? [minhaConta.filhoUser] : []);
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  return filhosUsers.map(u => alunosContas.find(c => c.user === u)).filter(Boolean);
+}
+
+function obterMeuFilhoPrincipal(){
+  return obterMeusFilhos()[0] || null;
+}
+
+function obterPaisDoAluno(alunoUser){
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  return paisContas.filter(c => (c.filhosUsers || (c.filhoUser ? [c.filhoUser] : [])).indexOf(alunoUser) !== -1);
+}
+
+// Cria (ou, se o usuário já existir, atualiza a senha e vincula mais um filho a)
+// uma conta de responsável. Retorna {ok, motivo}.
+function criarOuVincularContaPai(nome, user, senha, filhoUser){
+  if(!nome || !user || !senha || !filhoUser){
+    return {ok: false, motivo: 'Preencha nome, usuário e senha do responsável.'};
+  }
+  const outrasContas = [
+    ...JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]'),
+    ...JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]')
+  ];
+  if(outrasContas.some(c => c.user === user)){
+    return {ok: false, motivo: 'Já existe outra conta (aluno ou professor) com esse usuário. Escolha outro.'};
+  }
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const idxExistente = paisContas.findIndex(c => c.user === user);
+  if(idxExistente >= 0){
+    paisContas[idxExistente].nome = nome;
+    paisContas[idxExistente].senha = senha;
+    const filhos = paisContas[idxExistente].filhosUsers || [];
+    if(filhos.indexOf(filhoUser) === -1) filhos.push(filhoUser);
+    paisContas[idxExistente].filhosUsers = filhos;
+  } else {
+    paisContas.push({nome, user, senha, filhosUsers: [filhoUser], pergunta: '', resposta: ''});
+  }
+  setDado('gingapass_pais_contas', JSON.stringify(paisContas));
+  return {ok: true};
+}
+
+function removerVinculoPai(paiUser, alunoUser){
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const idx = paisContas.findIndex(c => c.user === paiUser);
+  if(idx < 0) return;
+  paisContas[idx].filhosUsers = (paisContas[idx].filhosUsers || []).filter(u => u !== alunoUser);
+  if(paisContas[idx].filhosUsers.length === 0){
+    paisContas.splice(idx, 1);
+  }
+  setDado('gingapass_pais_contas', JSON.stringify(paisContas));
+}
+
+function renderPainelPai(){
+  if(currentRole !== 'pai') return;
+  const saudEl = document.getElementById('painelPaiSaudacao');
+  const subEl = document.getElementById('painelPaiSubtitulo');
+  const semFilho = document.getElementById('painelPaiSemFilho');
+  const conteudo = document.getElementById('painelPaiConteudo');
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const minhaConta = paisContas.find(c => c.user === currentUser);
+  if(saudEl) saudEl.textContent = 'Olá' + (minhaConta && minhaConta.nome ? (', ' + minhaConta.nome.split(' ')[0]) : '') + '!';
+
+  const filhos = obterMeusFilhos();
+  if(filhos.length === 0){
+    if(semFilho) semFilho.style.display = 'block';
+    if(conteudo) conteudo.style.display = 'none';
+    return;
+  }
+  if(semFilho) semFilho.style.display = 'none';
+  if(conteudo) conteudo.style.display = 'block';
+
+  const select = document.getElementById('painelPaiFilhoSelect');
+  let filhoUserAtual = filhos[0].user;
+  if(select){
+    if(filhos.length > 1){
+      select.style.display = 'block';
+      const atual = select.value;
+      select.innerHTML = filhos.map(f => '<option value="' + f.user + '">' + f.nome + '</option>').join('');
+      select.value = filhos.some(f => f.user === atual) ? atual : filhos[0].user;
+      filhoUserAtual = select.value;
+    } else {
+      select.style.display = 'none';
+    }
+  }
+  const filho = filhos.find(f => f.user === filhoUserAtual) || filhos[0];
+
+  if(subEl) subEl.textContent = 'Acompanhando ' + filho.nome;
+
+  const avatar = document.getElementById('painelPaiAvatar');
+  if(avatar){
+    const iniciais = (filho.nome || '').split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+    avatar.textContent = iniciais || '?';
+  }
+  const nomeEl = document.getElementById('painelPaiFilhoNome');
+  if(nomeEl) nomeEl.textContent = filho.nome;
+  const detalheEl = document.getElementById('painelPaiFilhoDetalhe');
+  if(detalheEl){
+    detalheEl.textContent = (filho.corda ? ('Corda ' + filho.corda + ' · ') : '') +
+      (filho.nucleo || 'Núcleo não definido') +
+      (filho.professor ? (' · Prof. ' + filho.professor) : '');
+  }
+
+  // Presença
+  const presencaBox = document.getElementById('painelPaiPresenca');
+  if(presencaBox){
+    const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+    const minhasPresencas = log.filter(r => r.aluno === filho.user).slice().sort((a, b) => b.data.localeCompare(a.data));
+    const hojeStr = new Date().toISOString().slice(0, 10);
+    const fezCheckinHoje = minhasPresencas.some(r => r.data === hojeStr);
+    presencaBox.innerHTML = '';
+    const statusHoje = document.createElement('p');
+    statusHoje.style.cssText = 'font-size:13px;font-weight:600;margin:0 0 8px;color:' + (fezCheckinHoje ? '#2E8B57' : 'var(--ink-soft)') + ';';
+    statusHoje.textContent = fezCheckinHoje ? '✅ Fez check-in hoje' : '⚪ Ainda não fez check-in hoje';
+    presencaBox.appendChild(statusHoje);
+    if(minhasPresencas.length === 0){
+      const p = document.createElement('p');
+      p.style.cssText = 'font-size:12px;color:var(--ink-soft);margin:0;';
+      p.textContent = 'Nenhuma presença registrada ainda.';
+      presencaBox.appendChild(p);
+    } else {
+      const tituloUlt = document.createElement('p');
+      tituloUlt.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:6px 0 4px;';
+      tituloUlt.textContent = 'Últimas aulas:';
+      presencaBox.appendChild(tituloUlt);
+      minhasPresencas.slice(0, 5).forEach(r => {
+        const row = document.createElement('div');
+        row.style.cssText = 'font-size:12.5px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;';
+        row.textContent = new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR') + (r.visita ? ' (visitante em outra academia)' : '');
+        presencaBox.appendChild(row);
+      });
+    }
+  }
+
+  // Observações do professor
+  const obsBox = document.getElementById('painelPaiObservacoes');
+  if(obsBox){
+    const ficha = obterFichaAluno(filho.user);
+    const obs = (ficha.observacoes || []).slice().sort((a, b) => b.data - a.data);
+    obsBox.innerHTML = '';
+    if(obs.length === 0){
+      obsBox.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma observação do professor ainda.</p>';
+    } else {
+      obs.forEach(o => {
+        const box = document.createElement('div');
+        box.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;';
+        const meta = document.createElement('div');
+        meta.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin-bottom:2px;';
+        meta.textContent = (o.de ? (o.de + ' · ') : '') + new Date(o.data).toLocaleDateString('pt-BR');
+        const texto = document.createElement('p');
+        texto.style.cssText = 'font-size:13px;color:var(--ink);margin:0;';
+        texto.textContent = o.texto;
+        box.appendChild(meta);
+        box.appendChild(texto);
+        obsBox.appendChild(box);
+      });
+    }
+  }
+
+  const userTexto = document.getElementById('painelPaiUsuarioTexto');
+  if(userTexto) userTexto.textContent = 'Usuário: ' + currentUser;
+
+  tentarChamar(function(){ renderLocalizacoesCompartilhadas('painelPaiLocalizacao'); });
+}
+
+function trocarSenhaPai(){
+  const atualEl = document.getElementById('painelPaiSenhaAtual');
+  const novaEl = document.getElementById('painelPaiSenhaNova');
+  const atual = atualEl.value;
+  const nova = novaEl.value.trim();
+  if(!nova){
+    alert('Digite a nova senha.');
+    return;
+  }
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const idx = paisContas.findIndex(c => c.user === currentUser);
+  if(idx < 0) return;
+  if(paisContas[idx].senha !== atual){
+    alert('Senha atual incorreta.');
+    return;
+  }
+  paisContas[idx].senha = nova;
+  setDado('gingapass_pais_contas', JSON.stringify(paisContas));
+  atualEl.value = '';
+  novaEl.value = '';
+  alert('Senha alterada com sucesso!');
+}
+// ===================== fim: PAIS/RESPONSÁVEIS =====================
 
 // Um "grupo parceiro" (gingapass_grupos_parceiros) tem nome/foto/mestre
 // responsável próprios e pode ter VÁRIAS academias/professores dentro,
@@ -3976,6 +4367,8 @@ function setRole(role){
   selectedRole = role;
   document.getElementById('roleAlunoBtn').classList.toggle('active', role === 'aluno');
   document.getElementById('roleAcademiaBtn').classList.toggle('active', role === 'academia');
+  const rolePaiBtn = document.getElementById('rolePaiBtn');
+  if(rolePaiBtn) rolePaiBtn.classList.toggle('active', role === 'pai');
 }
 
 function alternarRecuperarSenha(){
@@ -4000,6 +4393,10 @@ function localizarContaPorUsuario(user){
   const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idxAl = alunosContas.findIndex(c => c.user === user);
   if(idxAl >= 0) return {tipo: 'aluno', chave: 'gingapass_alunos_contas', conta: alunosContas[idxAl], indice: idxAl, todas: alunosContas};
+
+  const paisContas = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+  const idxPai = paisContas.findIndex(c => c.user === user);
+  if(idxPai >= 0) return {tipo: 'pai', chave: 'gingapass_pais_contas', conta: paisContas[idxPai], indice: idxPai, todas: paisContas};
 
   return null;
 }
@@ -4154,6 +4551,59 @@ function alternarSetupMaster(){
   box.style.display = box.style.display === 'none' ? 'block' : 'none';
 }
 
+// Troca o usuário e/ou a senha do login master (matriz) — exige a senha
+// master ATUAL como confirmação, pra ninguém trocar por acidente ou sem ser
+// o dono de verdade. Mantém nome/pergunta/resposta de segurança como estavam.
+function atualizarCredenciaisMaster(){
+  if(currentRole !== 'matriz'){
+    alert('Só quem está logado como matriz pode trocar o login master.');
+    return;
+  }
+  const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+  if(!master){
+    alert('Não encontrei nenhum cadastro master salvo. Recarregue a página e tente de novo.');
+    return;
+  }
+  const senhaAtualInput = document.getElementById('masterSenhaAtualInput');
+  const novoUserInput = document.getElementById('masterNovoUserInput');
+  const novaSenhaInput = document.getElementById('masterNovaSenhaInput');
+  const senhaAtual = senhaAtualInput.value.trim();
+  const novoUser = novoUserInput.value.trim();
+  const novaSenha = novaSenhaInput.value.trim();
+
+  if(!senhaAtual){
+    alert('Digite a senha master ATUAL pra confirmar que é você antes de trocar.');
+    return;
+  }
+  if(senhaAtual !== master.senha){
+    alert('Senha atual incorreta. Não é possível trocar o login master sem confirmar a senha certa.');
+    return;
+  }
+  if(!novoUser && !novaSenha){
+    alert('Preencha o novo usuário e/ou a nova senha (pelo menos um dos dois) — se deixar tudo em branco, não muda nada.');
+    return;
+  }
+  if(novaSenha && novaSenha.length < 6){
+    alert('Use uma nova senha com pelo menos 6 caracteres.');
+    return;
+  }
+
+  const masterAtualizado = Object.assign({}, master, {
+    user: novoUser || master.user,
+    senha: novaSenha || master.senha
+  });
+  setDado('gingapass_master', JSON.stringify(masterAtualizado)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão e tente de novo, senão o login master fica diferente em cada aparelho.');
+      return;
+    }
+    senhaAtualInput.value = '';
+    novoUserInput.value = '';
+    novaSenhaInput.value = '';
+    alert('Login master atualizado! Da próxima vez que entrar, use o usuário "' + masterAtualizado.user + '" com a nova senha.');
+  });
+}
+
 function criarMaster(){
   const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
   if(master){
@@ -4209,6 +4659,18 @@ function fazerLogin(){
     return;
   }
 
+  if(selectedRole === 'pai'){
+    const contasPais = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]');
+    const contaPai = contasPais.find(c => c.user === user && c.senha === pass);
+    if(contaPai){
+      currentUser = user;
+      entrar('pai');
+    } else {
+      alert('Usuário ou senha incorretos. Esse acesso de responsável precisa ser cadastrado pelo professor do seu filho(a).');
+    }
+    return;
+  }
+
   // aluno
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const conta = contas.find(c => c.user === user && c.senha === pass && pass !== '' && !c.semAcesso);
@@ -4233,6 +4695,18 @@ function entrar(role){
   setDado(chaveSessao, JSON.stringify({token: meuSessionToken, ts: meuLoginTs}));
   aplicarPermissoes();
   iniciarPresencaOnline();
+  if(role === 'pai'){
+    const homeBtn = document.querySelector('.tab[data-target="home"]');
+    showScreen('painelPai', homeBtn);
+  }
+}
+
+function irParaTelaInicial(btn){
+  if(currentRole === 'pai'){
+    showScreen('painelPai', btn);
+  } else {
+    showScreen('home', btn);
+  }
 }
 
 function logout(){
@@ -4432,10 +4906,14 @@ function aplicarPermissoes(){
 
   adminTab.style.display = souProfessorCompleto ? 'flex' : 'none';
   alunosTab.style.display = (souProfessorCompleto || currentRole === 'matriz') ? 'flex' : 'none';
-  chatTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
+  chatTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz' || currentRole === 'pai') ? 'flex' : 'none';
   matrizTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
   checkinTab.style.display = (currentRole === 'aluno' || currentRole === 'academia') ? 'flex' : 'none';
   estatisticasTab.style.display = (currentRole === 'matriz' || souProfessorCompleto) ? 'flex' : 'none';
+  const mensalidadeTab = document.querySelector('.tab[data-target="mensalidade"]');
+  if(mensalidadeTab) mensalidadeTab.style.display = (currentRole === 'pai') ? 'none' : 'flex';
+  const perfilTab = document.querySelector('.tab[data-target="perfil"]');
+  if(perfilTab) perfilTab.style.display = (currentRole === 'pai') ? 'none' : 'flex';
   const gestaoAulasTab = document.querySelector('.tab[data-target="gestaoAulas"]');
   if(gestaoAulasTab) gestaoAulasTab.style.display = (souProfessorCompleto || currentRole === 'matriz') ? 'flex' : 'none';
   aulasTab.style.display = (currentRole === 'aluno' || (currentRole === 'academia' && !minhaContaDaAula)) ? 'flex' : 'none';
@@ -4467,6 +4945,8 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderAviso(); });
   tentarChamar(function(){ renderAlunos(); });
   tentarChamar(function(){ renderPerfil(); });
+  tentarChamar(function(){ renderPainelPai(); });
+  tentarChamar(function(){ renderLojaTela(); });
   tentarChamar(function(){ renderArmazenamento(); });
   tentarChamar(function(){ renderListaProfessoresPublica(); });
   tentarChamar(function(){ renderGruposParceiros(); });
@@ -4676,6 +5156,12 @@ function showScreen(id, btn){
   }
   if(id === 'meusCertificados'){
     renderMeusCertificados();
+  }
+  if(id === 'painelPai'){
+    renderPainelPai();
+  }
+  if(id === 'loja'){
+    renderLojaTela();
   }
   if(id === 'inicio'){
     renderMinhaFrequencia();
@@ -5375,8 +5861,32 @@ function editarMinhaAcademia(nomeNucleo){
       const idxConta = contas.findIndex(c => c.user === currentUser);
       if(idxConta >= 0){
         const nucleos = (contas[idxConta].nucleosGerenciados || []).map(n => n === nomeNucleo ? nomeFinal : n);
-        contas[idxConta] = Object.assign({}, contas[idxConta], {nucleosGerenciados: nucleos});
+        const atualizacaoConta = {nucleosGerenciados: nucleos};
+        // Se o núcleo renomeado é o PRINCIPAL (o primeiro da lista, ou o que
+        // dá nome à própria conta), atualiza também o campo "nome" — senão a
+        // tela Perfil (e qualquer outro lugar que ainda lê .nome direto)
+        // continuava mostrando o nome antigo mesmo depois de renomear aqui.
+        if(contas[idxConta].nome === nomeNucleo || nucleos[0] === nomeFinal){
+          atualizacaoConta.nome = nomeFinal;
+        }
+        contas[idxConta] = Object.assign({}, contas[idxConta], atualizacaoConta);
         promessas.push(setDado('gingapass_academias_contas', JSON.stringify(contas)));
+      }
+      // Os alunos guardam o nome do núcleo como texto solto (campo "nucleo")
+      // pra filtrar quem é "meu aluno" — sem atualizar aqui, o professor
+      // renomeia o núcleo mas os próprios alunos dele somem da lista, porque
+      // o texto salvo neles não bate mais com o nome novo.
+      const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+      let algumAlunoMudou = false;
+      const alunosAtualizados = alunosContas.map(a => {
+        if(a.nucleo === nomeNucleo){
+          algumAlunoMudou = true;
+          return Object.assign({}, a, {nucleo: nomeFinal});
+        }
+        return a;
+      });
+      if(algumAlunoMudou){
+        promessas.push(setDado('gingapass_alunos_contas', JSON.stringify(alunosAtualizados)));
       }
     }
     Promise.all(promessas).then(function(resultados){
@@ -5384,6 +5894,8 @@ function editarMinhaAcademia(nomeNucleo){
       renderMinhasAcademias();
       tentarChamar(function(){ renderRedeAcademias(); });
       tentarChamar(function(){ renderAcademiasScreen(); });
+      tentarChamar(function(){ renderPerfil(); });
+      tentarChamar(function(){ renderEstatisticas(); });
       alert('Academia atualizada!');
     }).catch(function(erro){
       alert('Deu erro ao salvar: ' + (erro && erro.message ? erro.message : erro));
@@ -5668,6 +6180,33 @@ function renderFichaAluno(){
     ? ('🧭 Já visitou outra(s) academia(s) ' + visitas.length + ' vez(es)')
     : 'Nunca visitou outra academia (só treina na própria)';
 
+  // Detalha CADA academia/professor visitado (pra quem é professor saber
+  // exatamente pra onde o próprio aluno andou indo, e quantas vezes em cada uma).
+  const visitasListaEl = document.getElementById('fichaAlunoVisitasLista');
+  if(visitasListaEl){
+    if(visitas.length === 0){
+      visitasListaEl.innerHTML = '';
+    } else {
+      const porProfessor = {};
+      visitas.forEach(v => {
+        const chave = (v.professor || 'Professor não identificado').trim();
+        if(!porProfessor[chave]) porProfessor[chave] = {vezes: 0, ultima: v.data};
+        porProfessor[chave].vezes++;
+        if(v.data > porProfessor[chave].ultima) porProfessor[chave].ultima = v.data;
+      });
+      const linhasVisita = Object.keys(porProfessor).sort((a, b) => porProfessor[b].vezes - porProfessor[a].vezes);
+      visitasListaEl.innerHTML = '<p style="font-size:11px;font-weight:600;color:var(--ink-soft);margin:2px 0 6px;">Visitou como aluno visitante em:</p>' +
+        linhasVisita.map(nomeProf => {
+          const info = porProfessor[nomeProf];
+          const dataFmt = new Date(info.ultima + 'T00:00:00').toLocaleDateString('pt-BR');
+          return '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink);padding:5px 0;border-bottom:1px solid #EFE6D2;">' +
+            '<span>🧭 ' + nomeProf + '</span><b style="color:var(--navy-700);">' + info.vezes + 'x <span style="font-weight:400;color:var(--ink-soft);">(última: ' + dataFmt + ')</span></b></div>';
+        }).join('');
+      const ultimaLinhaVisita = visitasListaEl.lastElementChild;
+      if(ultimaLinhaVisita) ultimaLinhaVisita.style.borderBottom = 'none';
+    }
+  }
+
   // Eventos participados (check-ins de evento reaproveitam o mesmo log com "evento":true, se existir;
   // senão conta pelas confirmações de presença em eventos, se essa lista existir)
   const checkinsEventos = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
@@ -5762,6 +6301,95 @@ function renderFichaAluno(){
       listaObs.appendChild(box);
     });
   }
+  renderResponsaveisFicha();
+
+  // Calendário/histórico por mês: mantém o mês já escolhido (se a pessoa só
+  // está atualizando a tela) ou usa o mês atual como padrão na primeira vez.
+  const inputMes = document.getElementById('fichaAlunoMesHistorico');
+  if(inputMes && !inputMes.value){
+    const hoje = new Date();
+    inputMes.value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+  }
+  renderHistoricoMesFichaAluno();
+}
+
+// Monta o resumo "tudo que o aluno fez" num mês escolhido: aulas com o próprio
+// professor, visitas a outras academias do grupo, eventos e faltas — pra ele
+// (ou o professor dele) recordar o que aconteceu naquele período, tipo um calendário.
+function renderHistoricoMesFichaAluno(){
+  const container = document.getElementById('fichaAlunoHistoricoMesResultado');
+  const inputMes = document.getElementById('fichaAlunoMesHistorico');
+  const user = _fichaAlunoUserAtual;
+  if(!container || !inputMes || !user) return;
+  const mesRef = inputMes.value; // formato "AAAA-MM"
+  if(!mesRef){
+    container.innerHTML = '';
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const aluno = contas.find(c => c.user === user);
+  container.innerHTML = montarResumoHistoricoMes(user, aluno, mesRef);
+}
+
+// Reaproveitado tanto pela ficha do aluno (visão do professor) quanto pelo
+// próprio Perfil (visão do aluno/professor sobre si mesmo).
+function montarResumoHistoricoMes(user, aluno, mesRef){
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+
+  const presencasDoMes = log.filter(r => r.aluno === user && r.data && r.data.startsWith(mesRef));
+  const treinos = presencasDoMes.filter(r => !r.visita && (!aluno || !aluno.professor || mesmoProfessor(r.professor, aluno.professor)));
+  const visitas = presencasDoMes.filter(r => r.visita || (aluno && aluno.professor && !mesmoProfessor(r.professor, aluno.professor)));
+
+  // O check-in de evento (gingapass_checkins_eventos) guarda quando a presença
+  // foi CONFIRMADA (timestamp), não a data do evento em si — então pra saber
+  // se o evento foi "nesse mês" precisamos olhar a data do próprio evento
+  // (texto livre, tipo "12/08/2026 as 19h"), não o timestamp do check-in.
+  const checkinsEventos = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
+  const meusCheckinsEventos = checkinsEventos.filter(c => c.aluno === user);
+  const eventosDoMesDetalhe = meusCheckinsEventos
+    .map(c => ({checkin: c, evento: todosEventos.find(e => e.codigoCheckin === c.eventoId)}))
+    .filter(item => item.evento && extrairAnoMesDeDataEvento(item.evento.data) === mesRef);
+
+  let faltasDoMes = 0;
+  if(aluno && aluno.professor){
+    const diasDoProfessor = JSON.parse(localStorage.getItem('gingapass_dias_checkin_prof_' + _chaveProf(aluno.professor)) || '[]');
+    const diasExcluidosAluno = new Set(excluidas.filter(f => f.aluno === user).map(f => f.data));
+    const diasPresenteSet = new Set(presencasDoMes.map(r => r.data));
+    const diasValidosDoMes = diasDoProfessor.filter(d => d.startsWith(mesRef) && !diasExcluidosAluno.has(d));
+    faltasDoMes = diasValidosDoMes.filter(d => !diasPresenteSet.has(d)).length;
+  }
+
+  const [ano, mesNum] = mesRef.split('-');
+  const nomesMeses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const nomeMes = (nomesMeses[Number(mesNum) - 1] || '') + ' de ' + ano;
+  const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+  const grade = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
+    ['<b style="font-size:18px;color:var(--navy-900);display:block;">' + treinos.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Aulas</span>',
+     '<b style="font-size:18px;color:var(--navy-700);display:block;">' + visitas.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Visitas</span>',
+     '<b style="font-size:18px;color:var(--amber-700);display:block;">' + eventosDoMesDetalhe.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Eventos</span>',
+     '<b style="font-size:18px;color:var(--danger);display:block;">' + faltasDoMes + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Faltas</span>'
+    ].map(conteudo => '<div style="flex:1;min-width:76px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;">' + conteudo + '</div>').join('') +
+    '</div>';
+
+  const linhasAulasVisitas = presencasDoMes.slice().sort((a, b) => a.data.localeCompare(b.data)).map(r => {
+    const dataFmt = new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR');
+    const ehVisita = r.visita || (aluno && aluno.professor && !mesmoProfessor(r.professor, aluno.professor));
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;">' +
+      '<span>' + (ehVisita ? '🧭' : '✅') + ' ' + dataFmt + '</span>' +
+      '<span style="color:var(--ink-soft);">' + (ehVisita ? 'Visita a ' + (r.professor || 'outra academia') : 'Aula com ' + (r.professor || 'seu professor')) + '</span></div>';
+  });
+  const linhasEventos = eventosDoMesDetalhe.map(item => {
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;">' +
+      '<span>🏆 ' + item.evento.titulo + '</span><span style="color:var(--ink-soft);">' + item.evento.data + '</span></div>';
+  });
+  const diasDetalhe = linhasAulasVisitas.concat(linhasEventos).join('');
+
+  return '<p style="font-size:11px;font-weight:600;color:var(--ink-soft);margin:0 0 8px;">' + nomeMesCapitalizado + '</p>' +
+    grade +
+    (diasDetalhe ? diasDetalhe : '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma aula, visita ou evento registrado neste mês.</p>');
 }
 
 function salvarFichaAluno(ficha){
@@ -5829,6 +6457,11 @@ function removerMensalidadeFicha(idx){
   renderFichaAluno();
 }
 
+function preencherObservacaoRapidaFicha(texto){
+  const campo = document.getElementById('fichaAlunoNovaObservacao');
+  if(campo) campo.value = texto;
+}
+
 function adicionarObservacaoFicha(){
   const texto = document.getElementById('fichaAlunoNovaObservacao').value.trim();
   if(!texto) return;
@@ -5845,6 +6478,51 @@ function removerObservacaoFicha(idx){
   ficha.observacoes.splice(idx, 1);
   salvarFichaAluno(ficha);
   renderFichaAluno();
+}
+
+function renderResponsaveisFicha(){
+  const container = document.getElementById('fichaAlunoResponsaveisLista');
+  if(!container || !_fichaAlunoUserAtual) return;
+  const pais = obterPaisDoAluno(_fichaAlunoUserAtual);
+  container.innerHTML = '';
+  if(pais.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">Nenhum responsável vinculado ainda.</p>';
+    return;
+  }
+  pais.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = p.nome + ' (usuário: ' + p.user + ')';
+    const btn = document.createElement('button');
+    btn.className = 'aluno-del';
+    btn.textContent = 'Desvincular';
+    btn.onclick = () => {
+      if(!confirm('Desvincular "' + p.nome + '" desse aluno? Se for o único filho vinculado, o login dele deixa de funcionar.')) return;
+      removerVinculoPai(p.user, _fichaAlunoUserAtual);
+      renderResponsaveisFicha();
+    };
+    row.appendChild(span);
+    row.appendChild(btn);
+    container.appendChild(row);
+  });
+}
+
+function vincularResponsavelFicha(){
+  if(!_fichaAlunoUserAtual) return;
+  const nome = document.getElementById('fichaAlunoRespNome').value.trim();
+  const user = document.getElementById('fichaAlunoRespUser').value.trim();
+  const senha = document.getElementById('fichaAlunoRespSenha').value.trim();
+  const resultado = criarOuVincularContaPai(nome, user, senha, _fichaAlunoUserAtual);
+  if(!resultado.ok){
+    alert(resultado.motivo);
+    return;
+  }
+  document.getElementById('fichaAlunoRespNome').value = '';
+  document.getElementById('fichaAlunoRespUser').value = '';
+  document.getElementById('fichaAlunoRespSenha').value = '';
+  renderResponsaveisFicha();
+  alert('Responsável vinculado! Repasse o usuário e a senha pra ele(a) entrar escolhendo o papel "Pai/Responsável" no login.');
 }
 
 function alternarDaAulaAcademia(userConta){
@@ -6061,12 +6739,43 @@ function promoverAlunoPraProfessorSeMarcado(nome, user, senha, professorDoAluno,
   }
 }
 
+// O núcleo de um aluno tem que ser sempre o núcleo do professor escolhido —
+// nunca uma escolha independente (era isso que deixava alunos com núcleo de
+// uma academia sem nenhuma relação com o professor real deles). Por isso,
+// ao escolher o professor no cadastro, o campo de núcleo trava sozinho no(s)
+// núcleo(s) daquele professor, em vez de continuar sendo uma lista solta com
+// todos os núcleos da rede inteira.
+function sincronizarNucleoComProfessorEscolhido(idSelectProfessor, idSelectNucleo){
+  const selProf = document.getElementById(idSelectProfessor);
+  const selNucleo = document.getElementById(idSelectNucleo);
+  if(!selProf || !selNucleo) return;
+  const nomeProfessor = selProf.value;
+  if(!nomeProfessor){
+    selNucleo.innerHTML = '<option value="">Selecione o professor primeiro...</option>';
+    selNucleo.disabled = false;
+    return;
+  }
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nucleosDoProfessor = [...new Set(rede.filter(a => mesmoProfessor(a.professor, nomeProfessor)).map(a => a.nome).filter(Boolean))];
+  if(nucleosDoProfessor.length === 0){
+    // Professor sem núcleo próprio cadastrado ainda (ex: o mestre da matriz,
+    // que não tem uma "conta de academia" separada) — deixa livre pra digitar/
+    // escolher manualmente, sem travar num valor que não existe.
+    selNucleo.innerHTML = '<option value="">Este professor ainda não tem núcleo cadastrado</option>';
+    selNucleo.disabled = false;
+    return;
+  }
+  selNucleo.innerHTML = nucleosDoProfessor.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+  selNucleo.value = nucleosDoProfessor[0];
+  selNucleo.disabled = nucleosDoProfessor.length === 1;
+}
+
 function criarAcessoAluno(){
   const nome = document.getElementById('novoAlunoNome').value.trim();
   const corda = document.getElementById('novoAlunoCorda').value.trim();
   const inicio = document.getElementById('novoAlunoInicio').value;
   const vencimento = document.getElementById('novoAlunoVencimento').value;
-  const nucleo = document.getElementById('novoAlunoNucleo').value;
+  let nucleo = document.getElementById('novoAlunoNucleo').value;
   const professor = document.getElementById('novoAlunoProfessor').value;
   const comAcesso = window._alunoComAcessoMatriz !== false;
 
@@ -6077,6 +6786,20 @@ function criarAcessoAluno(){
   if(!professor && obterProfessoresReais().length > 0){
     alert('Selecione o professor responsável por esse aluno antes de salvar, pra ele não ficar sem professor vinculado.');
     return;
+  }
+
+  // Rede de segurança: mesmo que o campo de núcleo esteja desatualizado por
+  // algum motivo, o núcleo salvo tem que ser sempre o núcleo ATUAL do
+  // professor escolhido — nunca um valor solto sem relação com ele.
+  if(professor){
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const nucleosDoProfessor = [...new Set(rede.filter(a => mesmoProfessor(a.professor, professor)).map(a => a.nome).filter(Boolean))];
+    if(nucleosDoProfessor.length === 1){
+      nucleo = nucleosDoProfessor[0];
+    } else if(nucleosDoProfessor.length > 1 && !nucleosDoProfessor.includes(nucleo)){
+      alert('Esse professor tem mais de um núcleo cadastrado. Selecione qual dos núcleos dele esse aluno frequenta antes de salvar.');
+      return;
+    }
   }
 
   let user, senha, pergunta, resposta;
@@ -6112,6 +6835,19 @@ function criarAcessoAluno(){
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
 
+  const respNome = document.getElementById('novoAlunoRespNome');
+  const respUser = document.getElementById('novoAlunoRespUser');
+  const respSenha = document.getElementById('novoAlunoRespSenha');
+  if(respNome && respUser && respSenha && (respNome.value.trim() || respUser.value.trim() || respSenha.value.trim())){
+    const resultadoResp = criarOuVincularContaPai(respNome.value.trim(), respUser.value.trim(), respSenha.value.trim(), user);
+    if(!resultadoResp.ok){
+      alert('Aluno cadastrado, mas não foi possível vincular o responsável: ' + resultadoResp.motivo);
+    }
+    respNome.value = '';
+    respUser.value = '';
+    respSenha.value = '';
+  }
+
   const chkDaAula = document.getElementById('novoAlunoDaAula');
   if(comAcesso && chkDaAula && chkDaAula.checked){
     promoverAlunoPraProfessorSeMarcado(nome, user, senha, professor, nucleo, 'matriz');
@@ -6125,6 +6861,8 @@ function criarAcessoAluno(){
   document.getElementById('novoAlunoInicio').value = '';
   document.getElementById('novoAlunoVencimento').value = '';
   document.getElementById('novoAlunoNucleo').value = '';
+  document.getElementById('novoAlunoNucleo').innerHTML = '<option value="">Selecione o professor primeiro...</option>';
+  document.getElementById('novoAlunoNucleo').disabled = false;
   document.getElementById('novoAlunoProfessor').value = '';
   document.getElementById('novoAlunoUser').value = '';
   document.getElementById('novoAlunoSenha').value = '';
@@ -6570,7 +7308,7 @@ function renderStatsInicio(){
     if(totalEl){
       const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
       const meusNucleos = obterMeusNucleos();
-      const meusAlunos = meusNucleos.length > 0 ? contas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+      const meusAlunos = meusNucleos.length > 0 ? contas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
       totalEl.textContent = String(meusAlunos.length);
     }
   } else {
@@ -6583,6 +7321,11 @@ function renderPerfil(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const minhaConta = (currentRole === 'aluno' && currentUser) ? contas.find(c => c.user === currentUser) : null;
   const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null') || {};
+
+  renderHistoricoMesPerfil();
+
+  const cardCredenciaisMaster = document.getElementById('perfilCardCredenciaisMaster');
+  if(cardCredenciaisMaster) cardCredenciaisMaster.style.display = (currentRole === 'matriz') ? 'block' : 'none';
 
   const nucleoView = document.getElementById('perfilNucleoView');
   const profView = document.getElementById('perfilProfessorView');
@@ -6597,7 +7340,7 @@ function renderPerfil(){
 
   if(minhaConta){
     if(nomeView) nomeView.textContent = minhaConta.nome;
-    if(nucleoView) nucleoView.textContent = minhaConta.nucleo || cfg.nucleo || 'Ainda não definido';
+    if(nucleoView) nucleoView.textContent = obterNucleoAtualDoAluno(minhaConta) || cfg.nucleo || 'Ainda não definido';
     if(profView) profView.textContent = minhaConta.professor || cfg.professor || 'Ainda não definido';
     if(cordaView){
       cordaView.textContent = minhaConta.corda ? ('Corda ' + minhaConta.corda) : 'Corda ainda não definida';
@@ -6634,7 +7377,7 @@ function renderPerfil(){
     if(currentRole === 'academia' && currentUser){
       const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
       const minhaContaAcademia = academiasContas.find(c => c.user === currentUser);
-      if(nucleoView) nucleoView.textContent = (minhaContaAcademia && minhaContaAcademia.nome) || 'Ainda não definido';
+      if(nucleoView) nucleoView.textContent = (minhaContaAcademia && minhaContaAcademia.nucleosGerenciados && minhaContaAcademia.nucleosGerenciados[0]) || (minhaContaAcademia && minhaContaAcademia.nome) || 'Ainda não definido';
       if(profView) profView.textContent = obterMeuNomeProfessor() || 'Ainda não definido';
       const grupoRow = document.getElementById('perfilGrupoRow');
       const grupoView = document.getElementById('perfilGrupoView');
@@ -6733,6 +7476,81 @@ function renderPerfil(){
   }
 
   if(!perfil) return;
+}
+
+// Calendário/histórico por mês na tela Perfil — mostra pro próprio usuário
+// (aluno ou professor) tudo que ele fez num mês escolhido, pra recordar.
+function renderHistoricoMesPerfil(){
+  const container = document.getElementById('perfilHistoricoMesResultado');
+  const inputMes = document.getElementById('perfilMesHistorico');
+  if(!container || !inputMes) return;
+  if(!inputMes.value){
+    const hoje = new Date();
+    inputMes.value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+  }
+  const mesRef = inputMes.value;
+
+  if(currentRole === 'aluno' && currentUser){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const minhaConta = contas.find(c => c.user === currentUser);
+    container.innerHTML = montarResumoHistoricoMes(currentUser, minhaConta, mesRef);
+    return;
+  }
+
+  if((currentRole === 'academia' || currentRole === 'matriz') && (currentUser || currentRole === 'matriz')){
+    // Pra quem dá aula: mostra os dias de aula dados no mês, quantos alunos
+    // diferentes apareceram (contando visitantes de outras academias do
+    // grupo) e os eventos EM QUE ELE MESMO PARTICIPOU no período — o
+    // "calendário" do professor.
+    const meuNome = (obterMeuNomeProfessor() || '').trim();
+    const diasChaveProf = 'gingapass_dias_checkin_prof_' + _chaveProf(meuNome);
+    const diasDoProf = JSON.parse(localStorage.getItem(diasChaveProf) || '[]').filter(d => d.startsWith(mesRef)).sort();
+    const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+    const presencasDoMes = log.filter(r => mesmoProfessor(r.professor, meuNome) && r.data && r.data.startsWith(mesRef));
+    const visitantesDoMes = presencasDoMes.filter(r => r.visita);
+
+    // Igual à lógica de "Meus certificados": participação em evento casa pelo
+    // usuário de login ou, quando não bate (professor sem cadastro de aluno
+    // próprio), pelo nome. Depois só entram os eventos cuja data (texto livre)
+    // reconhecidamente caiu dentro do mês escolhido.
+    const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+    const meusCheckinsEventos = obterMeusCheckinsEventos(currentUser, meuNome);
+    const eventosDoMesDetalhe = meusCheckinsEventos
+      .map(c => ({checkin: c, evento: todosEventos.find(e => e.codigoCheckin === c.eventoId)}))
+      .filter(item => item.evento && extrairAnoMesDeDataEvento(item.evento.data) === mesRef);
+
+    const [ano, mesNum] = mesRef.split('-');
+    const nomesMeses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const nomeMes = (nomesMeses[Number(mesNum) - 1] || '') + ' de ' + ano;
+    const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+    const grade = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
+      ['<b style="font-size:18px;color:var(--navy-900);display:block;">' + diasDoProf.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Aulas dadas</span>',
+       '<b style="font-size:18px;color:var(--navy-700);display:block;">' + new Set(presencasDoMes.map(r => r.aluno)).size + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Alunos que compareceram</span>',
+       '<b style="font-size:18px;color:var(--ok);display:block;">' + visitantesDoMes.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Visitas recebidas</span>',
+       '<b style="font-size:18px;color:var(--amber-700);display:block;">' + eventosDoMesDetalhe.length + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Eventos</span>'
+      ].map(conteudo => '<div style="flex:1;min-width:76px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;">' + conteudo + '</div>').join('') +
+      '</div>';
+
+    const diasDetalhe = diasDoProf.map(d => {
+      const dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+      const presentesNoDia = new Set(presencasDoMes.filter(r => r.data === d).map(r => r.aluno)).size;
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;">' +
+        '<span>📅 ' + dataFmt + '</span><span style="color:var(--ink-soft);">' + presentesNoDia + ' aluno(s) presente(s)</span></div>';
+    });
+    const linhasEventos = eventosDoMesDetalhe.map(item => {
+      return '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink);padding:4px 0;border-bottom:1px solid #EFE6D2;">' +
+        '<span>🏆 ' + item.evento.titulo + '</span><span style="color:var(--ink-soft);">' + item.evento.data + '</span></div>';
+    });
+    const detalheCompleto = diasDetalhe.concat(linhasEventos).join('');
+
+    container.innerHTML = '<p style="font-size:11px;font-weight:600;color:var(--ink-soft);margin:0 0 8px;">' + nomeMesCapitalizado + '</p>' +
+      grade +
+      (detalheCompleto ? detalheCompleto : '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma aula, evento ou visita registrado neste mês.</p>');
+    return;
+  }
+
+  container.innerHTML = '';
 }
 
 function adicionarEvento(titulo, data, local, pagamento, imagem){
@@ -8055,7 +8873,7 @@ function renderListaOnlineAgora(){
   if(!container) return;
   const cache = window._presencaCache || {};
   const meuId = currentRole && currentUser ? identificadorUsuarioAtual() : null;
-  const rotuloRole = {aluno: 'Aluno', academia: 'Professor', matriz: 'Master'};
+  const rotuloRole = {aluno: 'Aluno', academia: 'Professor', matriz: 'Master', pai: 'Responsável'};
   const online = Object.keys(cache)
     .filter(id => estaOnline(id))
     .map(id => ({id, nome: cache[id].nome || id, role: cache[id].role || ''}))
@@ -8212,13 +9030,20 @@ function pararCompartilharLocalizacao(){
 function localizacaoEhVisivelPraMim(loc, meuId){
   if(loc.autorId === meuId) return false;
   if(currentRole === 'matriz') return true; // matriz (master) vê tudo, mesmo se for pra uma pessoa específica
+  if(currentRole === 'pai'){
+    // O responsável sempre vê a localização do(s) próprio(s) filho(s) vinculado(s),
+    // mesmo que o aluno tenha escolhido compartilhar só com outra pessoa — a
+    // relação pai/filho é diferente de um compartilhamento comum entre colegas.
+    const souPaiDoAutor = obterMeusFilhos().some(f => loc.autorId === 'aluno:' + f.user);
+    if(souPaiDoAutor) return true;
+  }
   if(!loc.destinatarios || loc.destinatarios === 'todos') return true;
   if(Array.isArray(loc.destinatarios)) return loc.destinatarios.indexOf(meuId) !== -1;
   return false;
 }
 
-function renderLocalizacoesCompartilhadas(){
-  const container = document.getElementById('listaLocalizacoesCompartilhadas');
+function renderLocalizacoesCompartilhadas(containerId){
+  const container = document.getElementById(containerId || 'listaLocalizacoesCompartilhadas');
   if(!container) return;
   const todas = window._localizacoesCache || [];
   const meuId = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
@@ -8232,7 +9057,7 @@ function renderLocalizacoesCompartilhadas(){
     return;
   }
 
-  const rotulos = {aluno: 'Aluno', academia: 'Professor', matriz: 'Matriz'};
+  const rotulos = {aluno: 'Aluno', academia: 'Professor', matriz: 'Matriz', pai: 'Responsável'};
   ativas.sort((a, b) => b.atualizado - a.atualizado).forEach(loc => {
     const bloco = document.createElement('div');
     bloco.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
@@ -8313,7 +9138,7 @@ function podeExcluirFoto(foto){
     const aluno = contas.find(c => c.user === alunoUser);
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
     const minhaConta = academiasContas.find(c => c.user === currentUser);
-    if(aluno && minhaConta && aluno.nucleo === minhaConta.nome) return true;
+    if(aluno && minhaConta && mesmoNucleo(aluno.nucleo, minhaConta.nome)) return true;
   }
   return false;
 }
@@ -9391,6 +10216,76 @@ function mesmoProfessor(nomeA, nomeB){
   return a.includes(b) || b.includes(a);
 }
 
+// Mesma ideia do mesmoProfessor acima, mas pra nome de núcleo/academia — evita que
+// o aluno "suma" das listas do professor por causa de espaço extra, acento ou
+// maiúscula/minúscula diferente entre o nome salvo na conta da academia e o
+// nucleo salvo no cadastro do aluno.
+function normalizarNucleo(nome){
+  return (nome || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function mesmoNucleo(nomeA, nomeB){
+  const a = normalizarNucleo(nomeA);
+  const b = normalizarNucleo(nomeB);
+  return !!a && !!b && a === b;
+}
+
+// O núcleo de um aluno NUNCA deveria ser escolhido separado do professor —
+// ele tem que ser sempre o núcleo onde aquele professor dá aula. Essa função
+// olha o professor do aluno e devolve o núcleo ATUAL cadastrado pra ele
+// (gingapass_rede_academias), pra usar como fonte da verdade em vez de
+// confiar no texto solto que ficou salvo em aluno.nucleo (que pode ter sido
+// escolhido errado, ou ficado desatualizado se o professor mudou de núcleo).
+function obterNucleoAtualDoAluno(aluno){
+  if(!aluno) return '';
+  if(aluno.professor){
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const entrada = rede.find(a => mesmoProfessor(a.professor, aluno.professor));
+    if(entrada && entrada.nome) return entrada.nome;
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const conta = academiasContas.find(c => mesmoProfessor(c.nome, aluno.professor));
+    if(conta) return (conta.nucleosGerenciados && conta.nucleosGerenciados[0]) || conta.nome || (aluno.nucleo || '');
+  }
+  return aluno.nucleo || '';
+}
+
+// Corrige de uma vez o campo "nucleo" de TODOS os alunos cadastrados, deixando
+// cada um com o núcleo atual do professor dele (em vez do que foi escolhido
+// na hora do cadastro, que às vezes bate errado quando núcleo e professor são
+// selecionados em campos separados). Só mexe em quem realmente está errado.
+function corrigirNucleoDeTodosOsAlunos(){
+  if(currentRole !== 'matriz'){
+    alert('Só a matriz pode rodar essa correção geral.');
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  let corrigidos = 0;
+  const atualizados = contas.map(a => {
+    if(!a.professor) return a;
+    const nucleoCorreto = obterNucleoAtualDoAluno(a);
+    if(nucleoCorreto && nucleoCorreto !== a.nucleo){
+      corrigidos++;
+      return Object.assign({}, a, {nucleo: nucleoCorreto});
+    }
+    return a;
+  });
+  if(corrigidos === 0){
+    alert('Nenhum aluno com núcleo desatualizado — está tudo batendo com o professor cadastrado de cada um.');
+    return;
+  }
+  setDado('gingapass_alunos_contas', JSON.stringify(atualizados)).then(function(ok){
+    if(!ok) alert('Corrigido neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+    tentarChamar(function(){ renderEstatisticas(); });
+    tentarChamar(function(){ renderPerfil(); });
+    tentarChamar(function(){ renderAlunos(); });
+    alert(corrigidos + ' aluno(s) tiveram o núcleo corrigido pra bater com o professor deles.');
+  });
+}
+function nucleoEstaEmLista(nucleo, listaDeNucleos){
+  const n = normalizarNucleo(nucleo);
+  if(!n) return false;
+  return (listaDeNucleos || []).some(x => normalizarNucleo(x) === n);
+}
+
 function salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   let algumEncontrado = false;
@@ -9449,7 +10344,7 @@ function publicarPagamentoMatriz(){
   const encontrouAlgum = salvarPixCartaoParaProfessor(nomeProfessor, pix, cartao);
   if(!encontrouAlgum && cfg && cfg.nucleo){
     const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-    const idx = rede.findIndex(a => a.nome === cfg.nucleo);
+    const idx = rede.findIndex(a => mesmoNucleo(a.nome, cfg.nucleo));
     if(idx >= 0){
       rede[idx].pix = pix;
       rede[idx].cartao = cartao;
@@ -9536,7 +10431,7 @@ function renderPagamentoAluno(){
   let origem = null;
   if(minhaConta){
     // 1) tenta pelo núcleo exato, já com pagamento cadastrado
-    origem = rede.find(a => a.nome === minhaConta.nucleo && (a.pix || a.cartao));
+    origem = rede.find(a => mesmoNucleo(a.nome, minhaConta.nucleo) && (a.pix || a.cartao));
     // 2) se não achou, tenta por qualquer núcleo do MESMO professor do aluno (cobre nomes de núcleo com pequenas diferenças)
     if(!origem && minhaConta.professor){
       origem = rede.find(a => mesmoProfessor(a.professor, minhaConta.professor) && (a.pix || a.cartao));
@@ -9604,7 +10499,7 @@ function renderMinhaMensalidadeProfessor(){
   const btnCartao = document.getElementById('btnPagarCartaoProfessor');
   const aviso = document.getElementById('pagamentoAvisoProfessor');
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-  let origem = rede.find(a => a.nome === minhaContaAluno.nucleo && (a.pix || a.cartao));
+  let origem = rede.find(a => mesmoNucleo(a.nome, minhaContaAluno.nucleo) && (a.pix || a.cartao));
   if(!origem && minhaContaAluno.professor){
     origem = rede.find(a => mesmoProfessor(a.professor, minhaContaAluno.professor) && (a.pix || a.cartao));
   }
@@ -9727,6 +10622,391 @@ function renderComprovantesProfessor(userAlunoRepresentante){
   if(ultima) ultima.style.borderBottom = 'none';
   container.appendChild(card);
 }
+
+// ===================== LOJA GINGAPASS =====================
+// Vitrine global: qualquer professor/matriz publica produto, e QUALQUER
+// usuário logado (aluno, pai, professor, matriz — sem filtro de grupo) vê
+// tudo e pode mandar mensagem pra quem está vendendo. Por design essa tela
+// não usa obterMeuGrupoId() em nenhum momento — é rede-aberta de propósito.
+function souVendedorLoja(){
+  return currentRole === 'academia' || currentRole === 'matriz';
+}
+
+function meuNomeVendedorLoja(){
+  return obterMeuNomeProfessor() || currentUser || 'Vendedor';
+}
+
+function obterProdutosLoja(){
+  if(window._lojaProdutosCache) return window._lojaProdutosCache;
+  return JSON.parse(localStorage.getItem('gingapass_loja_produtos') || '[]');
+}
+
+function salvarProdutoNaNuvem(produto){
+  if(typeof modoDemo !== 'undefined' && modoDemo) return Promise.resolve(true);
+  if(!lojaProdutosCollection) return Promise.resolve(true);
+  return lojaProdutosCollection.doc(produto.id).set(produto).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao salvar produto da loja na nuvem:', e);
+    return false;
+  });
+}
+
+function excluirProdutoNaNuvem(id){
+  if(typeof modoDemo !== 'undefined' && modoDemo) return Promise.resolve(true);
+  if(!lojaProdutosCollection) return Promise.resolve(true);
+  return lojaProdutosCollection.doc(id).delete().then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao excluir produto da loja na nuvem:', e);
+    return false;
+  });
+}
+
+function obterMensagensLoja(){
+  return JSON.parse(localStorage.getItem('gingapass_chat_loja') || '[]');
+}
+
+function renderLojaTela(){
+  const publicarBox = document.getElementById('lojaPublicarBox');
+  const meusBox = document.getElementById('lojaMeusProdutosBox');
+  if(publicarBox) publicarBox.style.display = souVendedorLoja() ? 'block' : 'none';
+  if(meusBox) meusBox.style.display = souVendedorLoja() ? 'block' : 'none';
+  renderLojaVitrine();
+  if(souVendedorLoja()) renderMeusProdutosLoja();
+}
+
+document.addEventListener('change', function(ev){
+  if(ev.target && ev.target.id === 'lojaProdutoFotoInput'){
+    const arquivo = ev.target.files && ev.target.files[0];
+    const preview = document.getElementById('lojaProdutoFotoPreview');
+    if(!arquivo || !preview) return;
+    comprimirImagem(arquivo, 900, 0.7).then(function(dataUrl){
+      if(!dataUrl) return;
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+    });
+  }
+});
+
+function publicarProdutoLoja(){
+  if(!souVendedorLoja()){
+    alert('Só professores e a matriz podem publicar produtos na loja.');
+    return;
+  }
+  const titulo = document.getElementById('lojaProdutoTitulo').value.trim();
+  const descricao = document.getElementById('lojaProdutoDescricao').value.trim();
+  const preco = document.getElementById('lojaProdutoPreco').value.trim();
+  const pix = document.getElementById('lojaProdutoPix').value.trim();
+  const cartao = document.getElementById('lojaProdutoCartao').value.trim();
+  if(!titulo || (!pix && !cartao)){
+    alert('Preencha ao menos o nome do produto e uma forma de pagamento (Pix ou link de cartão).');
+    return;
+  }
+  const preview = document.getElementById('lojaProdutoFotoPreview');
+  const foto = (preview && preview.style.display !== 'none') ? preview.src : '';
+
+  const novoProduto = {
+    id: 'prod_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    vendedorId: identificadorUsuarioAtual(),
+    vendedorUser: currentUser,
+    vendedorNome: meuNomeVendedorLoja(),
+    titulo, descricao, preco, foto, pix, cartao,
+    data: Date.now()
+  };
+  const produtosAtuais = [novoProduto].concat(obterProdutosLoja());
+  window._lojaProdutosCache = produtosAtuais;
+  _setLocal('gingapass_loja_produtos', JSON.stringify(produtosAtuais));
+  salvarProdutoNaNuvem(novoProduto).then(function(ok){
+    if(!ok){
+      alert('O produto foi salvo neste aparelho, mas não conseguiu sincronizar com a nuvem agora (conexão instável ou foto muito pesada). Ele pode não aparecer pra outras pessoas até você tentar de novo com internet estável ou uma foto menor.');
+    }
+  });
+
+  document.getElementById('lojaProdutoTitulo').value = '';
+  document.getElementById('lojaProdutoDescricao').value = '';
+  document.getElementById('lojaProdutoPreco').value = '';
+  document.getElementById('lojaProdutoPix').value = '';
+  document.getElementById('lojaProdutoCartao').value = '';
+  document.getElementById('lojaProdutoFotoInput').value = '';
+  if(preview){ preview.style.display = 'none'; preview.src = ''; }
+  renderLojaTela();
+  alert('Produto publicado na loja!');
+}
+
+function excluirProdutoLoja(id){
+  if(!confirm('Remover esse produto da loja?')) return;
+  const produtos = obterProdutosLoja().filter(p => p.id !== id);
+  window._lojaProdutosCache = produtos;
+  _setLocal('gingapass_loja_produtos', JSON.stringify(produtos));
+  excluirProdutoNaNuvem(id);
+  const mensagens = obterMensagensLoja().filter(m => m.produtoId !== id);
+  setDado('gingapass_chat_loja', JSON.stringify(mensagens));
+  renderLojaTela();
+}
+
+function abrirPagamentoLoja(id, tipo){
+  const produto = obterProdutosLoja().find(p => p.id === id);
+  if(!produto) return;
+  const valor = tipo === 'pix' ? produto.pix : produto.cartao;
+  if(!valor) return;
+  const ehLink = /^https?:\/\//i.test(valor);
+  if(ehLink){
+    window.open(valor, '_blank', 'noopener');
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(valor).then(() => {
+      alert('Chave Pix copiada: ' + valor + '\nCole no app do seu banco pra pagar.');
+    }).catch(() => {
+      alert('Chave Pix: ' + valor);
+    });
+  } else {
+    alert('Chave Pix: ' + valor);
+  }
+}
+
+function renderLojaVitrine(){
+  const container = document.getElementById('lojaVitrine');
+  if(!container || !currentRole) return;
+  const produtos = obterProdutosLoja().slice().sort((a, b) => b.data - a.data);
+  container.innerHTML = '';
+  if(produtos.length === 0){
+    container.innerHTML = '<div class="card"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum produto publicado ainda.</p></div>';
+    return;
+  }
+  const meuId = identificadorUsuarioAtual();
+  produtos.forEach(produto => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '14px';
+
+    if(produto.foto){
+      const img = document.createElement('img');
+      img.src = produto.foto;
+      img.style.cssText = 'width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px;';
+      card.appendChild(img);
+    }
+    const titulo = document.createElement('p');
+    titulo.style.cssText = 'font-weight:600;font-size:14.5px;color:var(--navy-900);margin:0 0 4px;';
+    titulo.textContent = produto.titulo;
+    card.appendChild(titulo);
+
+    if(produto.preco){
+      const preco = document.createElement('p');
+      preco.style.cssText = 'font-weight:600;font-size:13px;color:var(--amber-700);margin:0 0 6px;';
+      preco.textContent = produto.preco;
+      card.appendChild(preco);
+    }
+    if(produto.descricao){
+      const desc = document.createElement('p');
+      desc.style.cssText = 'font-size:12.5px;color:var(--ink);margin:0 0 8px;white-space:pre-wrap;';
+      desc.textContent = produto.descricao;
+      card.appendChild(desc);
+    }
+    const vendedor = document.createElement('p');
+    vendedor.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;';
+    vendedor.textContent = 'Vendido por ' + produto.vendedorNome;
+    card.appendChild(vendedor);
+
+    const botoes = document.createElement('div');
+    botoes.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;';
+    if(produto.pix){
+      const btnPix = document.createElement('button');
+      btnPix.className = 'btn';
+      btnPix.type = 'button';
+      btnPix.style.cssText = 'width:auto;padding:8px 14px;margin:0;font-size:12px;';
+      btnPix.textContent = 'Pagar com Pix';
+      btnPix.onclick = () => abrirPagamentoLoja(produto.id, 'pix');
+      botoes.appendChild(btnPix);
+    }
+    if(produto.cartao){
+      const btnCartao = document.createElement('button');
+      btnCartao.className = 'btn';
+      btnCartao.type = 'button';
+      btnCartao.style.cssText = 'width:auto;padding:8px 14px;margin:0;font-size:12px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);';
+      btnCartao.textContent = 'Pagar com cartão';
+      btnCartao.onclick = () => abrirPagamentoLoja(produto.id, 'cartao');
+      botoes.appendChild(btnCartao);
+    }
+    if(produto.vendedorId !== meuId){
+      const btnMsg = document.createElement('button');
+      btnMsg.className = 'btn';
+      btnMsg.type = 'button';
+      btnMsg.style.cssText = 'width:auto;padding:8px 14px;margin:0;font-size:12px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);';
+      btnMsg.textContent = '💬 Mandar mensagem';
+      btnMsg.onclick = () => alternarMensagemProdutoLoja(produto.id);
+      botoes.appendChild(btnMsg);
+    }
+    card.appendChild(botoes);
+
+    const threadBox = document.createElement('div');
+    threadBox.id = 'lojaThread_' + produto.id;
+    threadBox.style.display = 'none';
+    card.appendChild(threadBox);
+
+    container.appendChild(card);
+  });
+}
+
+function alternarMensagemProdutoLoja(produtoId){
+  const box = document.getElementById('lojaThread_' + produtoId);
+  if(!box) return;
+  const abrir = box.style.display === 'none';
+  box.style.display = abrir ? 'block' : 'none';
+  if(abrir) renderThreadCompradorLoja(produtoId);
+}
+
+function renderThreadCompradorLoja(produtoId){
+  const box = document.getElementById('lojaThread_' + produtoId);
+  if(!box) return;
+  const produto = obterProdutosLoja().find(p => p.id === produtoId);
+  if(!produto) return;
+  const meuId = identificadorUsuarioAtual();
+  const meuNome = obterNomeExibicaoAtual() || currentUser;
+  const mensagens = obterMensagensLoja()
+    .filter(m => m.produtoId === produtoId && m.compradorId === meuId)
+    .sort((a, b) => a.data - b.data);
+
+  box.innerHTML = '';
+  const lista = document.createElement('div');
+  lista.style.cssText = 'border-top:1px solid #EFE6D2;margin-top:6px;padding-top:8px;max-height:220px;overflow-y:auto;';
+  if(mensagens.length === 0){
+    lista.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Envie uma mensagem pro vendedor sobre esse produto.</p>';
+  } else {
+    mensagens.forEach(m => {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble ' + (m.remetente === 'comprador' ? 'user' : 'bot');
+      bubble.textContent = (m.remetente === 'vendedor' ? (produto.vendedorNome + ': ') : '') + m.texto;
+      lista.appendChild(bubble);
+    });
+  }
+  box.appendChild(lista);
+
+  const row = document.createElement('div');
+  row.className = 'chat-input-row';
+  const input = document.createElement('input');
+  input.placeholder = 'Escreva sua mensagem...';
+  const send = document.createElement('button');
+  send.className = 'chat-send';
+  send.type = 'button';
+  send.textContent = '➤';
+  send.onclick = () => {
+    const texto = input.value.trim();
+    if(!texto) return;
+    const arr = obterMensagensLoja();
+    arr.push({
+      produtoId, vendedorId: produto.vendedorId, vendedorUser: produto.vendedorUser,
+      compradorId: meuId, compradorNome: meuNome,
+      remetente: 'comprador', texto, data: Date.now()
+    });
+    setDado('gingapass_chat_loja', JSON.stringify(arr));
+    input.value = '';
+    renderThreadCompradorLoja(produtoId);
+  };
+  row.appendChild(input);
+  row.appendChild(send);
+  box.appendChild(row);
+}
+
+function renderMeusProdutosLoja(){
+  const container = document.getElementById('lojaMeusProdutosLista');
+  if(!container) return;
+  const meuId = identificadorUsuarioAtual();
+  const meusProdutos = obterProdutosLoja().filter(p => p.vendedorId === meuId);
+  container.innerHTML = '';
+  if(meusProdutos.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Você ainda não publicou nenhum produto.</p>';
+    return;
+  }
+  const mensagens = obterMensagensLoja();
+  meusProdutos.forEach(produto => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    row.style.marginBottom = '6px';
+    const span = document.createElement('span');
+    span.textContent = produto.titulo + (produto.preco ? (' — ' + produto.preco) : '');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'aluno-del';
+    delBtn.textContent = 'Excluir';
+    delBtn.onclick = () => excluirProdutoLoja(produto.id);
+    row.appendChild(span);
+    row.appendChild(delBtn);
+    wrap.appendChild(row);
+
+    const compradores = [...new Set(mensagens.filter(m => m.produtoId === produto.id).map(m => m.compradorId))];
+    const msgBtn = document.createElement('button');
+    msgBtn.className = 'btn';
+    msgBtn.type = 'button';
+    msgBtn.style.cssText = 'width:auto;padding:6px 12px;margin:0;font-size:11.5px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);';
+    msgBtn.textContent = '💬 Mensagens (' + compradores.length + ')';
+    const threadBox = document.createElement('div');
+    threadBox.style.display = 'none';
+    msgBtn.onclick = () => {
+      threadBox.style.display = threadBox.style.display === 'none' ? 'block' : 'none';
+      if(threadBox.style.display === 'block') renderThreadVendedorLoja(threadBox, produto, compradores);
+    };
+    wrap.appendChild(msgBtn);
+    wrap.appendChild(threadBox);
+    container.appendChild(wrap);
+  });
+}
+
+function renderThreadVendedorLoja(box, produto, compradores){
+  box.innerHTML = '';
+  box.style.marginTop = '8px';
+  if(compradores.length === 0){
+    box.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:6px 0 0;">Nenhuma mensagem recebida ainda sobre esse produto.</p>';
+    return;
+  }
+  const mensagens = obterMensagensLoja();
+  compradores.forEach(compradorId => {
+    const doComprador = mensagens.filter(m => m.produtoId === produto.id && m.compradorId === compradorId).sort((a, b) => a.data - b.data);
+    const nomeComprador = (doComprador.find(m => m.compradorNome) || {}).compradorNome || compradorId;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '8px';
+    const titulo = document.createElement('p');
+    titulo.style.cssText = 'font-weight:600;font-size:12.5px;color:var(--navy-900);margin:0 0 6px;';
+    titulo.textContent = nomeComprador;
+    card.appendChild(titulo);
+    doComprador.forEach(m => {
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble ' + (m.remetente === 'vendedor' ? 'user' : 'bot');
+      bubble.textContent = m.texto;
+      card.appendChild(bubble);
+    });
+    const row = document.createElement('div');
+    row.className = 'chat-input-row';
+    const input = document.createElement('input');
+    input.placeholder = 'Responder...';
+    const send = document.createElement('button');
+    send.className = 'chat-send';
+    send.type = 'button';
+    send.textContent = '➤';
+    send.onclick = () => {
+      const texto = input.value.trim();
+      if(!texto) return;
+      const arr = obterMensagensLoja();
+      arr.push({
+        produtoId: produto.id, vendedorId: produto.vendedorId, vendedorUser: produto.vendedorUser,
+        compradorId, compradorNome: nomeComprador,
+        remetente: 'vendedor', texto, data: Date.now()
+      });
+      setDado('gingapass_chat_loja', JSON.stringify(arr));
+      input.value = '';
+      renderThreadVendedorLoja(box, produto, compradores);
+    };
+    row.appendChild(input);
+    row.appendChild(send);
+    card.appendChild(row);
+    box.appendChild(card);
+  });
+}
+// ===================== fim: LOJA GINGAPASS =====================
 
 function abrirPagamento(tipo){
   const valor = tipo === 'pix' ? pagamentoAtual.pix : pagamentoAtual.cartao;
@@ -9986,6 +11266,19 @@ function criarAcessoAlunoAcademia(){
   });
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
 
+  const respNomeAd = document.getElementById('novoAlunoRespNomeAd');
+  const respUserAd = document.getElementById('novoAlunoRespUserAd');
+  const respSenhaAd = document.getElementById('novoAlunoRespSenhaAd');
+  if(respNomeAd && respUserAd && respSenhaAd && (respNomeAd.value.trim() || respUserAd.value.trim() || respSenhaAd.value.trim())){
+    const resultadoResp = criarOuVincularContaPai(respNomeAd.value.trim(), respUserAd.value.trim(), respSenhaAd.value.trim(), user);
+    if(!resultadoResp.ok){
+      alert('Aluno cadastrado, mas não foi possível vincular o responsável: ' + resultadoResp.motivo);
+    }
+    respNomeAd.value = '';
+    respUserAd.value = '';
+    respSenhaAd.value = '';
+  }
+
   const chkDaAulaAd = document.getElementById('novoAlunoDaAulaAd');
   if(comAcesso && chkDaAulaAd && chkDaAulaAd.checked){
     promoverAlunoPraProfessorSeMarcado(nome, user, senha, professor, nucleo, obterMeuGrupoId());
@@ -10030,7 +11323,7 @@ function verificarPopupMensalidadeAtrasada(){
   if(currentRole === 'academia'){
     const meusNucleos = obterMeusNucleos();
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-    const atrasados = contas.filter(c => meusNucleos.includes(c.nucleo) && statusMensalidadeReal(c) === 'Atrasado');
+    const atrasados = contas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos) && statusMensalidadeReal(c) === 'Atrasado');
     if(atrasados.length > 0){
       _popupMensalidadeMostrado = true;
       const nomes = atrasados.slice(0, 5).map(a => a.nome).join(', ') + (atrasados.length > 5 ? '...' : '');
@@ -10218,7 +11511,7 @@ function renderAlunos(){
 
   container.innerHTML = '';
   const indices = [];
-  todasContas.forEach((c, i) => { if(meusNucleos.includes(c.nucleo)) indices.push(i); });
+  todasContas.forEach((c, i) => { if(nucleoEstaEmLista(c.nucleo, meusNucleos)) indices.push(i); });
   // Atrasados sempre primeiro (não fica escondido lá embaixo numa lista longa),
   // e dentro de cada grupo mantém a ordem por graduação de sempre.
   indices.sort((a, b) => {
@@ -10394,6 +11687,39 @@ function hojeStr(){
   return dataLocalStr(new Date());
 }
 
+// O campo "data" de um evento (gingapass_eventos) é texto livre digitado por
+// quem cadastra (ex: "12/08/2026 as 19h", "10 de setembro") — não é um campo
+// de data de verdade. Pra conseguir filtrar eventos por mês (calendário de
+// perfil, estatísticas etc.), tentamos reconhecer um padrão DD/MM/AAAA dentro
+// do texto e devolver "AAAA-MM". Quando não dá pra reconhecer nenhuma data
+// (ex: sem o ano), devolve null e quem chamar decide não contar esse evento
+// no cálculo por mês, em vez de arriscar um mês errado.
+function extrairAnoMesDeDataEvento(dataTexto){
+  if(!dataTexto) return null;
+  const m = String(dataTexto).match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if(!m) return null;
+  const mes = m[2].padStart(2, '0');
+  return m[3] + '-' + mes;
+}
+
+// Lista os checkins de evento (gingapass_checkins_eventos) que pertencem a um
+// usuário — casando pelo user de login E, quando a pessoa é professor/matriz,
+// também por nome (porque a presença em evento pode ter sido registrada num
+// cadastro de "aluno sem acesso" com o mesmo nome do professor).
+function obterMeusCheckinsEventos(user, nomeAlternativo){
+  const checkins = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
+  const contasAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const nomeAlt = (nomeAlternativo || '').trim();
+  return checkins.filter(c => {
+    if(c.aluno === user) return true;
+    if(nomeAlt){
+      const contaDoCheckin = contasAlunos.find(a => a.user === c.aluno);
+      if(contaDoCheckin && mesmoProfessor(contaDoCheckin.nome, nomeAlt)) return true;
+    }
+    return false;
+  });
+}
+
 // A data do check-in manual segue a data escolhida no QR code (campo aulaQrData/
 // aulaQrDataMatriz) — se não tiver nada escolhido ainda, usa hoje como padrão.
 function dataCheckinAtual(sufixo){
@@ -10421,7 +11747,7 @@ function renderCheckin(sufixo){
   let idsVistos = null;
   if(currentRole === 'academia'){
     const meusNucleos = obterMeusNucleos();
-    contas = meusNucleos.length > 0 ? todasContas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+    contas = meusNucleos.length > 0 ? todasContas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
     idsVistos = new Set(contas.map(c => c.user));
   } else if(currentRole === 'matriz'){
     const meuNomeMaster = (obterMeuNomeProfessor() || '').trim();
@@ -10619,7 +11945,7 @@ function contasParaGestao(){
   let contas = todasContas;
   if(currentRole === 'academia'){
     const meusNucleos = obterMeusNucleos();
-    contas = meusNucleos.length > 0 ? todasContas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+    contas = meusNucleos.length > 0 ? todasContas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
   } else if(currentRole === 'matriz'){
     const meuNomeMaster = (obterMeuNomeProfessor() || '').trim();
     contas = todasContas.filter(c => {
@@ -11508,7 +12834,7 @@ function renderMensalidadesAlunos(containerId, escopo){
   let meusAlunos = contas;
   if(escopo === 'academia'){
     const meusNucleos = obterMeusNucleos();
-    meusAlunos = meusNucleos.length > 0 ? contas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+    meusAlunos = meusNucleos.length > 0 ? contas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
   } else if(escopo === 'matriz'){
     // A Master só vê aqui os alunos que são dela mesma (quando ela também dá aula)
     // e os que ainda não têm professor definido — os alunos de outros professores
@@ -11874,7 +13200,7 @@ function renderFaltasAlunos(){
   let meusAlunos = contas;
   if(currentRole === 'academia'){
     const meusNucleos = obterMeusNucleos();
-    meusAlunos = meusNucleos.length > 0 ? contas.filter(c => meusNucleos.includes(c.nucleo)) : [];
+    meusAlunos = meusNucleos.length > 0 ? contas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
   } else if(currentRole === 'matriz'){
     const meuNomeMaster = (obterMeuNomeProfessor() || '').trim();
     meusAlunos = contas.filter(c => {
@@ -12164,7 +13490,7 @@ function renderEstatisticas(){
   let meuNome = null;
   if(currentRole === 'academia'){
     const meusNucleos = obterMeusNucleos();
-    alunos = meusNucleos.length > 0 ? todosAlunos.filter(a => meusNucleos.includes(a.nucleo)) : [];
+    alunos = meusNucleos.length > 0 ? todosAlunos.filter(a => nucleoEstaEmLista(obterNucleoAtualDoAluno(a), meusNucleos)) : [];
     meuNome = obterMeuNomeProfessor();
   }
 
@@ -12186,7 +13512,13 @@ function renderEstatisticas(){
       const diasPresente = new Set(log.filter(r => r.aluno === a.user).map(r => r.data)).size;
       const faltas = Math.max(totalDias - diasPresente, 0);
       const frequencia = totalDias > 0 ? Math.min(100, Math.round((diasPresente / totalDias) * 100)) : 0;
-      return {aluno: a, diasPresente, faltas, frequencia};
+      // Visitas = presenças que o aluno registrou com um professor DIFERENTE
+      // do professor dele — ou seja, foi treinar/fez check-in em outra
+      // academia do grupo. Isso deixa claro pro professor onde o aluno anda
+      // treinando fora, sem misturar com as aulas normais dele.
+      const visitasDoAluno = log.filter(r => r.aluno === a.user && (r.visita || (a.professor && !mesmoProfessor(r.professor, a.professor))));
+      const totalVisitas = new Set(visitasDoAluno.map(r => r.data)).size;
+      return {aluno: a, diasPresente, faltas, frequencia, totalVisitas};
     });
 
     linhas.forEach(l => {
@@ -12197,10 +13529,11 @@ function renderEstatisticas(){
           <span style="font-weight:500;font-size:14px;color:var(--ink);text-decoration:underline;cursor:pointer;" data-aluno-user="${l.aluno.user}">${l.aluno.nome}</span>
           <span style="font-size:11px;font-weight:600;color:${statusGeral === 'Em dia' ? '#2E8B57' : '#C0392B'};">${statusGeral}</span>
         </div>
-        <div style="display:flex;gap:16px;font-size:12px;color:var(--ink-soft);">
+        <div style="display:flex;gap:16px;font-size:12px;color:var(--ink-soft);flex-wrap:wrap;">
           <span>Frequência: <b style="color:var(--navy-900);">${l.frequencia}%</b></span>
           <span>Faltas: <b style="color:var(--navy-900);">${l.faltas}</b></span>
           <span>Presenças: <b style="color:var(--navy-900);">${l.diasPresente}</b></span>
+          ${l.totalVisitas > 0 ? `<span>🧭 Visitou outra academia: <b style="color:var(--navy-700);">${l.totalVisitas}x</b></span>` : ''}
         </div>`;
       row.querySelector('[data-aluno-user]').onclick = () => abrirFichaAluno(l.aluno.user);
       container.appendChild(row);
@@ -12758,7 +14091,7 @@ function populaSelectsNucleoProfessor(){
   }
   const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
   if(meuProf && meuProf.nome && obterMeuGrupoId() === 'matriz' && !professores.includes(meuProf.nome)) professores.push(meuProf.nome);
-  ['perfilNucleoInput', 'novoAlunoNucleo'].forEach(id => {
+  ['perfilNucleoInput'].forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
     const atual = sel.value;
@@ -12892,9 +14225,9 @@ function editarAcademiaRede(i){
   if(professorMudou){
     const nomeNucleo = rede[i].nome;
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-    const alunosDoNucleo = contas.filter(c => c.nucleo === nomeNucleo);
+    const alunosDoNucleo = contas.filter(c => mesmoNucleo(c.nucleo, nomeNucleo));
     if(alunosDoNucleo.length > 0 && confirm('Esse núcleo tem ' + alunosDoNucleo.length + ' aluno(s) já cadastrado(s) com o professor antigo ("' + (professorAnterior || 'sem professor') + '"). Atualizar todos eles pra "' + rede[i].professor + '" agora?')){
-      contas.forEach(c => { if(c.nucleo === nomeNucleo) c.professor = rede[i].professor; });
+      contas.forEach(c => { if(mesmoNucleo(c.nucleo, nomeNucleo)) c.professor = rede[i].professor; });
       setDado('gingapass_alunos_contas', JSON.stringify(contas));
       tentarChamar(function(){ renderAlunos(); });
       tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
@@ -13179,6 +14512,27 @@ function escolherProfessorChat(){
   renderChat();
 }
 
+function mudarCategoriaChatPai(cat){
+  const btnGrupo = document.getElementById('chatCatGrupoPaiBtn');
+  const btnAvisos = document.getElementById('chatCatAvisosPaiBtn');
+  const boxGrupo = document.getElementById('chatCatGrupoPaiBox');
+  const boxAvisos = document.getElementById('chatCatAvisosPaiBox');
+  if(!btnGrupo || !btnAvisos || !boxGrupo || !boxAvisos) return;
+  if(cat === 'avisos'){
+    btnGrupo.classList.remove('active');
+    btnAvisos.classList.add('active');
+    boxGrupo.style.display = 'none';
+    boxAvisos.style.display = 'block';
+    renderThreadAvisos('chatAvisosThreadPai', false);
+  } else {
+    btnAvisos.classList.remove('active');
+    btnGrupo.classList.add('active');
+    boxAvisos.style.display = 'none';
+    boxGrupo.style.display = 'block';
+    renderThreadGrupo('chatGrupoThreadPai');
+  }
+}
+
 function renderTelaChat(){
   const statusNuvem = document.getElementById('chatStatusNuvem');
   if(statusNuvem){
@@ -13189,7 +14543,21 @@ function renderTelaChat(){
   const label = document.getElementById('chatProfessorLabel');
   const visaoAluno = document.getElementById('chatVisaoAluno');
   const visaoProfessor = document.getElementById('chatVisaoProfessor');
+  const visaoPaiReset = document.getElementById('chatVisaoPai');
   if(!visaoAluno || !visaoProfessor) return;
+  if(currentRole !== 'pai' && visaoPaiReset) visaoPaiReset.style.display = 'none';
+
+  if(currentRole === 'pai'){
+    visaoAluno.style.display = 'none';
+    visaoProfessor.style.display = 'none';
+    const visaoPai = document.getElementById('chatVisaoPai');
+    if(visaoPai) visaoPai.style.display = 'block';
+    if(titulo) titulo.textContent = 'Chat do grupo';
+    const filho = obterMeuFilhoPrincipal();
+    if(label) label.textContent = filho ? ('Converse com o professor e o grupo de ' + filho.nome + '.') : 'Vincule um aluno pra liberar o chat do grupo.';
+    mudarCategoriaChatPai('grupo');
+    return;
+  }
 
   if(currentRole === 'aluno'){
     visaoAluno.style.display = 'block';
@@ -13418,6 +14786,10 @@ function mudarCategoriaChatAluno(cat){
 function _grupoIdAtual(){
   if(currentRole === 'aluno') return (obterMeuProfessorAluno() || '').trim();
   if(currentRole === 'academia' || currentRole === 'matriz') return (obterMeuNomeProfessor() || '').trim();
+  if(currentRole === 'pai'){
+    const filho = obterMeuFilhoPrincipal();
+    return filho ? (filho.professor || '').trim() : '';
+  }
   return '';
 }
 
@@ -13662,7 +15034,7 @@ function renderSeletorColegasChat(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const meuGrupoColegas = obterMeuGrupoId();
   let colegas = contas.filter(c => c.user !== currentUser && obterGrupoIdPorNomeProfessor(c.professor) === meuGrupoColegas);
-  if(filtroAcademia) colegas = colegas.filter(c => c.nucleo === filtroAcademia);
+  if(filtroAcademia) colegas = colegas.filter(c => mesmoNucleo(c.nucleo, filtroAcademia));
   colegas = colegas.slice().sort((a, b) => {
     const naoLidoA = window._naoLidos.colega.has(a.user) ? 0 : 1;
     const naoLidoB = window._naoLidos.colega.has(b.user) ? 0 : 1;
@@ -13814,8 +15186,12 @@ function outrosProfessoresParaChat(){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const meuGrupoOutros = obterMeuGrupoId();
   const nomes = [...new Set(academiasContas.filter(conta => {
-    const grupoDaConta = conta.grupo === 'independente' ? ('ind:' + (conta.grupoParceiroId || conta.user)) : 'matriz';
-    return grupoDaConta === meuGrupoOutros;
+    // Antes essa comparação era refeita "na mão" aqui dentro e não reconhecia
+    // contas vinculadas a um Grupo oficial (grupoParceiroId) quando o campo
+    // "grupo" não era literalmente "independente" — por isso o professor
+    // aparecia em "Quem está online" (que usa a lógica certa) mas sumia
+    // daqui. Agora usa a mesma função central que o resto do app usa.
+    return calcularGrupoIdDeConta(conta) === meuGrupoOutros;
   }).map(conta => {
     const minhaAcademia = rede.find(a => a.nome === conta.nome);
     const nomeResolvido = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
@@ -13946,16 +15322,16 @@ function renderThreadProfSelecionado(profNome){
 }
 
 function meusAlunosParaChat(){
+  // Antes isso só trazia os alunos do(s) próprio(s) núcleo(s) do professor
+  // (obterMeusNucleos), então um professor só via os próprios alunos no chat.
+  // A lógica do chat é a mesma usada pra professores em outrosProfessoresParaChat():
+  // todo mundo do MESMO GRUPO pode conversar entre si, não só quem é "meu aluno"
+  // direto. Por isso agora filtra só pelo grupo (obterGrupoIdPorNomeProfessor),
+  // igual professores, trazendo todos os alunos do grupo (de qualquer núcleo/professor).
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const meuGrupoChat = obterMeuGrupoId();
-  if(currentRole === 'academia'){
-    const meusNucleos = obterMeusNucleos();
-    return meusNucleos.length > 0
-      ? contas.filter(c => meusNucleos.includes(c.nucleo) && obterGrupoIdPorNomeProfessor(c.professor) === meuGrupoChat)
-      : [];
-  }
-  if(currentRole === 'matriz'){
-    return contas.filter(c => obterGrupoIdPorNomeProfessor(c.professor) === 'matriz');
+  if(currentRole === 'academia' || currentRole === 'matriz'){
+    return contas.filter(c => obterGrupoIdPorNomeProfessor(c.professor) === meuGrupoChat);
   }
   return [];
 }
