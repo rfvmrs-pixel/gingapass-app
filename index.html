@@ -39,34 +39,50 @@
     background:#E7E2D6;
     display:flex;
     justify-content:center;
-    padding:0;
+    padding:32px 12px;
     min-height:100vh;
   }
   h1,h2,h3,.display{font-family:'Poppins',sans-serif;}
   .phone{
-    width:100%;
-    max-width:none;
+    width:390px;
+    max-width:100%;
     background:var(--cream);
-    border-radius:0;
-    border:none;
+    border-radius:44px;
+    border:10px solid var(--navy-900);
     overflow:hidden;
-    box-shadow:none;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
     position:relative;
-    height:100vh;
-    height:100dvh;
+    height:844px;
     display:flex;
     flex-direction:column;
   }
   .notch{
-    display:none;
-  }
-  .topbar{
-    padding-top:calc(38px + env(safe-area-inset-top));
-  }
-  .tabbar{
-    padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    position:absolute;
+    top:0; left:50%;
+    transform:translateX(-50%);
+    width:150px; height:26px;
+    background:var(--navy-900);
+    border-radius:0 0 16px 16px;
+    z-index:20;
   }
   @media (display-mode: standalone), (max-width: 480px) {
+    body{padding:0;}
+    .phone{
+      width:100%;
+      max-width:none;
+      height:100vh;
+      height:100dvh;
+      border:none;
+      border-radius:0;
+      box-shadow:none;
+    }
+    .notch{display:none;}
+    .topbar{
+      padding-top:calc(38px + env(safe-area-inset-top));
+    }
+    .tabbar{
+      padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    }
   }
   .topbar{
     background:var(--navy-900);
@@ -726,10 +742,19 @@
       <p id="muralSlideshowVazio" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;display:none;">Nenhuma foto no mural ainda. Publique em "Fotos"!</p>
     </div>
 
-    <div class="card" id="eventoPublicoCard" style="display:none;">
-      <div class="card-label">🌐 Evento Público</div>
-      <p style="font-size:11.5px;color:var(--ink-soft);margin:-2px 0 8px;">Visível para todo mundo no app, de qualquer grupo/academia</p>
-      <div id="eventoPublicoHome"></div>
+    <div class="card" id="eventoPublicoHomeCard" style="display:none;">
+      <div class="card-label">Evento Público</div>
+      <div id="eventoPublicoHomeCarrossel"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Plano de aula</div>
+      <div id="planoAulaHomeCard" style="display:none;">
+        <p id="planoAulaHomeTitulo" style="font-weight:700;font-size:14px;color:var(--navy-900);margin:0 0 4px;"></p>
+        <p id="planoAulaHomeData" style="font-size:10.5px;color:var(--ink-soft);margin:0 0 8px;"></p>
+        <p id="planoAulaHomeConteudo" style="font-size:12.5px;color:var(--ink);margin:0;white-space:pre-wrap;line-height:1.5;"></p>
+      </div>
+      <p id="planoAulaHomeVazio" style="font-size:11.5px;color:var(--ink-soft);margin:0;">Seu professor ainda não publicou um plano de aula.</p>
     </div>
 
     <div class="card">
@@ -858,6 +883,43 @@
       <button class="btn" type="button" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="adicionarNucleoAProfessorExistente(currentUser)">+ Cadastrar outra academia</button>
     </div>
 
+    <div id="perfilSecaoPlanoAula" style="display:none;">
+      <p class="section-title">Plano de aula</p>
+      <div class="card">
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Escreva o plano de aula e publique — ele aparece na tela de início dos seus alunos.</p>
+        <input class="admin-input" id="planoAulaTituloInput" placeholder="Título (ex: Semana de 18 a 22/08)">
+        <textarea class="admin-input" id="planoAulaConteudoInput" placeholder="Conteúdo do plano de aula..." style="min-height:90px;resize:vertical;"></textarea>
+        <button class="btn" type="button" onclick="publicarPlanoAula()">Publicar plano de aula</button>
+      </div>
+      <p class="section-title">Meus planos publicados</p>
+      <div class="card" id="perfilPlanosAulaLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum plano de aula publicado ainda.</p></div>
+    </div>
+
+    <div id="perfilSecaoAulasProfessor" style="display:none;">
+      <p class="section-title">Aulas do professor</p>
+      <div class="card">
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Cadastre os dias da semana e o horário das suas aulas fixas.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select class="admin-input" id="agendaAulaDiaInput" style="flex:1;min-width:140px;">
+            <option value="1">Segunda-feira</option>
+            <option value="2">Terça-feira</option>
+            <option value="3">Quarta-feira</option>
+            <option value="4">Quinta-feira</option>
+            <option value="5">Sexta-feira</option>
+            <option value="6">Sábado</option>
+            <option value="0">Domingo</option>
+          </select>
+          <input class="admin-input" id="agendaAulaHoraInput" type="time" style="flex:1;min-width:110px;">
+        </div>
+        <button class="btn" type="button" onclick="adicionarHorarioAgendaAula()">+ Adicionar horário</button>
+      </div>
+      <div class="card" id="agendaAulasProfessorLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum horário cadastrado ainda.</p></div>
+
+      <p class="section-title">Validar aulas da semana</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Confirme se cada aula agendada realmente aconteceu. Se não teve aula, ninguém fica com falta nesse dia.</p>
+      <div class="card" id="validacaoAulasSemanaLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Cadastre horários acima pra poder validar as aulas da semana.</p></div>
+    </div>
+
     <p class="section-title">Publicar no GingaFeed</p>
     <div class="card">
       <div class="card-label">Publicar uma foto</div>
@@ -965,9 +1027,15 @@
       <div class="card">
         <div class="card-label">Novo evento</div>
         <input class="admin-input" id="evTituloAdmin" placeholder="Nome do evento">
-        <input class="admin-input" id="evDataAdmin" placeholder="Data (ex: 10 de setembro)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Data programada do evento</label>
+        <input class="admin-input" id="evDataIsoAdmin" type="date">
+        <input class="admin-input" id="evDataAdmin" placeholder="Data por extenso/horário (ex: 10 de setembro às 19h)">
         <input class="admin-input" id="evLocalAdmin" placeholder="Local">
         <input class="admin-input" id="evPagamentoAdmin" placeholder="Link de pagamento da inscrição (opcional)">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
+          <input type="checkbox" id="evPublicoAdmin" style="width:16px;height:16px;">
+          Evento Público (aparece pra todo mundo no app, de qualquer grupo)
+        </label>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Cartaz do evento (opcional)</label>
         <input type="file" id="evFotoAdmin" accept="image/*" style="font-size:12px;margin-bottom:8px;">
         <button class="btn" onclick="publicarEventoAdmin()">Publicar evento</button>
@@ -985,15 +1053,17 @@
       <div class="card">
         <div class="card-label">Novo evento (rede toda)</div>
         <input class="admin-input" id="evTituloMatriz" placeholder="Nome do evento">
-        <input class="admin-input" id="evDataMatriz" placeholder="Data (ex: 10 de setembro)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Data programada do evento</label>
+        <input class="admin-input" id="evDataIsoMatriz" type="date">
+        <input class="admin-input" id="evDataMatriz" placeholder="Data por extenso/horário (ex: 10 de setembro às 19h)">
         <input class="admin-input" id="evLocalMatriz" placeholder="Local">
         <input class="admin-input" id="evPagamentoMatriz" placeholder="Link de pagamento da inscrição (opcional)">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
+          <input type="checkbox" id="evPublicoMatriz" style="width:16px;height:16px;">
+          Evento Público (aparece pra todo mundo no app, de qualquer grupo)
+        </label>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Cartaz do evento (opcional)</label>
         <input type="file" id="evFotoMatriz" accept="image/*" style="font-size:12px;margin-bottom:8px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);margin-bottom:10px;cursor:pointer;">
-          <input type="checkbox" id="evPublicoMatriz" style="width:auto;margin:0;">
-          🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia
-        </label>
         <button class="btn" onclick="publicarEventoMatriz()">Publicar evento</button>
       </div>
       <p class="section-title">Gerenciar todos os eventos</p>
@@ -1005,9 +1075,21 @@
       </div>
     </div>
 
-    <p class="section-title">Todos os eventos</p>
+    <p class="section-title">🌐 Evento Público</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Visível para todo mundo com acesso ao app, de qualquer grupo/núcleo.</p>
+    <div class="card">
+      <div id="eventosFeedPublico"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento público publicado ainda.</p></div>
+    </div>
+
+    <p class="section-title">Em destaque</p>
     <div class="card">
       <div id="eventosFeedCompleto"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p></div>
+    </div>
+
+    <p class="section-title">Eventos realizados</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Eventos cuja data programada já passou.</p>
+    <div class="card">
+      <div id="eventosFeedRealizados"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento realizado ainda.</p></div>
     </div>
   </div>
 
@@ -1360,6 +1442,17 @@
         <button class="btn" type="button" onclick="vincularResponsavelFicha()">Vincular responsável</button>
       </div>
     </div>
+
+    <p class="section-title">Transferir de professor</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Quando o aluno para de treinar com um professor e vai pra outro, use isso pra transferir — o motivo fica registrado no histórico do aluno. Só a matriz (senha master) ou o professor atual do aluno pode transferir.</p>
+      <p id="fichaAlunoProfessorAtualTexto" style="font-size:12.5px;color:var(--navy-900);margin:0 0 8px;font-weight:600;"></p>
+      <select class="admin-input" id="fichaAlunoNovoProfessorSelect"><option value="">Selecione o novo professor...</option></select>
+      <textarea class="admin-input" id="fichaAlunoMotivoTransferencia" placeholder="Motivo da transferência..." style="min-height:60px;resize:vertical;"></textarea>
+      <button class="btn" type="button" id="fichaAlunoTransferirBtn" onclick="transferirAlunoDeProfessor()">Transferir aluno</button>
+    </div>
+    <p class="section-title">Histórico de transferências</p>
+    <div class="card" id="fichaAlunoHistoricoTransferenciasLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma transferência registrada ainda.</p></div>
   </div>
 
   <div class="screen" id="perfilPublico">
@@ -1972,7 +2065,19 @@
 
   <div class="screen" id="estatisticas">
     <p class="greeting" style="font-size:18px;">Estatísticas</p>
-    <p class="subgreeting">Frequência, faltas e mensalidade dos alunos</p>
+    <p class="subgreeting" id="estatisticasSubgreeting">Frequência, faltas e mensalidade dos alunos</p>
+
+    <div id="estatisticasAlunoBox" style="display:none;">
+      <div class="stat-grid">
+        <div class="stat"><b id="estatAlunoFrequencia">0%</b><span>Frequência</span></div>
+        <div class="stat"><b id="estatAlunoFaltas">0</b><span>Faltas</span></div>
+      </div>
+      <p class="section-title">Minhas faltas</p>
+      <div class="card" id="estatAlunoFaltasLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma falta registrada.</p></div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que seu professor confirmou aula (QR code ou validação semanal).</p>
+    </div>
+
+    <div id="estatisticasProfessorSecoes">
     <div class="card" id="estatisticasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado.</p>
 
@@ -2029,6 +2134,12 @@
       <input class="admin-input" id="checkinAvulsoData" type="date" onchange="renderCheckinsAvulsos()" style="margin-bottom:0;">
     </div>
     <div class="card" id="checkinsAvulsosList"><p style="font-weight: 600; font-size: 14px; color: var(--navy-900); margin: 0px 0px 10px;">0 aluno(s) treinaram nesse dia</p><p style="font-size: 12.5px; color: var(--ink-soft); margin: 0px;">Nenhum check-in rápido registrado nessa data ainda.</p></div>
+    </div>
+  </div>
+
+  <div id="lightboxEvento" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+    <img id="lightboxEventoImg" style="max-width:100%;max-height:70vh;border-radius:14px;object-fit:contain;">
+    <button class="btn" type="button" onclick="document.getElementById(&#39;lightboxEvento&#39;).style.display=&#39;none&#39;;" style="width:auto;padding:10px 18px;margin-top:14px;background:var(--white);color:var(--navy-900);">Fechar</button>
   </div>
 
   <div id="lightboxMural" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
@@ -4903,7 +5014,7 @@ function aplicarPermissoes(){
   chatTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz' || currentRole === 'pai') ? 'flex' : 'none';
   matrizTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
   checkinTab.style.display = (currentRole === 'aluno' || currentRole === 'academia') ? 'flex' : 'none';
-  estatisticasTab.style.display = (currentRole === 'matriz' || souProfessorCompleto) ? 'flex' : 'none';
+  estatisticasTab.style.display = (currentRole === 'matriz' || souProfessorCompleto || currentRole === 'aluno') ? 'flex' : 'none';
   const mensalidadeTab = document.querySelector('.tab[data-target="mensalidade"]');
   if(mensalidadeTab) mensalidadeTab.style.display = (currentRole === 'pai') ? 'none' : 'flex';
   const perfilTab = document.querySelector('.tab[data-target="perfil"]');
@@ -4924,6 +5035,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderSaudacao(); });
   tentarChamar(function(){ aplicarAparenciaAtual(); });
   tentarChamar(function(){ populaSelectsNucleoProfessor(); });
+  tentarChamar(function(){ renderPlanoAulaHome(); });
   const eventosCriarAdmin = document.getElementById('eventosCriarBoxAdmin');
   const eventosCriarMatriz = document.getElementById('eventosCriarBoxMatriz');
   if(eventosCriarAdmin) eventosCriarAdmin.style.display = (currentRole === 'academia') ? 'block' : 'none';
@@ -5070,8 +5182,8 @@ function showScreen(id, btn){
     alert('O check-in por QR code é uma área do aluno.');
     return;
   }
-  if(id === 'estatisticas' && currentRole !== 'matriz' && currentRole !== 'academia'){
-    alert('As estatísticas são visíveis só para a matriz e para as academias.');
+  if(id === 'estatisticas' && currentRole !== 'matriz' && currentRole !== 'academia' && currentRole !== 'aluno'){
+    alert('As estatísticas são visíveis só para quem tem uma conta (aluno, professor ou matriz).');
     return;
   }
   if(id === 'aulas' && currentRole !== 'aluno'){
@@ -5091,9 +5203,14 @@ function showScreen(id, btn){
   }
   if(id === 'estatisticas'){
     renderEstatisticas();
-  renderCheckinsAvulsos();
-  renderCheckinsAlunos();
-  renderFaltasAlunos();
+    // As listas abaixo mostram dados de TODOS os alunos do dia — só fazem
+    // sentido pra quem gerencia (professor/matriz). O aluno vê só a visão
+    // pessoal montada dentro de renderEstatisticas (estatisticasAlunoBox).
+    if(currentRole === 'academia' || currentRole === 'matriz'){
+      renderCheckinsAvulsos();
+      renderCheckinsAlunos();
+      renderFaltasAlunos();
+    }
   }
   if(id === 'chat'){
     // O listener em tempo real (onSnapshot) já mantém tudo sincronizado o
@@ -6296,6 +6413,7 @@ function renderFichaAluno(){
     });
   }
   renderResponsaveisFicha();
+  renderTransferenciaFicha(aluno);
 
   // Calendário/histórico por mês: mantém o mês já escolhido (se a pessoa só
   // está atualizando a tela) ou usa o mês atual como padrão na primeira vez.
@@ -6388,6 +6506,144 @@ function montarResumoHistoricoMes(user, aluno, mesRef){
 
 function salvarFichaAluno(ficha){
   setDado(chaveFichaAluno(_fichaAlunoUserAtual), JSON.stringify(ficha));
+}
+
+// ===================== Transferência de aluno entre professores =====================
+// Só a matriz (senha master) ou o professor ATUAL do aluno pode transferir.
+// O motivo fica registrado no histórico do aluno (aqui e também como
+// observação na ficha, pra aparecer junto com o resto do histórico dele).
+function _chaveTransferenciasAluno(user){
+  return 'gingapass_transferencias_aluno:' + user;
+}
+
+function obterTransferenciasAluno(user){
+  return JSON.parse(localStorage.getItem(_chaveTransferenciasAluno(user)) || '[]');
+}
+
+function renderTransferenciaFicha(aluno){
+  const textoAtual = document.getElementById('fichaAlunoProfessorAtualTexto');
+  if(textoAtual) textoAtual.textContent = 'Professor atual: ' + (aluno.professor || 'nenhum definido ainda');
+
+  const podeTransferir = currentRole === 'matriz' || (currentRole === 'academia' && !!aluno.professor && mesmoProfessor(aluno.professor, obterMeuNomeProfessor()));
+  const select = document.getElementById('fichaAlunoNovoProfessorSelect');
+  const motivoInput = document.getElementById('fichaAlunoMotivoTransferencia');
+  const btn = document.getElementById('fichaAlunoTransferirBtn');
+  if(select) select.disabled = !podeTransferir;
+  if(motivoInput) motivoInput.disabled = !podeTransferir;
+  if(btn) btn.style.display = podeTransferir ? 'block' : 'none';
+
+  const avisoId = 'fichaAlunoTransferenciaAviso';
+  let aviso = document.getElementById(avisoId);
+  if(!podeTransferir){
+    if(!aviso && select && select.parentNode){
+      aviso = document.createElement('p');
+      aviso.id = avisoId;
+      aviso.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;';
+      aviso.textContent = 'Só a matriz (senha master) ou o professor atual deste aluno pode fazer a transferência.';
+      select.parentNode.insertBefore(aviso, select);
+    }
+  } else if(aviso){
+    aviso.remove();
+  }
+
+  const container = document.getElementById('fichaAlunoHistoricoTransferenciasLista');
+  if(!container) return;
+  const transferencias = obterTransferenciasAluno(aluno.user).slice().sort((a, b) => b.data - a.data);
+  if(transferencias.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma transferência registrada ainda.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  transferencias.forEach(t => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const dataFmt = new Date(t.data).toLocaleDateString('pt-BR');
+    const titulo = document.createElement('p');
+    titulo.style.cssText = 'font-size:12.5px;color:var(--navy-900);margin:0 0 2px;font-weight:600;';
+    titulo.textContent = (t.de || 'sem professor') + ' → ' + t.para;
+    const meta = document.createElement('p');
+    meta.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin:0 0 4px;';
+    meta.textContent = dataFmt + (t.feitoPor ? (' · por ' + t.feitoPor) : '');
+    row.appendChild(titulo);
+    row.appendChild(meta);
+    if(t.motivo){
+      const motivoP = document.createElement('p');
+      motivoP.style.cssText = 'font-size:12px;color:var(--ink);margin:0;';
+      motivoP.textContent = t.motivo;
+      row.appendChild(motivoP);
+    }
+    container.appendChild(row);
+  });
+  const ultimo = container.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
+function transferirAlunoDeProfessor(){
+  const user = _fichaAlunoUserAtual;
+  if(!user) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === user);
+  if(idx < 0){
+    alert('Aluno não encontrado.');
+    return;
+  }
+  const aluno = contas[idx];
+  const podeTransferir = currentRole === 'matriz' || (currentRole === 'academia' && !!aluno.professor && mesmoProfessor(aluno.professor, obterMeuNomeProfessor()));
+  if(!podeTransferir){
+    alert('Só a matriz (senha master) ou o professor atual deste aluno pode fazer a transferência.');
+    return;
+  }
+  const select = document.getElementById('fichaAlunoNovoProfessorSelect');
+  const motivoInput = document.getElementById('fichaAlunoMotivoTransferencia');
+  const novoProfessor = select ? select.value.trim() : '';
+  const motivo = motivoInput ? motivoInput.value.trim() : '';
+  if(!novoProfessor){
+    alert('Selecione o novo professor.');
+    return;
+  }
+  if(aluno.professor && mesmoProfessor(novoProfessor, aluno.professor)){
+    alert('Esse já é o professor atual do aluno.');
+    return;
+  }
+  if(!motivo){
+    alert('Escreva o motivo da transferência (fica registrado no histórico do aluno).');
+    return;
+  }
+  const professorAntigo = aluno.professor || '';
+  contas[idx] = Object.assign({}, aluno, {professor: novoProfessor});
+  // Também atualiza o núcleo do aluno pro núcleo do novo professor, se der
+  // pra descobrir (mesma ideia usada ao cadastrar/editar um aluno).
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nucleoNovo = rede.find(a => mesmoProfessor(a.professor, novoProfessor));
+  if(nucleoNovo && nucleoNovo.nome){
+    contas[idx].nucleo = nucleoNovo.nome;
+  }
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+
+  const transferencias = obterTransferenciasAluno(user);
+  transferencias.push({
+    de: professorAntigo,
+    para: novoProfessor,
+    motivo: motivo,
+    data: Date.now(),
+    feitoPor: (currentRole === 'matriz' ? 'Matriz (senha master)' : obterMeuNomeProfessor()) || obterNomeExibicaoAtual() || currentUser || ''
+  });
+  setDado(_chaveTransferenciasAluno(user), JSON.stringify(transferencias));
+
+  // Fica registrado também nas observações da ficha, pra aparecer junto com
+  // o resto do histórico do aluno na mesma tela.
+  const ficha = obterFichaAluno(user);
+  ficha.observacoes = ficha.observacoes || [];
+  ficha.observacoes.push({
+    data: Date.now(),
+    texto: 'Transferido de "' + (professorAntigo || 'sem professor') + '" para "' + novoProfessor + '". Motivo: ' + motivo
+  });
+  salvarFichaAluno(ficha);
+
+  if(motivoInput) motivoInput.value = '';
+  if(select) select.value = '';
+  alert('Aluno transferido para ' + novoProfessor + '.');
+  renderFichaAluno();
 }
 
 function adicionarGraduacaoFicha(){
@@ -7321,6 +7577,19 @@ function renderPerfil(){
   const cardCredenciaisMaster = document.getElementById('perfilCardCredenciaisMaster');
   if(cardCredenciaisMaster) cardCredenciaisMaster.style.display = (currentRole === 'matriz') ? 'block' : 'none';
 
+  // "Plano de aula" e "Aulas do professor" só existem no perfil de quem dá
+  // aula (professor/matriz) — aluno nunca vê essas seções no próprio perfil.
+  const souProfessorOuMatriz = currentRole === 'academia' || currentRole === 'matriz';
+  const secaoPlanoAula = document.getElementById('perfilSecaoPlanoAula');
+  const secaoAulasProfessor = document.getElementById('perfilSecaoAulasProfessor');
+  if(secaoPlanoAula) secaoPlanoAula.style.display = souProfessorOuMatriz ? 'block' : 'none';
+  if(secaoAulasProfessor) secaoAulasProfessor.style.display = souProfessorOuMatriz ? 'block' : 'none';
+  if(souProfessorOuMatriz){
+    tentarChamar(function(){ renderPlanosAulaPerfil(); });
+    tentarChamar(function(){ renderAgendaAulasPerfil(); });
+    tentarChamar(function(){ renderValidacaoAulasSemana(); });
+  }
+
   const nucleoView = document.getElementById('perfilNucleoView');
   const profView = document.getElementById('perfilProfessorView');
   const cordaView = document.getElementById('perfilCordaView');
@@ -7547,7 +7816,11 @@ function renderHistoricoMesPerfil(){
   container.innerHTML = '';
 }
 
-function adicionarEvento(titulo, data, local, pagamento, imagem, publico){
+function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico){
+  dataISO = (dataISO || '').trim();
+  if(!data && dataISO){
+    data = formatarDataEventoExtenso(dataISO);
+  }
   if(!titulo || !data){
     alert('Preencha ao menos o nome e a data do evento.');
     return false;
@@ -7557,10 +7830,7 @@ function adicionarEvento(titulo, data, local, pagamento, imagem, publico){
   // A imagem (cartaz) NUNCA vai no localStorage — fica só no IndexedDB deste aparelho
   // e sincronizada à parte pela nuvem (ver "Cartazes de evento" mais acima). O array
   // de eventos guarda só um sinalizador temImagem, então nunca fica grande.
-  // "publico" marca eventos que aparecem pra TODOS os grupos/academias na tela
-  // Início (ver renderEventoPublico) — além de continuarem no feed normal do
-  // grupo de quem publicou, igual qualquer outro evento.
-  eventos.push({titulo, data, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), publico: !!publico, criadoPor: identificadorUsuarioAtual()});
+  eventos.push({titulo, data, dataISO, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual(), publico: !!publico});
   setDado('gingapass_eventos', JSON.stringify(eventos));
   if(imagem){
     salvarImagemEvento(codigoCheckin, imagem);
@@ -7586,15 +7856,19 @@ function lerImagemComoBase64(inputEl, callback){
 function publicarEventoAdmin(){
   const titulo = document.getElementById('evTituloAdmin').value.trim();
   const data = document.getElementById('evDataAdmin').value.trim();
+  const dataISO = document.getElementById('evDataIsoAdmin').value;
   const local = document.getElementById('evLocalAdmin').value.trim();
   const pagamento = document.getElementById('evPagamentoAdmin').value.trim();
+  const publico = document.getElementById('evPublicoAdmin').checked;
   const fotoInput = document.getElementById('evFotoAdmin');
   lerImagemComoBase64(fotoInput, imagem => {
-    if(adicionarEvento(titulo, data, local, pagamento, imagem)){
+    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico)){
       document.getElementById('evTituloAdmin').value = '';
       document.getElementById('evDataAdmin').value = '';
+      document.getElementById('evDataIsoAdmin').value = '';
       document.getElementById('evLocalAdmin').value = '';
       document.getElementById('evPagamentoAdmin').value = '';
+      document.getElementById('evPublicoAdmin').checked = false;
       if(fotoInput) fotoInput.value = '';
     }
   });
@@ -7603,19 +7877,20 @@ function publicarEventoAdmin(){
 function publicarEventoMatriz(){
   const titulo = document.getElementById('evTituloMatriz').value.trim();
   const data = document.getElementById('evDataMatriz').value.trim();
+  const dataISO = document.getElementById('evDataIsoMatriz').value;
   const local = document.getElementById('evLocalMatriz').value.trim();
   const pagamento = document.getElementById('evPagamentoMatriz').value.trim();
+  const publico = document.getElementById('evPublicoMatriz').checked;
   const fotoInput = document.getElementById('evFotoMatriz');
-  const publicoCheckbox = document.getElementById('evPublicoMatriz');
-  const publico = !!(publicoCheckbox && publicoCheckbox.checked);
   lerImagemComoBase64(fotoInput, imagem => {
-    if(adicionarEvento(titulo, data, local, pagamento, imagem, publico)){
+    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico)){
       document.getElementById('evTituloMatriz').value = '';
       document.getElementById('evDataMatriz').value = '';
+      document.getElementById('evDataIsoMatriz').value = '';
       document.getElementById('evLocalMatriz').value = '';
       document.getElementById('evPagamentoMatriz').value = '';
+      document.getElementById('evPublicoMatriz').checked = false;
       if(fotoInput) fotoInput.value = '';
-      if(publicoCheckbox) publicoCheckbox.checked = false;
     }
   });
 }
@@ -7623,25 +7898,42 @@ function publicarEventoMatriz(){
 function renderEventos(){
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
-  const eventos = todosEventos
-    .map((ev, indiceReal) => ({ev, indiceReal}))
-    .filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv);
-  ['eventsList', 'eventosFeedCompleto'].forEach(containerId => {
+  const comIndice = todosEventos.map((ev, indiceReal) => ({ev, indiceReal}));
+  const doMeuGrupo = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv);
+  // Em destaque = ainda não passou da data programada. Eventos realizados =
+  // já passou (ver eventoJaPassou). Sem data confiável, fica sempre em destaque.
+  const destaque = doMeuGrupo.filter(x => !eventoJaPassou(x.ev));
+  const realizados = doMeuGrupo.filter(x => eventoJaPassou(x.ev));
+  // Evento Público: visível pra QUALQUER pessoa com acesso ao app, independente
+  // do grupo/núcleo dela — por isso não filtra por meuGrupoEv aqui.
+  const publicos = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev));
+
+  renderListaEventos('eventosFeedCompleto', destaque, 'Nenhum evento publicado ainda.');
+  renderListaEventos('eventosFeedRealizados', realizados, 'Nenhum evento realizado ainda.');
+  renderListaEventos('eventosFeedPublico', publicos, 'Nenhum evento público publicado ainda.');
+
+  renderEventosHome(destaque, publicos);
+}
+
+// Monta a lista (texto + cartaz + botão de presença) usada nas seções da aba
+// Eventos ("Em destaque", "Eventos realizados", "Evento Público").
+function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
   const lista = document.getElementById(containerId);
   if(!lista) return;
   lista.innerHTML = '';
-  if(eventos.length === 0){
-    lista.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p>';
+  if(eventosComIndice.length === 0){
+    lista.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">' + mensagemVazia + '</p>';
     return;
   }
-  eventos.forEach(({ev, indiceReal}) => {
+  const meuId = identificadorUsuarioAtual();
+  eventosComIndice.forEach(({ev, indiceReal}) => {
     const div = document.createElement('div');
     div.className = 'event-row custom';
     div.style.flexDirection = 'column';
     div.style.alignItems = 'flex-start';
     const localTxt = ev.local ? (' · ' + ev.local) : '';
     div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
-    div.querySelector('h4').textContent = ev.titulo;
+    div.querySelector('h4').textContent = ev.titulo + (ev.publico ? ' 🌐' : '');
     div.querySelector('p').textContent = ev.data + localTxt;
     if(ev.temImagem || ev.imagem){
       // ev.imagem só existe em eventos muito antigos que ainda não passaram pela
@@ -7675,9 +7967,11 @@ function renderEventos(){
       link.style.cssText += 'display:inline-block;margin:6px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);';
       div.appendChild(link);
     }
-    // Só professor/admin dão presença — quem participou do evento. Aluno não
-    // marca a própria presença aqui (evita gente se auto-confirmando).
-    if(currentRole === 'academia' || currentRole === 'matriz'){
+    // Só quem criou o evento (ou a matriz/senha master) pode dar presença —
+    // não fica mais habilitado pra qualquer professor da rede marcar presença
+    // em eventos que não são dele.
+    const souCriadorOuMatriz = currentRole === 'matriz' || (currentRole === 'academia' && !!ev.criadoPor && ev.criadoPor === meuId);
+    if(souCriadorOuMatriz){
       const presBtn = document.createElement('button');
       presBtn.type = 'button';
       presBtn.textContent = '✅ Dar presença';
@@ -7687,69 +7981,142 @@ function renderEventos(){
     }
     lista.appendChild(div);
   });
-  });
-  renderEventoPublico();
 }
 
-// Eventos marcados como "público" aparecem pra TODO MUNDO na tela Início,
-// sem filtrar por grupo/academia (ao contrário de renderEventos, que só
-// mostra o feed do próprio grupo do usuário).
-function renderEventoPublico(){
-  const card = document.getElementById('eventoPublicoCard');
-  const lista = document.getElementById('eventoPublicoHome');
-  if(!card || !lista) return;
-  const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
-  const eventos = todosEventos
-    .map((ev, indiceReal) => ({ev, indiceReal}))
-    .filter(x => !!x.ev.publico);
-  if(eventos.length === 0){
-    card.style.display = 'none';
-    lista.innerHTML = '';
+window._carrosselEventosTimers = window._carrosselEventosTimers || {};
+
+// Carrossel de cartazes de evento pra tela de início — igual ao GingaFeed:
+// passa sozinho a cada 8 segundos, com setas pra avançar/voltar na mão.
+// Reaproveitado tanto pros eventos em destaque do meu grupo quanto pro(s)
+// Evento(s) Público(s), visível(is) pra todo mundo de qualquer grupo.
+function renderCarrosselEventos(containerId, eventosComIndice, mensagemVazia){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  if(window._carrosselEventosTimers[containerId]){
+    clearInterval(window._carrosselEventosTimers[containerId]);
+    delete window._carrosselEventosTimers[containerId];
+  }
+  wrap.innerHTML = '';
+  wrap._eventos = eventosComIndice;
+  wrap._indiceAtual = 0;
+  if(!eventosComIndice || eventosComIndice.length === 0){
+    wrap.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">' + mensagemVazia + '</p>';
     return;
   }
-  card.style.display = 'block';
-  lista.innerHTML = '';
-  eventos.forEach(({ev}) => {
-    const div = document.createElement('div');
-    div.className = 'event-row custom';
-    div.style.flexDirection = 'column';
-    div.style.alignItems = 'flex-start';
-    div.style.marginBottom = '10px';
-    const localTxt = ev.local ? (' · ' + ev.local) : '';
-    div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
-    div.querySelector('h4').textContent = ev.titulo;
-    div.querySelector('p').textContent = ev.data + localTxt;
-    if(ev.temImagem || ev.imagem){
-      const src = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem;
-      if(src){
-        const img = document.createElement('img');
-        img.src = src;
-        img.style.cssText = 'width:100%;border-radius:12px;margin:8px 0 0 0;';
-        div.appendChild(img);
-      }
+
+  let indice = 0;
+  const moldura = document.createElement('div');
+  moldura.style.cssText = 'position:relative;border-radius:14px;overflow:hidden;background:#EFE6D2;';
+
+  const imgEl = document.createElement('img');
+  imgEl.style.cssText = 'width:100%;height:170px;object-fit:cover;display:none;transition:opacity .2s;cursor:pointer;';
+  imgEl.onclick = () => abrirLightboxEventoCarrossel(containerId);
+  moldura.appendChild(imgEl);
+
+  const semImg = document.createElement('div');
+  semImg.style.cssText = 'width:100%;height:170px;display:none;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--navy-900);text-align:center;padding:0 16px;';
+  moldura.appendChild(semImg);
+
+  let dots = [];
+  if(eventosComIndice.length > 1){
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.textContent = '‹';
+    prevBtn.setAttribute('aria-label', 'Evento anterior');
+    prevBtn.style.cssText = 'position:absolute;top:50%;left:8px;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:none;background:rgba(4,44,83,0.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    prevBtn.onclick = (e) => { e.stopPropagation(); mostrar(indice - 1); reiniciarAutoplay(); };
+    moldura.appendChild(prevBtn);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.textContent = '›';
+    nextBtn.setAttribute('aria-label', 'Próximo evento');
+    nextBtn.style.cssText = 'position:absolute;top:50%;right:8px;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:none;background:rgba(4,44,83,0.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    nextBtn.onclick = (e) => { e.stopPropagation(); mostrar(indice + 1); reiniciarAutoplay(); };
+    moldura.appendChild(nextBtn);
+  }
+
+  const dotsWrap = document.createElement('div');
+  if(eventosComIndice.length > 1){
+    dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin-top:8px;';
+    dots = eventosComIndice.map(() => {
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:6px;height:6px;border-radius:50%;background:var(--navy-900);opacity:0.3;display:inline-block;';
+      dotsWrap.appendChild(dot);
+      return dot;
+    });
+  }
+
+  const infoEl = document.createElement('div');
+  infoEl.style.cssText = 'padding:10px 2px 0;';
+  const tituloEl = document.createElement('p');
+  tituloEl.style.cssText = 'font-weight:700;font-size:13.5px;color:var(--navy-900);margin:0 0 2px;';
+  const dataEl = document.createElement('p');
+  dataEl.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0;';
+  infoEl.appendChild(tituloEl);
+  infoEl.appendChild(dataEl);
+
+  wrap.appendChild(moldura);
+  if(eventosComIndice.length > 1) wrap.appendChild(dotsWrap);
+  wrap.appendChild(infoEl);
+
+  function mostrar(i){
+    indice = ((i % eventosComIndice.length) + eventosComIndice.length) % eventosComIndice.length;
+    const ev = eventosComIndice[indice].ev;
+    const src = (ev.temImagem || ev.imagem) ? (window._eventoImagensCache[ev.codigoCheckin] || ev.imagem) : null;
+    if(src){
+      imgEl.src = src;
+      imgEl.style.display = 'block';
+      semImg.style.display = 'none';
+    } else {
+      imgEl.style.display = 'none';
+      semImg.style.display = 'flex';
+      semImg.textContent = ev.titulo;
     }
-    if(ev.pagamento){
-      const ehLink = /^https?:\/\//i.test(ev.pagamento);
-      const link = document.createElement(ehLink ? 'a' : 'span');
-      if(ehLink){
-        link.href = ev.pagamento;
-        link.target = '_blank';
-        link.rel = 'noopener';
-      } else {
-        link.style.cursor = 'pointer';
-        link.onclick = () => {
-          if(navigator.clipboard && navigator.clipboard.writeText){
-            navigator.clipboard.writeText(ev.pagamento);
-          }
-          alert('Chave Pix da inscrição: ' + ev.pagamento);
-        };
-      }
-      link.textContent = ehLink ? 'Pagar inscrição' : 'Ver forma de pagamento';
-      link.style.cssText += 'display:inline-block;margin:6px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);';
-      div.appendChild(link);
+    tituloEl.textContent = ev.titulo + (ev.publico ? ' 🌐' : '');
+    dataEl.textContent = ev.data + (ev.local ? (' · ' + ev.local) : '');
+    dots.forEach((d, idx) => { d.style.opacity = idx === indice ? '1' : '0.3'; });
+    wrap._indiceAtual = indice;
+  }
+
+  function reiniciarAutoplay(){
+    if(window._carrosselEventosTimers[containerId]){
+      clearInterval(window._carrosselEventosTimers[containerId]);
     }
-    lista.appendChild(div);
-  });
+    if(eventosComIndice.length > 1){
+      window._carrosselEventosTimers[containerId] = setInterval(function(){
+        mostrar(indice + 1);
+      }, 8000);
+    }
+  }
+
+  mostrar(0);
+  reiniciarAutoplay();
+}
+
+function abrirLightboxEventoCarrossel(containerId){
+  const wrap = document.getElementById(containerId);
+  if(!wrap || !wrap._eventos) return;
+  const item = wrap._eventos[wrap._indiceAtual || 0];
+  if(!item) return;
+  const ev = item.ev;
+  const src = (ev.temImagem || ev.imagem) ? (window._eventoImagensCache[ev.codigoCheckin] || ev.imagem) : null;
+  if(!src) return;
+  const lightbox = document.getElementById('lightboxEvento');
+  const img = document.getElementById('lightboxEventoImg');
+  if(!lightbox || !img) return;
+  img.src = src;
+  lightbox.style.display = 'flex';
+}
+
+// Tela de início: carrossel dos eventos em destaque do meu grupo + carrossel
+// separado do(s) Evento(s) Público(s) (visível pra todo mundo, de qualquer
+// grupo), logo abaixo do mural.
+function renderEventosHome(destaqueDoMeuGrupo, publicos){
+  renderCarrosselEventos('eventsList', destaqueDoMeuGrupo, 'Nenhum evento publicado ainda.');
+  const cardPublico = document.getElementById('eventoPublicoHomeCard');
+  if(cardPublico) cardPublico.style.display = (publicos && publicos.length > 0) ? 'block' : 'none';
+  renderCarrosselEventos('eventoPublicoHomeCarrossel', publicos || [], 'Nenhum evento público no momento.');
 }
 
 function renderEventosGerenciar(){
@@ -7771,7 +8138,7 @@ function renderEventosGerenciar(){
       const row = document.createElement('div');
       row.className = 'aluno-row';
       const span = document.createElement('span');
-      span.textContent = (ev.publico ? '🌐 ' : '') + ev.titulo + ' — ' + ev.data + (ev.local ? (' · ' + ev.local) : '');
+      span.textContent = ev.titulo + ' — ' + ev.data + (ev.local ? (' · ' + ev.local) : '');
       const actions = document.createElement('div');
       actions.style.cssText = 'display:flex;gap:8px;';
       const qrBtn = document.createElement('button');
@@ -7789,7 +8156,11 @@ function renderEventosGerenciar(){
       delBtn.textContent = 'Remover';
       delBtn.onclick = () => removerEvento(indiceReal);
       actions.appendChild(qrBtn);
-      if(currentRole === 'academia' || currentRole === 'matriz'){
+      // Só quem criou o evento (ou a matriz/senha master) pode dar ou tirar
+      // presença — não fica mais aberto pra qualquer professor da rede.
+      const meuIdGer = identificadorUsuarioAtual();
+      const souCriadorOuMatrizGer = currentRole === 'matriz' || (currentRole === 'academia' && !!ev.criadoPor && ev.criadoPor === meuIdGer);
+      if(souCriadorOuMatrizGer){
         const presBtn = document.createElement('button');
         presBtn.className = 'aluno-del';
         presBtn.style.color = '#2E8B57';
@@ -7833,6 +8204,17 @@ function abrirPresencaEvento(indiceReal){
     alert('Só professores e o admin podem dar presença em eventos.');
     return;
   }
+  // Só quem criou o evento (ou a matriz/senha master) pode abrir a tela de
+  // presença — não fica mais aberto pra qualquer professor da rede.
+  if(currentRole === 'academia'){
+    const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+    const ev = eventos[indiceReal];
+    const meuId = identificadorUsuarioAtual();
+    if(!ev || !ev.criadoPor || ev.criadoPor !== meuId){
+      alert('Só quem criou este evento (ou a senha master/matriz) pode dar ou tirar presença dele.');
+      return;
+    }
+  }
   _presencaEventoIndice = indiceReal;
   showScreen('presencaEventoTela');
   renderPresencaEvento();
@@ -7857,7 +8239,12 @@ function renderPresencaEvento(){
 
   const meuId = identificadorUsuarioAtual();
   const souCriador = !!(ev.criadoPor && ev.criadoPor === meuId);
-  const podeDesmarcar = currentRole === 'matriz' || souCriador;
+  // Marcar E desmarcar presença seguem a mesma regra agora: só quem criou o
+  // evento, ou a matriz/senha master, pode mexer — não fica mais aberto pra
+  // qualquer professor da rede (abrirPresencaEvento já bloqueia a entrada
+  // pra quem não pode, isso aqui é reforço/segunda trava).
+  const podeGerenciarPresenca = currentRole === 'matriz' || souCriador;
+  const podeDesmarcar = podeGerenciarPresenca;
 
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const meuGrupoEv = obterMeuGrupoId();
@@ -7871,10 +8258,10 @@ function renderPresencaEvento(){
   resumo.style.cssText = 'font-weight:600;font-size:13.5px;color:var(--navy-900);margin:0 0 10px;';
   resumo.textContent = presentesSet.size + ' de ' + alunosDoGrupo.length + ' participante(s) confirmado(s)';
   container.appendChild(resumo);
-  if(!podeDesmarcar){
+  if(!podeGerenciarPresenca){
     const aviso = document.createElement('p');
     aviso.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;';
-    aviso.textContent = 'Você pode marcar presença, mas só quem criou este evento (ou o admin) pode desmarcar.';
+    aviso.textContent = 'Só quem criou este evento (ou a senha master/matriz) pode marcar ou desmarcar presença.';
     container.appendChild(aviso);
   }
   if(alunosDoGrupo.length === 0){
@@ -7891,16 +8278,17 @@ function renderPresencaEvento(){
     const chk = document.createElement('input');
     chk.type = 'checkbox';
     chk.checked = jaPresente;
-    chk.style.cssText = 'width:18px;height:18px;flex-shrink:0;';
+    chk.disabled = !podeGerenciarPresenca;
+    chk.style.cssText = 'width:18px;height:18px;flex-shrink:0;' + (podeGerenciarPresenca ? '' : 'opacity:0.5;cursor:not-allowed;');
     chk.onchange = () => {
+      if(!podeGerenciarPresenca){
+        alert('Só quem criou este evento (ou a senha master/matriz) pode marcar ou desmarcar presença.');
+        chk.checked = jaPresente;
+        return;
+      }
       if(chk.checked){
         darPresencaEvento(ev.codigoCheckin, a.user);
       } else {
-        if(!podeDesmarcar){
-          alert('Só quem criou este evento (ou o admin) pode desmarcar presença.');
-          chk.checked = true;
-          return;
-        }
         removerPresencaEvento(ev.codigoCheckin, a.user);
       }
       renderPresencaEvento();
@@ -8804,23 +9192,28 @@ function editarEvento(i){
   const ev = eventos[i];
   const titulo = prompt('Nome do evento:', ev.titulo);
   if(titulo === null) return;
-  const data = prompt('Data:', ev.data);
+  const dataISO = prompt('Data programada (AAAA-MM-DD, usada pra saber quando o evento vira "realizado"; deixe em branco se não souber):', ev.dataISO || '');
+  if(dataISO === null) return;
+  const data = prompt('Data por extenso/horário:', ev.data);
   if(data === null) return;
   const local = prompt('Local:', ev.local || '');
   if(local === null) return;
   const pagamento = prompt('Link de pagamento (deixe em branco se não houver):', ev.pagamento || '');
   if(pagamento === null) return;
-  eventos[i] = {
+  const publico = confirm('Este é um Evento Público (aparece pra todo mundo no app, de qualquer grupo)?\n\nOK = sim, público. Cancelar = não, só do meu grupo.');
+  // Usa espalhamento (...ev) pra preservar campos que esse formulário não edita
+  // (como grupo e criadoPor) — sem isso, editar um evento apagava quem criou
+  // ele e quebrava a permissão de dar/tirar presença (ver renderListaEventos).
+  eventos[i] = Object.assign({}, ev, {
     titulo: titulo.trim() || ev.titulo,
+    dataISO: dataISO.trim(),
     data: data.trim() || ev.data,
     local: local.trim(),
     pagamento: pagamento.trim(),
     temImagem: !!(ev.temImagem || ev.imagem),
     codigoCheckin: ev.codigoCheckin,
-    grupo: ev.grupo,
-    publico: !!ev.publico,
-    criadoPor: ev.criadoPor
-  };
+    publico: publico
+  });
   setDado('gingapass_eventos', JSON.stringify(eventos));
   renderEventos();
   renderEventosGerenciar();
@@ -11767,6 +12160,39 @@ function extrairAnoMesDeDataEvento(dataTexto){
   return m[3] + '-' + mes;
 }
 
+// Formata uma data ISO (AAAA-MM-DD, vinda do seletor de data) por extenso,
+// pra usar como texto de exibição quando o campo livre não foi preenchido.
+function formatarDataEventoExtenso(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  const formatado = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric', weekday:'long'});
+  return formatado.charAt(0).toUpperCase() + formatado.slice(1);
+}
+
+// Tenta descobrir uma data ISO (AAAA-MM-DD) a partir do texto livre de eventos
+// antigos (formato dd/mm/aaaa), pra eventos que nunca tiveram o campo dataISO
+// preenchido. Se não achar nada reconhecível, retorna null.
+function extrairIsoDeDataEventoTexto(dataTexto){
+  if(!dataTexto) return null;
+  const m = String(dataTexto).match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if(!m) return null;
+  const dia = m[1].padStart(2, '0');
+  const mes = m[2].padStart(2, '0');
+  return m[3] + '-' + mes + '-' + dia;
+}
+
+// Um evento é considerado "realizado" (já aconteceu) só quando dá pra saber a
+// data programada com confiança (dataISO, ou um texto livre no formato
+// dd/mm/aaaa) E essa data já passou. Sem uma data confiável, o evento fica
+// sempre em destaque — mais seguro do que escondê-lo por engano.
+function eventoJaPassou(ev){
+  if(!ev) return false;
+  const iso = ev.dataISO || extrairIsoDeDataEventoTexto(ev.data);
+  if(!iso) return false;
+  return iso < hojeStr();
+}
+
 // Lista os checkins de evento (gingapass_checkins_eventos) que pertencem a um
 // usuário — casando pelo user de login E, quando a pessoa é professor/matriz,
 // também por nome (porque a presença em evento pode ter sido registrada num
@@ -12176,6 +12602,322 @@ function _apagarDaNuvemComRetentativa(chave, tentativas){
 // (mesma ideia usada na aula ao vivo, reaproveitada aqui).
 function _chaveProf(nome){
   return (nome || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+// ===================== Plano de aula do professor =====================
+// O professor escreve e publica no perfil dele; aparece na tela de início de
+// TODOS os alunos vinculados a ele (aluno.professor bate com o nome dele).
+function _chavePlanosAula(nomeProf){
+  return 'gingapass_planos_aula_prof_' + _chaveProf(nomeProf);
+}
+
+function obterPlanosAulaDoProfessor(nomeProf){
+  return JSON.parse(localStorage.getItem(_chavePlanosAula(nomeProf)) || '[]');
+}
+
+function publicarPlanoAula(){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf){
+    alert('Cadastre seu nome de professor antes de publicar um plano de aula.');
+    return;
+  }
+  const tituloInput = document.getElementById('planoAulaTituloInput');
+  const conteudoInput = document.getElementById('planoAulaConteudoInput');
+  const titulo = tituloInput ? tituloInput.value.trim() : '';
+  const conteudo = conteudoInput ? conteudoInput.value.trim() : '';
+  if(!conteudo){
+    alert('Escreva o conteúdo do plano de aula antes de publicar.');
+    return;
+  }
+  const planos = obterPlanosAulaDoProfessor(nomeProf);
+  planos.unshift({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    titulo: titulo || 'Plano de aula',
+    conteudo: conteudo,
+    data: Date.now(),
+    publicadoPor: identificadorUsuarioAtual()
+  });
+  setDado(_chavePlanosAula(nomeProf), JSON.stringify(planos));
+  if(tituloInput) tituloInput.value = '';
+  if(conteudoInput) conteudoInput.value = '';
+  renderPlanosAulaPerfil();
+  alert('Plano de aula publicado! Já aparece na tela de início dos seus alunos.');
+}
+
+function excluirPlanoAula(id){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf) return;
+  if(!confirm('Remover este plano de aula?')) return;
+  const planos = obterPlanosAulaDoProfessor(nomeProf).filter(p => p.id !== id);
+  setDado(_chavePlanosAula(nomeProf), JSON.stringify(planos));
+  renderPlanosAulaPerfil();
+}
+
+function renderPlanosAulaPerfil(){
+  const container = document.getElementById('perfilPlanosAulaLista');
+  if(!container) return;
+  const nomeProf = obterMeuNomeProfessor();
+  const planos = nomeProf ? obterPlanosAulaDoProfessor(nomeProf) : [];
+  if(planos.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum plano de aula publicado ainda.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  planos.forEach(p => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+    const dataFmt = new Date(p.data).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const topo = document.createElement('div');
+    const forte = document.createElement('b');
+    forte.style.cssText = 'font-size:13px;color:var(--navy-900);';
+    forte.textContent = p.titulo || 'Plano de aula';
+    const dataP = document.createElement('p');
+    dataP.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin:2px 0 6px;';
+    dataP.textContent = 'Publicado em ' + dataFmt;
+    const conteudoP = document.createElement('p');
+    conteudoP.style.cssText = 'font-size:12.5px;color:var(--ink);margin:0;white-space:pre-wrap;';
+    conteudoP.textContent = p.conteudo || '';
+    topo.appendChild(forte);
+    topo.appendChild(dataP);
+    topo.appendChild(conteudoP);
+    row.appendChild(topo);
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = '× Remover';
+    delBtn.style.cssText = 'border:none;background:none;color:var(--danger);font-size:11.5px;font-weight:600;cursor:pointer;padding:0;margin-top:6px;';
+    delBtn.onclick = () => excluirPlanoAula(p.id);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+  const ultimo = container.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
+// Tela de início do aluno: mostra o plano de aula mais recente do professor
+// dele, se houver algum publicado.
+function renderPlanoAulaHome(){
+  const cardConteudo = document.getElementById('planoAulaHomeCard');
+  const cardVazio = document.getElementById('planoAulaHomeVazio');
+  if(!cardConteudo || !cardVazio) return;
+  if(currentRole !== 'aluno' || !currentUser){
+    cardConteudo.style.display = 'none';
+    cardVazio.style.display = 'block';
+    cardVazio.textContent = 'Disponível pra alunos com professor cadastrado.';
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  const nomeProf = minhaConta && minhaConta.professor;
+  const planos = nomeProf ? obterPlanosAulaDoProfessor(nomeProf) : [];
+  if(!nomeProf || planos.length === 0){
+    cardConteudo.style.display = 'none';
+    cardVazio.style.display = 'block';
+    cardVazio.textContent = 'Seu professor ainda não publicou um plano de aula.';
+    return;
+  }
+  const maisRecente = planos[0];
+  const tituloEl = document.getElementById('planoAulaHomeTitulo');
+  const dataEl = document.getElementById('planoAulaHomeData');
+  const conteudoEl = document.getElementById('planoAulaHomeConteudo');
+  if(tituloEl) tituloEl.textContent = maisRecente.titulo || 'Plano de aula';
+  if(dataEl) dataEl.textContent = 'Publicado em ' + new Date(maisRecente.data).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  if(conteudoEl) conteudoEl.textContent = maisRecente.conteudo || '';
+  cardConteudo.style.display = 'block';
+  cardVazio.style.display = 'none';
+}
+
+// ===================== Aulas do professor (agenda semanal + validação) =====================
+// O professor cadastra dias da semana/horário fixos e, durante a semana,
+// confirma se cada aula agendada realmente aconteceu. Confirmando "sim", o dia
+// entra na mesma lista usada pelo QR code (gingapass_dias_checkin_prof_...),
+// que é o que decide falta dos alunos — então uma aula nunca validada (nem
+// pelo QR, nem por aqui) simplesmente não gera falta pra ninguém.
+function _chaveAgendaAulas(nomeProf){
+  return 'gingapass_agenda_aulas_prof_' + _chaveProf(nomeProf);
+}
+function _chaveAulasNaoHouve(nomeProf){
+  return 'gingapass_aulas_nao_houve_prof_' + _chaveProf(nomeProf);
+}
+
+const NOMES_DIAS_SEMANA = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
+function adicionarHorarioAgendaAula(){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf){
+    alert('Cadastre seu nome de professor antes de configurar a agenda de aulas.');
+    return;
+  }
+  const diaInput = document.getElementById('agendaAulaDiaInput');
+  const horaInput = document.getElementById('agendaAulaHoraInput');
+  const dia = diaInput ? Number(diaInput.value) : NaN;
+  const hora = horaInput ? horaInput.value : '';
+  if(isNaN(dia) || !hora){
+    alert('Escolha o dia da semana e o horário.');
+    return;
+  }
+  const chave = _chaveAgendaAulas(nomeProf);
+  const agenda = JSON.parse(localStorage.getItem(chave) || '[]');
+  if(agenda.some(h => h.dia === dia && h.hora === hora)){
+    alert('Esse horário já está cadastrado.');
+    return;
+  }
+  agenda.push({id: Date.now() + '_' + Math.random().toString(36).slice(2, 8), dia: dia, hora: hora});
+  setDado(chave, JSON.stringify(agenda));
+  if(horaInput) horaInput.value = '';
+  renderAgendaAulasPerfil();
+  renderValidacaoAulasSemana();
+}
+
+function removerHorarioAgendaAula(id){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf) return;
+  if(!confirm('Remover esse horário da agenda?')) return;
+  const chave = _chaveAgendaAulas(nomeProf);
+  const agenda = JSON.parse(localStorage.getItem(chave) || '[]').filter(h => h.id !== id);
+  setDado(chave, JSON.stringify(agenda));
+  renderAgendaAulasPerfil();
+  renderValidacaoAulasSemana();
+}
+
+function renderAgendaAulasPerfil(){
+  const container = document.getElementById('agendaAulasProfessorLista');
+  if(!container) return;
+  const nomeProf = obterMeuNomeProfessor();
+  const agenda = nomeProf ? JSON.parse(localStorage.getItem(_chaveAgendaAulas(nomeProf)) || '[]') : [];
+  if(agenda.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum horário cadastrado ainda.</p>';
+    return;
+  }
+  const ordenada = agenda.slice().sort((a, b) => a.dia - b.dia || String(a.hora).localeCompare(String(b.hora)));
+  container.innerHTML = '';
+  ordenada.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = NOMES_DIAS_SEMANA[h.dia] + ' às ' + h.hora;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'aluno-del';
+    delBtn.textContent = 'Remover';
+    delBtn.onclick = () => removerHorarioAgendaAula(h.id);
+    row.appendChild(span);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+// Datas da semana atual (segunda a domingo) que batem com algum dia da
+// agenda e que já chegaram (não faz sentido validar uma aula futura).
+function obterDatasParaValidarNaSemana(agenda){
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const diaSemanaHoje = hoje.getDay(); // 0 = domingo
+  const deltaSegunda = (diaSemanaHoje === 0) ? -6 : (1 - diaSemanaHoje);
+  const segunda = new Date(hoje);
+  segunda.setDate(hoje.getDate() + deltaSegunda);
+
+  const diasAgendados = [...new Set(agenda.map(h => h.dia))];
+  const datas = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(segunda);
+    d.setDate(segunda.getDate() + i);
+    if(d > hoje) continue;
+    if(diasAgendados.includes(d.getDay())){
+      const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      datas.push({iso: iso, diaSemana: d.getDay()});
+    }
+  }
+  return datas;
+}
+
+function renderValidacaoAulasSemana(){
+  const container = document.getElementById('validacaoAulasSemanaLista');
+  if(!container) return;
+  const nomeProf = obterMeuNomeProfessor();
+  const agenda = nomeProf ? JSON.parse(localStorage.getItem(_chaveAgendaAulas(nomeProf)) || '[]') : [];
+  if(!nomeProf || agenda.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Cadastre horários acima pra poder validar as aulas da semana.</p>';
+    return;
+  }
+  const datas = obterDatasParaValidarNaSemana(agenda);
+  if(datas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma aula agendada chegou ainda essa semana.</p>';
+    return;
+  }
+  const diasDoProf = new Set(JSON.parse(localStorage.getItem('gingapass_dias_checkin_prof_' + _chaveProf(nomeProf)) || '[]'));
+  const naoHouve = new Set(JSON.parse(localStorage.getItem(_chaveAulasNaoHouve(nomeProf)) || '[]'));
+
+  container.innerHTML = '';
+  datas.forEach(({iso, diaSemana}) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:9px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;';
+    const dataFmt = new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR');
+    const info = document.createElement('div');
+    let statusTxt = 'Ainda não validada';
+    let statusCor = '#B8722A';
+    if(diasDoProf.has(iso)){ statusTxt = '✅ Teve aula'; statusCor = '#2E8B57'; }
+    else if(naoHouve.has(iso)){ statusTxt = '❌ Não teve aula'; statusCor = '#C0392B'; }
+    const forte = document.createElement('b');
+    forte.style.cssText = 'font-size:13px;color:var(--navy-900);';
+    forte.textContent = NOMES_DIAS_SEMANA[diaSemana] + ' (' + dataFmt + ')';
+    const statusP = document.createElement('div');
+    statusP.style.cssText = 'font-size:11px;font-weight:600;color:' + statusCor + ';';
+    statusP.textContent = statusTxt;
+    info.appendChild(forte);
+    info.appendChild(statusP);
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:10px;flex-shrink:0;';
+    const btnSim = document.createElement('button');
+    btnSim.type = 'button';
+    btnSim.textContent = 'Teve aula';
+    btnSim.style.cssText = 'border:none;background:none;color:#2E8B57;font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnSim.onclick = () => confirmarAulaAconteceu(iso);
+    const btnNao = document.createElement('button');
+    btnNao.type = 'button';
+    btnNao.textContent = 'Não teve aula';
+    btnNao.style.cssText = 'border:none;background:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnNao.onclick = () => confirmarAulaNaoAconteceu(iso);
+    btnGroup.appendChild(btnSim);
+    btnGroup.appendChild(btnNao);
+    row.appendChild(info);
+    row.appendChild(btnGroup);
+    container.appendChild(row);
+  });
+  const ultimo = container.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
+function confirmarAulaAconteceu(iso){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf) return;
+  const chaveDias = 'gingapass_dias_checkin_prof_' + _chaveProf(nomeProf);
+  const dias = JSON.parse(localStorage.getItem(chaveDias) || '[]');
+  if(!dias.includes(iso)){
+    dias.push(iso);
+    setDado(chaveDias, JSON.stringify(dias));
+  }
+  const chaveNao = _chaveAulasNaoHouve(nomeProf);
+  const naoHouve = JSON.parse(localStorage.getItem(chaveNao) || '[]').filter(d => d !== iso);
+  setDado(chaveNao, JSON.stringify(naoHouve));
+  renderValidacaoAulasSemana();
+  tentarChamar(function(){ renderFaltasAlunos(); });
+  tentarChamar(function(){ renderEstatisticas(); });
+}
+
+function confirmarAulaNaoAconteceu(iso){
+  const nomeProf = obterMeuNomeProfessor();
+  if(!nomeProf) return;
+  const chaveDias = 'gingapass_dias_checkin_prof_' + _chaveProf(nomeProf);
+  const dias = JSON.parse(localStorage.getItem(chaveDias) || '[]').filter(d => d !== iso);
+  setDado(chaveDias, JSON.stringify(dias));
+  const chaveNao = _chaveAulasNaoHouve(nomeProf);
+  const naoHouve = JSON.parse(localStorage.getItem(chaveNao) || '[]');
+  if(!naoHouve.includes(iso)){
+    naoHouve.push(iso);
+    setDado(chaveNao, JSON.stringify(naoHouve));
+  }
+  renderValidacaoAulasSemana();
+  tentarChamar(function(){ renderFaltasAlunos(); });
+  tentarChamar(function(){ renderEstatisticas(); });
 }
 
 function gerarQrAula(sufixo){
@@ -13308,30 +14050,85 @@ function renderFaltasAlunos(){
   }
 
   ausentes.forEach(a => {
-    const excluida = excluidas.some(f => f.aluno === a.user && f.data === data);
+    const registroExcluido = excluidas.find(f => f.aluno === a.user && f.data === data);
+    const excluida = !!registroExcluido;
+    const motivo = (registroExcluido && registroExcluido.motivo) || obterObservacaoFalta(a.user, data);
+    // Exclusão de falta (e desfazer justificativa) só pode quem é o professor
+    // ATUAL desse aluno específico, ou a matriz/senha master — não fica mais
+    // aberto pra qualquer professor que compartilha o mesmo núcleo.
+    const podeExcluir = currentRole === 'matriz' || (currentRole === 'academia' && !!a.professor && mesmoProfessor(a.professor, obterMeuNomeProfessor()));
     const row = document.createElement('div');
     row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;';
     const info = document.createElement('div');
-    info.innerHTML = '<b>' + a.nome + '</b>' + (excluida ? '<br><span style="font-size:11px;color:#1E9C71;">Justificada — não conta como falta</span>' : '');
+    info.innerHTML = '<b>' + a.nome + '</b>' +
+      (excluida ? '<br><span style="font-size:11px;color:#1E9C71;">Justificada — não conta como falta</span>' : '') +
+      (motivo ? '<br><span style="font-size:11px;color:var(--ink-soft);">Obs: ' + String(motivo).replace(/</g, '&lt;') + '</span>' : '');
     const btnGroup = document.createElement('div');
-    btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center;flex-shrink:0;';
+    btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center;flex-shrink:0;flex-wrap:wrap;';
     const btnPresenca = document.createElement('button');
     btnPresenca.type = 'button';
     btnPresenca.textContent = 'Marcar presença';
     btnPresenca.style.cssText = 'border:none;background:none;color:#1E9C71;font-size:12px;font-weight:600;cursor:pointer;padding:0;';
     btnPresenca.onclick = () => marcarPresencaManual(a.user, data, a.professor);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = excluida ? 'Desfazer justificativa' : 'Excluir falta';
-    btn.className = excluida ? 'aluno-del' : '';
-    btn.style.cssText = excluida ? '' : 'border:none;background:none;color:var(--navy-700);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
-    btn.onclick = () => (excluida ? restaurarFalta(a.user, data) : excluirFalta(a.user, data));
     btnGroup.appendChild(btnPresenca);
-    btnGroup.appendChild(btn);
+    const btnObs = document.createElement('button');
+    btnObs.type = 'button';
+    btnObs.textContent = motivo ? '📝 Editar observação' : '📝 Observação';
+    btnObs.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnObs.onclick = () => editarObservacaoFalta(a.user, data, a.nome);
+    btnGroup.appendChild(btnObs);
+    if(podeExcluir){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = excluida ? 'Desfazer justificativa' : 'Excluir falta';
+      btn.className = excluida ? 'aluno-del' : '';
+      btn.style.cssText = excluida ? '' : 'border:none;background:none;color:var(--navy-700);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+      btn.onclick = () => (excluida ? restaurarFalta(a.user, data) : excluirFalta(a.user, data));
+      btnGroup.appendChild(btn);
+    }
     row.appendChild(info);
     row.appendChild(btnGroup);
     container.appendChild(row);
   });
+}
+
+// ===================== Observação/motivo de falta =====================
+// Guarda um motivo pra QUALQUER falta (justificada/excluída ou não), sem
+// mexer no cálculo de frequência — é só uma nota explicando o que houve.
+function obterObservacaoFalta(userAluno, data){
+  const obsList = JSON.parse(localStorage.getItem('gingapass_faltas_obs') || '[]');
+  const registro = obsList.find(o => o.aluno === userAluno && o.data === data);
+  return registro ? (registro.motivo || '') : '';
+}
+
+function definirObservacaoFalta(userAluno, data, motivo){
+  const obsList = JSON.parse(localStorage.getItem('gingapass_faltas_obs') || '[]');
+  const idx = obsList.findIndex(o => o.aluno === userAluno && o.data === data);
+  if(motivo){
+    if(idx >= 0) obsList[idx].motivo = motivo;
+    else obsList.push({aluno: userAluno, data: data, motivo: motivo});
+  } else if(idx >= 0){
+    obsList.splice(idx, 1);
+  }
+  setDado('gingapass_faltas_obs', JSON.stringify(obsList));
+}
+
+function editarObservacaoFalta(userAluno, data, nomeAluno){
+  const atual = obterObservacaoFalta(userAluno, data);
+  const dataFmt = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+  const novo = prompt('Observação sobre a falta de ' + (nomeAluno || userAluno) + ' em ' + dataFmt + ' (motivo/explicação):', atual);
+  if(novo === null) return;
+  definirObservacaoFalta(userAluno, data, novo.trim());
+  // Se essa falta já estiver justificada/excluída, mantém o motivo sincronizado
+  // também no registro de exclusão, pra aparecer certinho nas estatísticas.
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+  const idxExcluida = excluidas.findIndex(f => f.aluno === userAluno && f.data === data);
+  if(idxExcluida >= 0){
+    excluidas[idxExcluida].motivo = novo.trim();
+    setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
+  }
+  renderFaltasAlunos();
+  tentarChamar(function(){ renderEstatisticas(); });
 }
 
 // Corrige uma falta registrada errada, marcando a presença de verdade nesse
@@ -13348,22 +14145,47 @@ function marcarPresencaManual(userAluno, data, professorDoAluno){
   renderEstatisticas();
 }
 
+// Só o professor ATUAL do aluno (o que está em aluno.professor), ou a
+// matriz/senha master, pode excluir/desfazer uma falta — não fica mais
+// aberto pra qualquer professor que só compartilha o mesmo núcleo.
+function _podeExcluirFaltaDoAluno(userAluno){
+  if(currentRole === 'matriz') return true;
+  if(currentRole !== 'academia') return false;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const aluno = contas.find(c => c.user === userAluno);
+  return !!(aluno && aluno.professor && mesmoProfessor(aluno.professor, obterMeuNomeProfessor()));
+}
+
 function excluirFalta(userAluno, data){
+  if(!_podeExcluirFaltaDoAluno(userAluno)){
+    alert('Só o professor deste aluno (ou a matriz/senha master) pode excluir uma falta.');
+    return;
+  }
+  const motivo = prompt('Motivo da falta (fica registrado no histórico; pode deixar em branco):', obterObservacaoFalta(userAluno, data));
+  if(motivo === null) return;
   const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
   if(!excluidas.some(f => f.aluno === userAluno && f.data === data)){
-    excluidas.push({aluno: userAluno, data});
-    setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
+    excluidas.push({aluno: userAluno, data: data, motivo: motivo.trim()});
+  } else {
+    const idx = excluidas.findIndex(f => f.aluno === userAluno && f.data === data);
+    excluidas[idx].motivo = motivo.trim();
   }
+  setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
+  if(motivo.trim()) definirObservacaoFalta(userAluno, data, motivo.trim());
   renderFaltasAlunos();
-  renderEstatisticas();
+  tentarChamar(function(){ renderEstatisticas(); });
 }
 
 function restaurarFalta(userAluno, data){
+  if(!_podeExcluirFaltaDoAluno(userAluno)){
+    alert('Só o professor deste aluno (ou a matriz/senha master) pode desfazer essa justificativa.');
+    return;
+  }
   let excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
   excluidas = excluidas.filter(f => !(f.aluno === userAluno && f.data === data));
   setDado('gingapass_faltas_excluidas', JSON.stringify(excluidas));
   renderFaltasAlunos();
-  renderEstatisticas();
+  tentarChamar(function(){ renderEstatisticas(); });
 }
 
 function excluirCheckinAluno(data, alunoUser, professor, nome){
@@ -13543,7 +14365,83 @@ function renderRankingVisitantes(meuNome){
     : ranking.map(r => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #EDE3D0;font-size:12.5px;"><span>' + r.nome + (r.graduacao ? ' <span style="color:var(--ink-soft);">(' + r.graduacao + ')</span>' : '') + '</span><b style="color:var(--navy-700);">' + r.vezes + 'x</b></div>').join('');
 }
 
+// Tela Estatísticas na visão do aluno: só os dados dele mesmo (frequência,
+// faltas e o motivo de cada uma, quando registrado) — nunca dados de outros
+// alunos. Quem vê de todo mundo é só o professor/matriz (renderEstatisticas).
+function renderEstatisticasAluno(){
+  const frequenciaEl = document.getElementById('estatAlunoFrequencia');
+  const faltasEl = document.getElementById('estatAlunoFaltas');
+  const listaEl = document.getElementById('estatAlunoFaltasLista');
+  if(!frequenciaEl || !faltasEl || !listaEl) return;
+  if(!currentUser){
+    frequenciaEl.textContent = '0%';
+    faltasEl.textContent = '0';
+    listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Entre com sua conta pra ver suas estatísticas.</p>';
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+  const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
+
+  if(!minhaConta || !minhaConta.professor){
+    frequenciaEl.textContent = '—';
+    faltasEl.textContent = '0';
+    listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Cadastre um professor no seu perfil pra calcular frequência e faltas.</p>';
+    return;
+  }
+
+  const diasDoProfessor = JSON.parse(localStorage.getItem('gingapass_dias_checkin_prof_' + _chaveProf(minhaConta.professor)) || '[]');
+  const minhasExcluidas = excluidas.filter(f => f.aluno === currentUser);
+  const diasExcluidosSet = new Set(minhasExcluidas.map(f => f.data));
+  const diasPresenteSet = new Set(log.filter(r => r.aluno === currentUser).map(r => r.data));
+  const totalDiasValidos = diasDoProfessor.filter(d => !diasExcluidosSet.has(d)).length;
+  const diasPresente = diasPresenteSet.size;
+  const diasAusentesTodos = diasDoProfessor.filter(d => !diasPresenteSet.has(d));
+  const diasContamComoFalta = diasAusentesTodos.filter(d => !diasExcluidosSet.has(d));
+  const frequencia = totalDiasValidos > 0 ? Math.min(100, Math.round((diasPresente / totalDiasValidos) * 100)) : 0;
+
+  frequenciaEl.textContent = frequencia + '%';
+  faltasEl.textContent = String(diasContamComoFalta.length);
+
+  if(diasAusentesTodos.length === 0){
+    listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma falta registrada — bom trabalho!</p>';
+    return;
+  }
+  listaEl.innerHTML = '';
+  diasAusentesTodos.slice().sort((a, b) => b.localeCompare(a)).forEach(d => {
+    const excluida = diasExcluidosSet.has(d);
+    const registroExcluido = minhasExcluidas.find(f => f.data === d);
+    const motivo = (registroExcluido && registroExcluido.motivo) || obterObservacaoFalta(currentUser, d);
+    const dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    row.innerHTML = '<b style="font-size:13px;color:var(--navy-900);">' + dataFmt + '</b>' +
+      (excluida ? '<br><span style="font-size:11px;color:#1E9C71;">Justificada — não conta como falta</span>' : '') +
+      (motivo ? '<br><span style="font-size:11.5px;color:var(--ink-soft);">Motivo: ' + String(motivo).replace(/</g, '&lt;') + '</span>' : '');
+    listaEl.appendChild(row);
+  });
+  const ultimo = listaEl.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
 function renderEstatisticas(){
+  const boxAluno = document.getElementById('estatisticasAlunoBox');
+  const secoesProfessor = document.getElementById('estatisticasProfessorSecoes');
+  const subgreeting = document.getElementById('estatisticasSubgreeting');
+  // O aluno só vê as próprias estatísticas — quem vê de todos os alunos é
+  // só o professor/matriz (o resto desta função, mais abaixo).
+  if(currentRole === 'aluno'){
+    if(boxAluno) boxAluno.style.display = 'block';
+    if(secoesProfessor) secoesProfessor.style.display = 'none';
+    if(subgreeting) subgreeting.textContent = 'Sua frequência e suas faltas';
+    renderEstatisticasAluno();
+    return;
+  }
+  if(boxAluno) boxAluno.style.display = 'none';
+  if(secoesProfessor) secoesProfessor.style.display = 'block';
+  if(subgreeting) subgreeting.textContent = 'Frequência, faltas e mensalidade dos alunos';
+
   const container = document.getElementById('estatisticasList');
   if(!container) return;
   const todosAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
@@ -14181,7 +15079,7 @@ function populaSelectsNucleoProfessor(){
     }
   }
 
-  ['perfilProfessorInput', 'novoAlunoProfessor', 'aulaQrProfessor', 'aulaQrProfessorMatriz'].forEach(id => {
+  ['perfilProfessorInput', 'novoAlunoProfessor', 'aulaQrProfessor', 'aulaQrProfessorMatriz', 'fichaAlunoNovoProfessorSelect'].forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
     const atual = sel.value;
@@ -15777,7 +16675,6 @@ const IDIOMAS = {
     'Seu app de treinos':'Your training app','Entre com seu usuário e senha':'Sign in with your username and password','Aluno':'Student','Usuário':'Username','Senha':'Password','Entrar':'Sign in','Sair':'Log out',
     'Segunda-feira, 20 de julho':'Monday, July 20','Próxima aula':'Next class','Turma ainda não definida':'Class not set yet','Professor e núcleo ainda não definidos':'Teacher and school not set yet','Confirmar':'Confirm',
     'Frequência no mês':'Attendance this month','Em dia':'Up to date','Atrasado':'Late','Próximos eventos':'Upcoming events','Nenhum evento publicado ainda.':'No events published yet.',
-    '🌐 Evento Público':'🌐 Public Event','Visível para todo mundo no app, de qualquer grupo/academia':'Visible to everyone in the app, from any group/school','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Public event — shows on everyone\'s Home screen, from any group/school',
     'Academias da rede':'Network schools','Encontre um núcleo perto de você':'Find a school near you','Buscar por bairro ou cidade':'Search by neighborhood or city','Nenhuma academia cadastrada na rede ainda.':'No schools registered in the network yet.',
     'Seu plano associado GingaPass':'Your GingaPass membership plan','Situação atual':'Current status','Pagar com Pix':'Pay with Pix','Pagar com cartão':'Pay with card','Seu professor ainda não cadastrou a forma de pagamento.':'Your teacher hasn\'t set up a payment method yet.','Histórico de pagamentos':'Payment history',
     'Carregando...':'Loading...','Associado desde —':'Member since —','Corda ainda não definida':'Belt not set yet','Núcleo principal':'Main school','Ainda não definido':'Not set yet','E-mail':'Email','Telefone':'Phone','Editar perfil':'Edit profile','Editar dados':'Edit info','Nome completo':'Full name','Foto de perfil':'Profile photo',
@@ -15815,7 +16712,6 @@ const IDIOMAS = {
     'Seu app de treinos':"Votre appli d'entraînement",'Entre com seu usuário e senha':'Connectez-vous avec votre identifiant et mot de passe','Aluno':'Élève','Usuário':'Identifiant','Senha':'Mot de passe','Entrar':'Se connecter','Sair':'Déconnexion',
     'Próxima aula':'Prochain cours','Turma ainda não definida':'Classe pas encore définie','Professor e núcleo ainda não definidos':'Professeur et école pas encore définis','Confirmar':'Confirmer',
     'Frequência no mês':'Assiduité du mois','Em dia':'À jour','Atrasado':'En retard','Próximos eventos':'Prochains événements','Nenhum evento publicado ainda.':'Aucun événement publié pour le moment.',
-    '🌐 Evento Público':'🌐 Événement public','Visível para todo mundo no app, de qualquer grupo/academia':'Visible par tout le monde dans l\'app, de n\'importe quel groupe/école','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Événement public — apparaît sur l\'écran d\'accueil de tout le monde, de n\'importe quel groupe/école',
     'Academias da rede':'Écoles du réseau','Encontre um núcleo perto de você':'Trouvez une école près de chez vous','Buscar por bairro ou cidade':'Rechercher par quartier ou ville','Nenhuma academia cadastrada na rede ainda.':'Aucune école enregistrée dans le réseau pour le moment.',
     'Seu plano associado GingaPass':'Votre abonnement GingaPass','Situação atual':'Statut actuel','Pagar com Pix':'Payer avec Pix','Pagar com cartão':'Payer par carte','Seu professor ainda não cadastrou a forma de pagamento.':"Votre professeur n'a pas encore configuré de moyen de paiement.",'Histórico de pagamentos':'Historique des paiements',
     'Carregando...':'Chargement...','Associado desde —':'Membre depuis —','Corda ainda não definida':'Ceinture pas encore définie','Núcleo principal':'École principale','Ainda não definido':'Pas encore défini','E-mail':'E-mail','Telefone':'Téléphone','Editar perfil':'Modifier le profil','Editar dados':'Modifier les infos','Nome completo':'Nom complet','Foto de perfil':'Photo de profil',
@@ -15853,7 +16749,6 @@ const IDIOMAS = {
     'Seu app de treinos':'Deine Trainings-App','Entre com seu usuário e senha':'Melde dich mit Benutzername und Passwort an','Aluno':'Schüler','Usuário':'Benutzername','Senha':'Passwort','Entrar':'Anmelden','Sair':'Abmelden',
     'Próxima aula':'Nächster Kurs','Turma ainda não definida':'Klasse noch nicht festgelegt','Professor e núcleo ainda não definidos':'Lehrer und Schule noch nicht festgelegt','Confirmar':'Bestätigen',
     'Frequência no mês':'Anwesenheit diesen Monat','Em dia':'Aktuell','Atrasado':'Überfällig','Próximos eventos':'Nächste Events','Nenhum evento publicado ainda.':'Noch keine Events veröffentlicht.',
-    '🌐 Evento Público':'🌐 Öffentliches Event','Visível para todo mundo no app, de qualquer grupo/academia':'Für alle in der App sichtbar, aus jeder Gruppe/Schule','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Öffentliches Event — erscheint auf dem Startbildschirm aller, aus jeder Gruppe/Schule',
     'Academias da rede':'Netzwerk-Schulen','Encontre um núcleo perto de você':'Finde eine Schule in deiner Nähe','Buscar por bairro ou cidade':'Nach Stadtteil oder Stadt suchen','Nenhuma academia cadastrada na rede ainda.':'Noch keine Schule im Netzwerk registriert.',
     'Seu plano associado GingaPass':'Dein GingaPass-Mitgliedschaftsplan','Situação atual':'Aktueller Status','Pagar com Pix':'Mit Pix bezahlen','Pagar com cartão':'Mit Karte bezahlen','Seu professor ainda não cadastrou a forma de pagamento.':'Dein Lehrer hat noch keine Zahlungsmethode eingerichtet.','Histórico de pagamentos':'Zahlungsverlauf',
     'Carregando...':'Lädt...','Associado desde —':'Mitglied seit —','Corda ainda não definida':'Gürtel noch nicht festgelegt','Núcleo principal':'Hauptschule','Ainda não definido':'Noch nicht festgelegt','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil bearbeiten','Editar dados':'Daten bearbeiten','Nome completo':'Vollständiger Name','Foto de perfil':'Profilfoto',
@@ -15890,7 +16785,6 @@ const IDIOMAS = {
     'Início':'Start','Academias':'Schoulen','Mensalidade':'Bäitrag','Perfil':'Profil','Fotos':'Fotoen','Professor':'Enseignant','Chat':'Chat','Check-in':'Präsenz','Aulas':'Coursen','Dados':'Daten','Estatísticas':'Statistike',
     'Seu app de treinos':'Deng Training-App','Entre com seu usuário e senha':'Mell dech mat Benotzernumm a Passwuert un','Aluno':'Schüler','Usuário':'Benotzernumm','Senha':'Passwuert','Entrar':'Aloggen','Sair':'Ausloggen',
     'Próxima aula':'Nächste Coursen','Confirmar':'Bestätegen','Frequência no mês':'Präsenz dëse Mount','Em dia':'Um Dag','Atrasado':'Zeréck','Próximos eventos':'Nächst Evenementer',
-    '🌐 Evento Público':'🌐 Ëffentlecht Event','Visível para todo mundo no app, de qualquer grupo/academia':'Fir jiddereen an der App siichtbar, vun egal wéi enger Grupp/Schoul','🌐 Evento público — aparece na tela Início de todo mundo, de qualquer grupo/academia':'🌐 Ëffentlecht Event — erschéngt um Start-Écran vun jidderengem, vun egal wéi enger Grupp/Schoul',
     'Academias da rede':'Netzwierk-Schoulen','Seu plano associado GingaPass':'Däin GingaPass-Abo','Situação atual':'Aktuelle Situatioun','Pagar com Pix':'Mat Pix bezuelen','Pagar com cartão':'Mat Kaart bezuelen','Histórico de pagamentos':'Bezuelungshistorique',
     'Carregando...':'Lueden...','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil änneren','Redes sociais':'Sozial Medien','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Optik','Salvar fotos do topo':'Fotoe späicheren','Restaurar padrão':'Standard erëmhuelen','Idioma / Language / Langue / Sprache':'Sprooch',
