@@ -6454,6 +6454,12 @@ function renderLinhaAcademiaConta(container, c, i, independente){
     btnFoto.textContent = '📷 Foto';
     btnFoto.style.cssText = 'border:none;background:none;color:var(--navy-900);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
     btnFoto.onclick = () => editarFotoAcademia(c.user);
+    const btnLogin = document.createElement('button');
+    btnLogin.type = 'button';
+    btnLogin.textContent = '🔑 Login';
+    btnLogin.title = 'Trocar o usuário e/ou a senha de acesso dessa conta';
+    btnLogin.style.cssText = 'border:none;background:none;color:var(--navy-900);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnLogin.onclick = () => editarUsuarioSenhaAcademia(c.user);
     const btnOcultar = document.createElement('button');
     btnOcultar.type = 'button';
     btnOcultar.textContent = c.oculto ? '👁️ Mostrar' : '🙈 Ocultar';
@@ -6471,6 +6477,7 @@ function renderLinhaAcademiaConta(container, c, i, independente){
     btn.onclick = () => revogarAcademia(i);
     btnGroup.appendChild(btnNome);
     btnGroup.appendChild(btnFoto);
+    btnGroup.appendChild(btnLogin);
     btnGroup.appendChild(btnOcultar);
     btnGroup.appendChild(btnNucleo);
     btnGroup.appendChild(btn);
@@ -7214,6 +7221,58 @@ function alternarOcultarAcademiaConta(user){
   conta.oculto = !conta.oculto;
   setDado('gingapass_academias_contas', JSON.stringify(contas));
   renderAcademiasContas();
+}
+
+// Deixa a matriz trocar o USUÁRIO de login (o "apelido" curto usado pra
+// entrar, diferente do nome de exibição) e/ou a senha de uma conta de
+// professor já existente — útil quando o usuário gerado automaticamente
+// ficou confuso (ex: "borracha" em vez do nome completo que a pessoa
+// esperava digitar) ou quando o professor esqueceu a senha.
+function editarUsuarioSenhaAcademia(userAtual){
+  if(currentRole !== 'matriz') return;
+  if(!confirmarSenhaMaster()) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userAtual);
+  if(idx < 0){
+    alert('Não encontrei essa conta (pode ter sido removida agora há pouco).');
+    return;
+  }
+  const conta = contas[idx];
+
+  const novoUser = prompt('Usuário de acesso pra "' + conta.nome + '" (o que a pessoa digita pra entrar):', conta.user);
+  if(novoUser === null) return;
+  const novoUserLimpo = novoUser.trim();
+  if(!novoUserLimpo){
+    alert('O usuário não pode ficar em branco.');
+    return;
+  }
+  if(novoUserLimpo !== conta.user){
+    const emUsoPorOutraAcademia = contas.some((c, i) => i !== idx && c.user === novoUserLimpo);
+    const emUsoPorAluno = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').some(c => c.user === novoUserLimpo);
+    const emUsoPorPai = JSON.parse(localStorage.getItem('gingapass_pais_contas') || '[]').some(c => c.user === novoUserLimpo);
+    if(emUsoPorOutraAcademia || emUsoPorAluno || emUsoPorPai){
+      alert('Já existe outra conta com esse usuário. Escolha outro.');
+      return;
+    }
+  }
+
+  const novaSenha = prompt('Nova senha (deixe em branco pra manter a senha atual):', '');
+  if(novaSenha === null) return;
+
+  const usuarioMudou = novoUserLimpo !== conta.user;
+  conta.user = novoUserLimpo;
+  if(novaSenha.trim()) conta.senha = novaSenha.trim();
+  contas[idx] = conta;
+
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão e tente de novo.');
+      return;
+    }
+    renderAcademiasContas();
+    tentarChamar(function(){ renderListaProfessoresPublica(); });
+    alert('Pronto!' + (usuarioMudou ? ' Novo usuário: "' + novoUserLimpo + '".' : '') + (novaSenha.trim() ? ' Senha atualizada.' : '') + ' Avise a pessoa do novo jeito de entrar.');
+  });
 }
 
 function editarNomeAcademiaConta(user){
