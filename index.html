@@ -1354,6 +1354,7 @@
     <div id="gruposParceirosListaWrap">
       <p class="greeting" style="font-size:18px;">Grupos parceiros</p>
       <p class="subgreeting">Outros grupos ligados ao app — veja o feed deles, comenta e conversa</p>
+      <button class="btn" type="button" id="btnAdicionarGrupoParceiro" style="display:none;width:auto;padding:8px 14px;margin-bottom:14px;" onclick="adicionarGrupoParceiroPrompt()">+ Adicionar grupo</button>
       <div id="gruposParceirosList"></div>
     </div>
     <div id="gruposParceirosDetalheWrap" style="display:none;">
@@ -4033,18 +4034,90 @@ function _normalizarListaMestres(mestres){
   return (mestres || '').split(',').map(m => m.trim()).filter(Boolean);
 }
 
-function removerGrupoParceiro(id){
+// Limpa o vínculo grupoParceiroId/grupoNome de QUALQUER conta de professor
+// que ainda aponte pra esse grupo. Sem isso, um grupo excluído "voltava do
+// nada" na tela Grupos parceiros — porque o nome dele ficava em cache dentro
+// da própria conta do professor (grupoNome), e a lista é montada a partir
+// das contas, não só do registro oficial do grupo.
+function desvincularTodosDoGrupoParceiro(grupoId){
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  let mudou = false;
+  contas.forEach(c => {
+    if(c.grupoParceiroId === grupoId){
+      c.grupoParceiroId = '';
+      c.grupoNome = '';
+      mudou = true;
+    }
+  });
+  if(mudou) setDado('gingapass_academias_contas', JSON.stringify(contas));
+}
+
+function removerGrupoParceiro(id, nomeConhecido){
   if(currentRole !== 'matriz') return;
   const grupos = listarTodosGruposParceirosCadastrados();
   const grupo = grupos.find(g => g.id === id);
-  if(!grupo) return;
-  if(!confirm('Remover o grupo "' + grupo.nome + '"? Academias já vinculadas a ele continuam com o nome/mestre salvos, mas ele some da lista pra novos cadastros.')) return;
-  setDado('gingapass_grupos_parceiros', JSON.stringify(grupos.filter(g => g.id !== id)));
+  const nomeParaConfirmar = (grupo && grupo.nome) || nomeConhecido || 'esse grupo';
+  if(!confirm('Remover o grupo "' + nomeParaConfirmar + '"? Isso também desvincula qualquer professor que ainda esteja ligado a ele — sem isso o grupo pode "reaparecer" na lista.')) return;
+  // Continua mesmo se o registro oficial já não existir mais (ex: grupo
+  // "fantasma" que só sobrou como referência solta numa conta de professor)
+  // — o importante aqui é limpar essa referência de qualquer jeito.
+  if(grupo){
+    setDado('gingapass_grupos_parceiros', JSON.stringify(grupos.filter(g => g.id !== id)));
+  }
+  desvincularTodosDoGrupoParceiro(id);
   renderGruposOficiaisList();
   tentarChamar(function(){ popularSeletorGrupoParceiro('parceiraAdGrupoSelect'); });
   tentarChamar(function(){ popularSeletorGrupoParceiro('novaAcademiaGrupoSelect'); });
   tentarChamar(function(){ popularSeletorGrupoDoProfessorPrincipal(); });
   tentarChamar(function(){ renderGruposOficiaisTela(); });
+  tentarChamar(function(){ renderGruposParceiros(); });
+}
+
+function editarGrupoParceiro(id){
+  if(currentRole !== 'matriz') return;
+  const grupos = listarTodosGruposParceirosCadastrados();
+  const grupo = grupos.find(g => g.id === id);
+  if(!grupo){
+    alert('Esse grupo já não existe mais como registro oficial (deve ter sido um vínculo solto). Use "Excluir" pra limpar essa referência.');
+    return;
+  }
+  const novoNome = prompt('Nome do grupo:', grupo.nome);
+  if(novoNome === null) return;
+  const mestresAtuais = (grupo.mestres && grupo.mestres.length > 0) ? grupo.mestres.join(', ') : (grupo.mestreResponsavel || '');
+  const novosMestres = prompt('Mestre(s) responsável(is) (separe vários por vírgula):', mestresAtuais);
+  if(novosMestres === null) return;
+  grupo.nome = novoNome.trim() || grupo.nome;
+  const listaMestres = _normalizarListaMestres(novosMestres);
+  grupo.mestres = listaMestres;
+  grupo.mestreResponsavel = listaMestres[0] || '';
+  setDado('gingapass_grupos_parceiros', JSON.stringify(grupos));
+  // Atualiza o nome em cache nas contas de professor já vinculadas a esse
+  // grupo, senão elas continuam mostrando o nome antigo até editar de novo.
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  let mudouContas = false;
+  contas.forEach(c => {
+    if(c.grupoParceiroId === id){ c.grupoNome = grupo.nome; mudouContas = true; }
+  });
+  if(mudouContas) setDado('gingapass_academias_contas', JSON.stringify(contas));
+  renderGruposOficiaisList();
+  tentarChamar(function(){ renderGruposOficiaisTela(); });
+  tentarChamar(function(){ renderGruposParceiros(); });
+  alert('Grupo atualizado!');
+}
+
+function adicionarGrupoParceiroPrompt(){
+  if(currentRole !== 'matriz') return;
+  const nome = prompt('Nome do novo grupo parceiro:');
+  if(!nome || !nome.trim()) return;
+  const mestres = prompt('Mestre(s) responsável(is) (separe vários por vírgula):');
+  if(mestres === null) return;
+  criarGrupoParceiro(nome.trim(), '', mestres);
+  renderGruposOficiaisList();
+  tentarChamar(function(){ renderGruposOficiaisTela(); });
+  tentarChamar(function(){ popularSeletorGrupoParceiro('parceiraAdGrupoSelect'); });
+  tentarChamar(function(){ popularSeletorGrupoParceiro('novaAcademiaGrupoSelect'); });
+  renderGruposParceiros();
+  alert('Grupo cadastrado! Ele já aparece aqui em "Grupos parceiros" e fica disponível pra professores se vincularem.');
 }
 
 function cadastrarGrupoOficial(){
@@ -10251,6 +10324,26 @@ function renderGruposParceiros(){
     grupos.unshift({id: 'matriz', user: '', nome: obterNomeDoMeuGrupo('matriz'), foto: grupoMatriz.foto || ''});
   }
   const visiveis = grupos.filter(g => g.id !== meuGrupo);
+
+  const btnAdicionar = document.getElementById('btnAdicionarGrupoParceiro');
+  if(btnAdicionar) btnAdicionar.style.display = (currentRole === 'matriz') ? 'inline-block' : 'none';
+
+  // A matriz gerencia os grupos direto por aqui — mostra TAMBÉM os grupos
+  // oficiais que ainda não têm nenhum professor vinculado (senão um grupo
+  // recém-criado ficava "invisível" até alguém se cadastrar nele).
+  if(currentRole === 'matriz'){
+    const idsJaListados = new Set(visiveis.map(g => g.id));
+    listarTodosGruposParceirosCadastrados().forEach(g => {
+      const idComPrefixo = 'grp:' + g.id;
+      if(idsJaListados.has(idComPrefixo)) return;
+      visiveis.push({
+        id: idComPrefixo, user: '', nome: g.nome, foto: g.foto || '',
+        mestreResponsavel: (g.mestres && g.mestres.length > 0) ? g.mestres.join(', ') : (g.mestreResponsavel || '')
+      });
+      idsJaListados.add(idComPrefixo);
+    });
+  }
+
   container.innerHTML = '';
   if(visiveis.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum grupo parceiro cadastrado ainda.</p>';
@@ -10259,10 +10352,10 @@ function renderGruposParceiros(){
   visiveis.forEach(g => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.style.cssText = 'display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;';
+    card.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
     const avatar = document.createElement('div');
     avatar.className = 'avatar';
-    avatar.style.cssText = 'width:48px;height:48px;font-size:16px;flex-shrink:0;margin:0;';
+    avatar.style.cssText = 'width:48px;height:48px;font-size:16px;flex-shrink:0;margin:0;cursor:pointer;';
     if(g.foto){
       avatar.style.backgroundImage = 'url(' + g.foto + ')';
       avatar.style.backgroundSize = 'cover';
@@ -10271,12 +10364,49 @@ function renderGruposParceiros(){
     } else {
       avatar.textContent = g.nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
     }
+    avatar.onclick = () => abrirDetalheGrupoParceiro(g);
     const nome = document.createElement('b');
-    nome.style.cssText = 'font-size:14px;color:var(--navy-900);';
+    nome.style.cssText = 'font-size:14px;color:var(--navy-900);flex:1;cursor:pointer;';
     nome.textContent = g.nome;
+    nome.onclick = () => abrirDetalheGrupoParceiro(g);
     card.appendChild(avatar);
     card.appendChild(nome);
-    card.onclick = () => abrirDetalheGrupoParceiro(g);
+
+    // Editar/Excluir só pra matriz — e só em grupos que têm mesmo um id pra
+    // gerenciar (grupo oficial "grp:" ou vínculo independente solto "ind:").
+    if(currentRole === 'matriz' && g.id.indexOf('grp:') === 0){
+      const idOficial = g.id.slice(4);
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Editar grupo';
+      editBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;';
+      editBtn.onclick = (e) => { e.stopPropagation(); editarGrupoParceiro(idOficial); };
+      card.appendChild(editBtn);
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Excluir grupo';
+      delBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;';
+      delBtn.onclick = (e) => { e.stopPropagation(); removerGrupoParceiro(idOficial, g.nome); };
+      card.appendChild(delBtn);
+    } else if(currentRole === 'matriz' && g.id.indexOf('ind:') === 0){
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Remover da lista';
+      delBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if(!confirm('Remover "' + g.nome + '" da lista de grupos parceiros?')) return;
+        const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+        const conta = contas.find(c => c.user === g.user);
+        if(conta){ conta.grupo = ''; setDado('gingapass_academias_contas', JSON.stringify(contas)); }
+        renderGruposParceiros();
+      };
+      card.appendChild(delBtn);
+    }
+
     container.appendChild(card);
   });
 }
