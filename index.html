@@ -644,6 +644,26 @@
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
 </style>
+<script>
+// Aplica a "cor de abertura" (padrão da rede, configurada pela matriz) o mais
+// cedo possível — antes de qualquer coisa pintar na tela — pra ninguém ver
+// mais o azul clássico piscando antes da tela de login carregar. Se a pessoa
+// já tiver escolhido uma cor pessoal (gingapass_aparencia_<papel>:<user>),
+// essa é reaplicada depois, no login, e substitui esta.
+(function(){
+  try{
+    var t = JSON.parse(localStorage.getItem('gingapass_tema_abertura') || 'null');
+    if(t && t.navy900){
+      var r = document.documentElement.style;
+      r.setProperty('--navy-900', t.navy900);
+      r.setProperty('--navy-700', t.navy700);
+      r.setProperty('--navy-500', t.navy500);
+      r.setProperty('--amber-500', t.amber500);
+      r.setProperty('--amber-700', t.amber700);
+    }
+  } catch(e){}
+})();
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
 <body>
 <div class="phone">
@@ -721,9 +741,15 @@
     <div class="card">
       <div class="card-label">Mural em destaque</div>
       <div style="border-radius:14px;overflow:hidden;background:#EFE6D2;">
-        <img id="muralSlideshowImg" style="width: 100%; height: 180px; object-fit: cover; display: block; transition: opacity 0.2s; cursor: pointer; opacity: 1;" onclick="abrirLightboxMural()">
+        <img id="muralSlideshowImg" style="width: 100%; height: 260px; object-fit: contain; display: block; transition: opacity 0.2s; cursor: pointer; opacity: 1;" onclick="abrirLightboxMural()">
       </div>
       <p id="muralSlideshowVazio" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;display:none;">Nenhuma foto no mural ainda. Publique em "Fotos"!</p>
+    </div>
+
+    <div class="card" id="aniversariantesHomeCard" style="display:none;">
+      <div class="card-label">🎂 Aniversariantes do mês</div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-2px 0 8px;">Visível só pra quem é do seu grupo/núcleo</p>
+      <div id="aniversariantesHomeLista"></div>
     </div>
 
     <div class="card" id="eventoPublicoHomeCard" style="display:none;">
@@ -968,6 +994,14 @@
       <div class="gallery-grid" id="fotoTopoPreview"></div>
       <button class="btn" onclick="salvarFotosTopo()">Salvar fotos do topo</button>
       <button class="btn" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);margin-top:8px;" onclick="restaurarAparenciaPadrao()">Restaurar padrão</button>
+    </div>
+
+    <div id="temaAberturaCard" style="display:none;">
+      <p class="section-title">Cor de abertura do app (padrão da rede)</p>
+      <div class="card">
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Essa é a cor que aparece pra TODO MUNDO assim que o app abre, antes de entrar com usuário e senha (e pra quem ainda não escolheu uma cor pessoal). Só a matriz pode mudar.</p>
+        <div id="temaAberturaSwatches" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
     </div>
 
     <p class="section-title">Idioma / Language / Langue / Sprache</p>
@@ -7971,6 +8005,7 @@ function renderEventos(){
   renderListaEventos('eventosFeedPublico', publicos, 'Nenhum evento público publicado ainda.');
 
   renderEventosHome(destaque, publicos);
+  tentarChamar(function(){ renderAniversariantesMes(); });
 }
 
 // Monta a lista (texto + cartaz + botão de presença) usada nas seções da aba
@@ -10816,19 +10851,43 @@ const TEMAS_ANIVERSARIO = [
   {cor: '#6C3483', clara: '#EDE1F2'},
 ];
 
-function criarCardAniversario(pessoa, indice, logoGrupo){
+// destaque=true (usado na tela Início) deixa a foto bem maior, em banner no
+// topo do card — destaque=false (usado no GingaFeed) usa o layout compacto,
+// com a foto pequena numa bolinha ao lado do texto.
+function criarCardAniversario(pessoa, indice, logoGrupo, destaque){
   const tema = TEMAS_ANIVERSARIO[indice % TEMAS_ANIVERSARIO.length];
   const card = document.createElement('div');
-  card.style.cssText = 'position:relative;overflow:hidden;border-radius:16px;background:' + tema.clara + ';margin-bottom:14px;padding:18px 16px;min-height:150px;';
+  card.style.cssText = 'position:relative;overflow:hidden;border-radius:16px;background:' + tema.clara + ';margin-bottom:14px;' + (destaque ? '' : 'padding:18px 16px;min-height:150px;');
 
   // Faixa diagonal decorativa no canto, só pra dar um ar de "flyer" sem
   // precisar desenhar nada complexo.
   const faixa = document.createElement('div');
-  faixa.style.cssText = 'position:absolute;top:-46px;left:-56px;width:130px;height:130px;background:' + tema.cor + ';opacity:0.16;transform:rotate(45deg);';
+  faixa.style.cssText = 'position:absolute;top:-46px;left:-56px;width:130px;height:130px;background:' + tema.cor + ';opacity:0.16;transform:rotate(45deg);z-index:0;';
   card.appendChild(faixa);
 
+  const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
+  const iniciaisTexto = (pessoa.nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+
+  if(destaque){
+    // Banner grande no topo — a foto é o elemento principal do card.
+    const bannerWrap = document.createElement('div');
+    bannerWrap.style.cssText = 'position:relative;z-index:1;width:100%;height:220px;overflow:hidden;background:' + tema.cor + ';display:flex;align-items:center;justify-content:center;';
+    if(fotoPessoa){
+      const img = document.createElement('img');
+      img.src = fotoPessoa;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      bannerWrap.appendChild(img);
+    } else {
+      const iniciais = document.createElement('span');
+      iniciais.style.cssText = 'font-family:Poppins,sans-serif;font-size:56px;font-weight:700;color:var(--white);';
+      iniciais.textContent = iniciaisTexto;
+      bannerWrap.appendChild(iniciais);
+    }
+    card.appendChild(bannerWrap);
+  }
+
   const linha = document.createElement('div');
-  linha.style.cssText = 'position:relative;z-index:1;display:flex;align-items:center;gap:14px;';
+  linha.style.cssText = 'position:relative;z-index:1;display:flex;align-items:center;gap:14px;' + (destaque ? 'padding:16px;' : '');
 
   const textoBox = document.createElement('div');
   textoBox.style.cssText = 'flex:1;min-width:0;';
@@ -10839,7 +10898,7 @@ function criarCardAniversario(pessoa, indice, logoGrupo){
   textoBox.appendChild(selo);
 
   const nomeEl = document.createElement('p');
-  nomeEl.style.cssText = 'font-family:Caveat,cursive;font-size:26px;font-weight:700;color:var(--navy-900);margin:0 0 2px;line-height:1.1;';
+  nomeEl.style.cssText = 'font-family:Caveat,cursive;font-size:' + (destaque ? '30px' : '26px') + ';font-weight:700;color:var(--navy-900);margin:0 0 2px;line-height:1.1;';
   nomeEl.textContent = pessoa.nome + '!';
   textoBox.appendChild(nomeEl);
 
@@ -10855,57 +10914,165 @@ function criarCardAniversario(pessoa, indice, logoGrupo){
 
   linha.appendChild(textoBox);
 
-  // Foto de perfil do aniversariante (se tiver) num círculo — cai pra
-  // iniciais do nome quando ainda não cadastrou foto.
-  const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
-  const avatarWrap = document.createElement('div');
-  avatarWrap.style.cssText = 'width:76px;height:76px;border-radius:50%;overflow:hidden;border:3px solid ' + tema.cor + ';flex-shrink:0;background:var(--white);display:flex;align-items:center;justify-content:center;';
-  if(fotoPessoa){
-    const img = document.createElement('img');
-    img.src = fotoPessoa;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-    avatarWrap.appendChild(img);
-  } else {
-    const iniciais = document.createElement('span');
-    iniciais.style.cssText = 'font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:' + tema.cor + ';';
-    iniciais.textContent = (pessoa.nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
-    avatarWrap.appendChild(iniciais);
+  if(!destaque){
+    // Layout compacto: foto pequena numa bolinha, do lado do texto.
+    const avatarWrap = document.createElement('div');
+    avatarWrap.style.cssText = 'width:76px;height:76px;border-radius:50%;overflow:hidden;border:3px solid ' + tema.cor + ';flex-shrink:0;background:var(--white);display:flex;align-items:center;justify-content:center;';
+    if(fotoPessoa){
+      const img = document.createElement('img');
+      img.src = fotoPessoa;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      avatarWrap.appendChild(img);
+    } else {
+      const iniciais = document.createElement('span');
+      iniciais.style.cssText = 'font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:' + tema.cor + ';';
+      iniciais.textContent = iniciaisTexto;
+      avatarWrap.appendChild(iniciais);
+    }
+    linha.appendChild(avatarWrap);
   }
-  linha.appendChild(avatarWrap);
   card.appendChild(linha);
 
   // Logo do grupo, pequeno, no canto superior direito do card.
   if(logoGrupo){
     const logoEl = document.createElement('img');
     logoEl.src = logoGrupo;
-    logoEl.style.cssText = 'position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--white);box-shadow:0 1px 4px rgba(0,0,0,0.2);z-index:1;';
+    logoEl.style.cssText = 'position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--white);box-shadow:0 1px 4px rgba(0,0,0,0.2);z-index:2;';
     card.appendChild(logoEl);
   }
+
+  // Botões de compartilhar — ficam de fora quando a imagem do card é gerada
+  // (data-compartilhar-ignorar), senão apareceriam na própria imagem.
+  const acoesShare = document.createElement('div');
+  acoesShare.setAttribute('data-compartilhar-ignorar', '1');
+  acoesShare.style.cssText = 'position:relative;z-index:1;display:flex;gap:8px;margin-top:12px;' + (destaque ? 'padding:0 16px 16px;' : '');
+  const btnWhats = document.createElement('button');
+  btnWhats.type = 'button';
+  btnWhats.textContent = '📲 WhatsApp';
+  btnWhats.style.cssText = 'flex:1;border:1.5px solid ' + tema.cor + ';background:var(--white);color:' + tema.cor + ';font-size:11.5px;font-weight:600;padding:7px 0;border-radius:100px;cursor:pointer;';
+  btnWhats.onclick = () => compartilharCardAniversario(pessoa, card, 'whatsapp');
+  const btnInsta = document.createElement('button');
+  btnInsta.type = 'button';
+  btnInsta.textContent = '📷 Instagram';
+  btnInsta.style.cssText = 'flex:1;border:1.5px solid ' + tema.cor + ';background:' + tema.cor + ';color:var(--white);font-size:11.5px;font-weight:600;padding:7px 0;border-radius:100px;cursor:pointer;';
+  btnInsta.onclick = () => compartilharCardAniversario(pessoa, card, 'instagram');
+  acoesShare.appendChild(btnWhats);
+  acoesShare.appendChild(btnInsta);
+  card.appendChild(acoesShare);
 
   return card;
 }
 
+// Transforma o card de aniversário (HTML) numa imagem PNG, via SVG
+// <foreignObject> + canvas — não depende de nenhuma biblioteca externa.
+// Se por algum motivo não conseguir gerar a imagem (navegador não suporta,
+// erro de CORS etc.), devolve null e quem chamou cai pro compartilhamento só
+// com texto.
+function gerarImagemCardAniversario(cardEl){
+  return new Promise(function(resolve){
+    try{
+      const rect = cardEl.getBoundingClientRect();
+      const largura = Math.max(280, Math.round(rect.width) || 340);
+      const altura = Math.max(120, Math.round(rect.height) || 170);
+      const clone = cardEl.cloneNode(true);
+      clone.querySelectorAll('[data-compartilhar-ignorar]').forEach(el => el.remove());
+      clone.style.marginBottom = '0';
+      const htmlClone = clone.outerHTML;
+      const svgData = '<svg xmlns="http://www.w3.org/2000/svg" width="' + largura + '" height="' + altura + '">' +
+        '<foreignObject width="100%" height="100%">' +
+        '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + largura + 'px;height:' + altura + 'px;font-family:Inter,sans-serif;">' + htmlClone + '</div>' +
+        '</foreignObject></svg>';
+      const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = function(){
+        try{
+          const escala = 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = largura * escala;
+          canvas.height = altura * escala;
+          const ctx = canvas.getContext('2d');
+          ctx.scale(escala, escala);
+          ctx.drawImage(img, 0, 0, largura, altura);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(function(blob){ resolve(blob); }, 'image/png');
+        } catch(e){
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    } catch(e){
+      resolve(null);
+    }
+  });
+}
+
+// Compartilha o card de aniversário — tenta o menu nativo de compartilhar do
+// aparelho (com a imagem do card, quando dá pra gerar), que já deixa a
+// pessoa escolher WhatsApp/Instagram/etc. Sem suporte a isso (ex: desktop),
+// cai pro link direto do WhatsApp Web ou copia o texto pra colar no Instagram.
+function compartilharCardAniversario(pessoa, cardEl, canal){
+  const textoBase = '🎉 Feliz aniversário, ' + pessoa.nome + '! Hoje é dia de comemorar mais um ano de conquistas, disciplina e alegria na capoeira. Parabéns! 🥋';
+  gerarImagemCardAniversario(cardEl).then(function(blob){
+    const arquivo = blob ? new File([blob], 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.png', {type: 'image/png'}) : null;
+    const podeCompartilharArquivo = arquivo && navigator.canShare && navigator.canShare({files: [arquivo]});
+    if(navigator.share && (podeCompartilharArquivo || !arquivo)){
+      const dadosShare = {title: 'Feliz Aniversário!', text: textoBase};
+      if(podeCompartilharArquivo) dadosShare.files = [arquivo];
+      navigator.share(dadosShare).catch(function(){});
+      return;
+    }
+    if(canal === 'whatsapp'){
+      window.open('https://wa.me/?text=' + encodeURIComponent(textoBase), '_blank');
+    } else {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(textoBase);
+      }
+      alert('Esse navegador não deixa compartilhar direto pro Instagram. Copiei a mensagem — é só colar numa Story ou publicação:\n\n' + textoBase);
+    }
+  });
+}
+
+// Preenche os dois lugares onde os aniversariantes do mês aparecem: o card
+// compacto no GingaFeed (acima do Mural) e o card em destaque na tela
+// Início (foto bem maior) — mesma lista de pessoas nos dois.
 function renderAniversariantesMes(){
+  if(!currentRole) return;
+  const pessoas = obterAniversariantesDoMes();
+  const logoGrupo = pessoas.length > 0 ? obterLogoDoMeuGrupo() : '';
+  const nomeMes = new Date().toLocaleDateString('pt-BR', {month: 'long'});
+
   const card = document.getElementById('aniversariantesMesCard');
   const lista = document.getElementById('aniversariantesMesLista');
-  if(!card || !lista || !currentRole) return;
-  const pessoas = obterAniversariantesDoMes();
-  if(pessoas.length === 0){
-    card.style.display = 'none';
-    lista.innerHTML = '';
-    return;
+  if(card && lista){
+    if(pessoas.length === 0){
+      card.style.display = 'none';
+      lista.innerHTML = '';
+    } else {
+      card.style.display = 'block';
+      lista.innerHTML = '';
+      const tituloMes = document.createElement('p');
+      tituloMes.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 8px;text-transform:capitalize;';
+      tituloMes.textContent = nomeMes;
+      lista.appendChild(tituloMes);
+      pessoas.forEach((p, i) => lista.appendChild(criarCardAniversario(p, i, logoGrupo, false)));
+    }
   }
-  card.style.display = 'block';
-  const nomeMes = new Date().toLocaleDateString('pt-BR', {month: 'long'});
-  const logoGrupo = obterLogoDoMeuGrupo();
-  lista.innerHTML = '';
-  const tituloMes = document.createElement('p');
-  tituloMes.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 8px;text-transform:capitalize;';
-  tituloMes.textContent = nomeMes;
-  lista.appendChild(tituloMes);
-  pessoas.forEach((p, i) => {
-    lista.appendChild(criarCardAniversario(p, i, logoGrupo));
-  });
+
+  const cardHome = document.getElementById('aniversariantesHomeCard');
+  const listaHome = document.getElementById('aniversariantesHomeLista');
+  if(cardHome && listaHome){
+    if(pessoas.length === 0){
+      cardHome.style.display = 'none';
+      listaHome.innerHTML = '';
+    } else {
+      cardHome.style.display = 'block';
+      listaHome.innerHTML = '';
+      pessoas.forEach((p, i) => listaHome.appendChild(criarCardAniversario(p, i, logoGrupo, true)));
+    }
+  }
 }
 
 function renderFotosFeed(grupoIdForcado){
@@ -15242,18 +15409,46 @@ function renderAgendaAulas(){
   });
 }
 
-// Acha a próxima aula que vai acontecer a partir de agora, olhando a agenda
-// inteira do grupo (dia da semana + horário), pra mostrar na tela Início.
-function calcularProximaAulaDaAgenda(grupoId){
-  const agenda = JSON.parse(localStorage.getItem(chaveAgendaAulas(grupoId)) || '[]');
-  if(agenda.length === 0) return null;
+// Nome do professor a usar como filtro da "Próxima aula" na tela Início —
+// cada papel busca o SEU PRÓPRIO professor, nunca o de outra pessoa.
+function obterNomeProfessorParaAgendaHome(){
+  if(currentRole === 'aluno') return obterMeuProfessorAluno();
+  if(currentRole === 'academia' || currentRole === 'matriz') return obterMeuNomeProfessor();
+  if(currentRole === 'pai'){
+    const filho = obterMeuFilhoPrincipal();
+    return (filho && filho.professor) || null;
+  }
+  return null;
+}
+
+// Acha a próxima aula que vai acontecer a partir de agora, pra mostrar na
+// tela Início — SÓ entre as aulas do professor de quem está vendo (nunca de
+// outro professor da rede, mesmo que ambos estejam no mesmo grupo/matriz).
+// Junta as duas fontes de agenda que existem hoje: a mais antiga (turma
+// completa, cadastrada em "Gestão de Aulas") e a mais nova, por dia/hora
+// (cadastrada em "Aulas do professor", no perfil).
+function calcularProximaAulaDaAgenda(grupoId, nomeProfessorFiltro){
+  const agendaCompleta = JSON.parse(localStorage.getItem(chaveAgendaAulas(grupoId)) || '[]');
+  const candidatos = (nomeProfessorFiltro
+    ? agendaCompleta.filter(a => mesmoProfessor(a.professor, nomeProfessorFiltro))
+    : agendaCompleta
+  ).map(a => ({turma: a.turma, nucleo: a.nucleo, professor: a.professor, dia: a.dia, horario: a.horario}));
+
+  if(nomeProfessorFiltro){
+    const agendaSemanal = JSON.parse(localStorage.getItem(_chaveAgendaAulas(nomeProfessorFiltro)) || '[]');
+    agendaSemanal.forEach(h => {
+      candidatos.push({turma: 'Aula com ' + nomeProfessorFiltro, nucleo: h.local || '', professor: nomeProfessorFiltro, dia: h.dia, horario: h.hora});
+    });
+  }
+
+  if(candidatos.length === 0) return null;
   const agora = new Date();
   const diaAtual = agora.getDay();
   const horaAtual = agora.getHours() * 60 + agora.getMinutes();
   let melhor = null, melhorDistancia = Infinity;
-  agenda.forEach(a => {
-    const [h, m] = (a.horario || '0:0').split(':').map(Number);
-    const minutosAula = h * 60 + m;
+  candidatos.forEach(a => {
+    const [h, m] = String(a.horario || '0:0').split(':').map(Number);
+    const minutosAula = (h || 0) * 60 + (m || 0);
     let diasAte = (a.dia - diaAtual + 7) % 7;
     if(diasAte === 0 && minutosAula < horaAtual) diasAte = 7; // já passou hoje, só semana que vem
     const distancia = diasAte * 1440 + minutosAula;
@@ -15312,13 +15507,21 @@ function renderConfigGeral(){
   const aulaHora = document.getElementById('proximaAulaHora');
   const aulaLabel = document.getElementById('proximaAulaLabel');
 
-  const proximaDaAgenda = calcularProximaAulaDaAgenda(meuGrupo);
+  const nomeProfessorFiltroHome = obterNomeProfessorParaAgendaHome();
+  // O "cfg" (config geral) é compartilhado por todo o grupo/matriz — só usa
+  // ele como fallback quando bate com o PRÓPRIO professor de quem está vendo
+  // (ou quando não dá pra saber qual é o professor ainda). Sem essa checagem,
+  // qualquer aluno sem aula cadastrada via agenda via a config de OUTRO
+  // professor (ex: sempre a do Borracha, por ser o primeiro cadastrado).
+  const cfgBateComMeuProfessor = !nomeProfessorFiltroHome || !cfg || !cfg.professor || mesmoProfessor(cfg.professor, nomeProfessorFiltroHome);
+
+  const proximaDaAgenda = calcularProximaAulaDaAgenda(meuGrupo, nomeProfessorFiltroHome);
   if(proximaDaAgenda){
     if(aulaInfo) aulaInfo.textContent = 'Prof. ' + proximaDaAgenda.professor + ' · Núcleo ' + proximaDaAgenda.nucleo;
     if(aulaTitulo) aulaTitulo.textContent = proximaDaAgenda.turma;
     if(aulaHora) aulaHora.textContent = proximaDaAgenda.horario;
     if(aulaLabel) aulaLabel.textContent = DIAS_SEMANA_NOMES[proximaDaAgenda.dia];
-  } else if(cfg){
+  } else if(cfg && cfgBateComMeuProfessor){
     if(aulaInfo) aulaInfo.textContent = 'Prof. ' + cfg.professor + ' · Núcleo ' + cfg.nucleo;
     if(aulaTitulo) aulaTitulo.textContent = cfg.turma || 'Turma ainda não definida';
     if(aulaHora) aulaHora.textContent = cfg.horario || '--:--';
@@ -16890,7 +17093,13 @@ const TEMAS = [
   {id:'azulceu', nome:'Azul-céu', navy900:'#0E3A5C', navy700:'#1C6199', navy500:'#2E8FD6', amber500:'#EF9F27', amber700:'#BA7517'},
   {id:'turquesa', nome:'Turquesa', navy900:'#083B3E', navy700:'#0F6569', navy500:'#17969C', amber500:'#F4B942', amber700:'#C4900F'},
   {id:'marrom', nome:'Marrom', navy900:'#3A2415', navy700:'#5E3B22', navy500:'#83552F', amber500:'#EF9F27', amber700:'#BA7517'},
-  {id:'cinza', nome:'Cinza-chumbo', navy900:'#2A2E33', navy700:'#454B52', navy500:'#636B73', amber500:'#EF9F27', amber700:'#BA7517'}
+  {id:'cinza', nome:'Cinza-chumbo', navy900:'#2A2E33', navy700:'#454B52', navy500:'#636B73', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'dourado', nome:'Dourado', navy900:'#4A3B0A', navy700:'#7A6412', navy500:'#A8871C', amber500:'#F4C430', amber700:'#C89A1A'},
+  {id:'coral', nome:'Coral', navy900:'#5C1F14', navy700:'#8C3322', navy500:'#C2472F', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'indigo', nome:'Índigo', navy900:'#1E1A4A', navy700:'#332B7A', navy500:'#4A3FA8', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'menta', nome:'Menta', navy900:'#0B3D33', navy700:'#146B57', navy500:'#1E9C7F', amber500:'#F4B942', amber700:'#C4900F'},
+  {id:'tijolo', nome:'Vermelho-tijolo', navy900:'#4A1E12', navy700:'#7A331F', navy500:'#A8472B', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'grafite', nome:'Grafite', navy900:'#1C1F24', navy700:'#31363D', navy500:'#4A505A', amber500:'#EF9F27', amber700:'#BA7517'}
 ];
 
 let _collageDefaults = null;
@@ -16933,6 +17142,50 @@ function escolherTema(temaId){
   setDado(chave, JSON.stringify(atual));
   aplicarCoresTema(temaId);
   renderTemaSwatches();
+}
+
+// Cor de abertura do app: é a que aparece ANTES do login (ver o pequeno
+// script logo depois do </style>, que já aplica ela de cara) — diferente da
+// cor pessoal acima, essa é única pra rede inteira e só a matriz mexe.
+function renderTemaAberturaSwatches(){
+  const box = document.getElementById('temaAberturaSwatches');
+  const secao = document.getElementById('temaAberturaCard');
+  if(!secao) return;
+  if(currentRole !== 'matriz'){
+    secao.style.display = 'none';
+    return;
+  }
+  secao.style.display = 'block';
+  if(!box) return;
+  const salvo = JSON.parse(localStorage.getItem('gingapass_tema_abertura') || 'null');
+  const temaAtual = salvo ? TEMAS.find(t => t.navy900 === salvo.navy900) : null;
+  const atualId = temaAtual ? temaAtual.id : 'navy';
+  box.innerHTML = '';
+  TEMAS.forEach(t => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.title = t.nome;
+    dot.style.cssText = 'width:34px;height:34px;border-radius:50%;border:3px solid ' + (t.id === atualId ? '#EF9F27' : 'transparent') + ';background:' + t.navy900 + ';cursor:pointer;';
+    dot.onclick = () => escolherTemaAbertura(t.id);
+    box.appendChild(dot);
+  });
+}
+
+function escolherTemaAbertura(temaId){
+  if(currentRole !== 'matriz') return;
+  const tema = TEMAS.find(t => t.id === temaId) || TEMAS[0];
+  const valor = {navy900: tema.navy900, navy700: tema.navy700, navy500: tema.navy500, amber500: tema.amber500, amber700: tema.amber700};
+  setDado('gingapass_tema_abertura', JSON.stringify(valor)).then(function(ok){
+    if(ok === false){
+      alert('Não sincronizou com a nuvem — verifique a conexão e tente de novo.');
+    }
+  });
+  renderTemaAberturaSwatches();
+  // Se a pessoa que está editando ainda não tiver uma cor pessoal salva,
+  // mostra o resultado na hora pra ela mesma conferir.
+  const minhaCorPessoal = JSON.parse(localStorage.getItem('gingapass_aparencia_' + identificadorAparenciaAtual()) || 'null');
+  if(!minhaCorPessoal || !minhaCorPessoal.tema) aplicarCoresTema(temaId);
+  alert('Cor de abertura da rede atualizada! Quem ainda não escolheu uma cor pessoal vai ver essa a partir de agora (inclusive na tela de login).');
 }
 
 function previewFotosTopo(){
@@ -17041,15 +17294,47 @@ function restaurarAparenciaPadrao(){
 
 function aplicarAparenciaAtual(){
   if(!currentRole){
-    aplicarCoresTema('navy');
+    // Antes do login não tem como saber a cor pessoal de ninguém — usa a cor
+    // de abertura da rede (mesma lógica do script logo após o </style>, que
+    // já aplica ela antes de qualquer coisa pintar; isso aqui é só reforço
+    // pra quando essa função roda de novo depois, ex: no logout).
+    const aberturaSemLogin = JSON.parse(localStorage.getItem('gingapass_tema_abertura') || 'null');
+    if(aberturaSemLogin && aberturaSemLogin.navy900){
+      const raizSemLogin = document.documentElement.style;
+      raizSemLogin.setProperty('--navy-900', aberturaSemLogin.navy900);
+      raizSemLogin.setProperty('--navy-700', aberturaSemLogin.navy700);
+      raizSemLogin.setProperty('--navy-500', aberturaSemLogin.navy500);
+      raizSemLogin.setProperty('--amber-500', aberturaSemLogin.amber500);
+      raizSemLogin.setProperty('--amber-700', aberturaSemLogin.amber700);
+    } else {
+      aplicarCoresTema('navy');
+    }
     return;
   }
   const id = identificadorAparenciaAtual();
   const chave = 'gingapass_aparencia_' + id;
   const salvo = JSON.parse(localStorage.getItem(chave) || 'null');
-  aplicarCoresTema(salvo && salvo.tema ? salvo.tema : 'navy');
+  if(salvo && salvo.tema){
+    aplicarCoresTema(salvo.tema);
+  } else {
+    // Ninguém escolheu uma cor pessoal ainda: usa a cor de abertura da rede
+    // (a mesma que já aparece antes do login) em vez de forçar de volta pro
+    // azul padrão — sem isso, a cor da matriz "sumia" assim que alguém entrava.
+    const abertura = JSON.parse(localStorage.getItem('gingapass_tema_abertura') || 'null');
+    if(abertura && abertura.navy900){
+      const raiz = document.documentElement.style;
+      raiz.setProperty('--navy-900', abertura.navy900);
+      raiz.setProperty('--navy-700', abertura.navy700);
+      raiz.setProperty('--navy-500', abertura.navy500);
+      raiz.setProperty('--amber-500', abertura.amber500);
+      raiz.setProperty('--amber-700', abertura.amber700);
+    } else {
+      aplicarCoresTema('navy');
+    }
+  }
   aplicarFotosTopo(obterFotosTopoSalvas(id));
   renderTemaSwatches();
+  renderTemaAberturaSwatches();
 }
 
 const IDIOMAS = {
