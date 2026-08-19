@@ -988,7 +988,7 @@
     <p class="section-title">Aparência</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Escolha a cor do seu app. Só muda no seu aparelho.</p>
-      <div id="temaSwatches" style="display:flex;gap:10px;margin-bottom:14px;"><button type="button" title="Azul" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgb(239, 159, 39); background: rgb(4, 44, 83); cursor: pointer;"></button><button type="button" title="Verde" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(11, 61, 46); cursor: pointer;"></button><button type="button" title="Roxo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(46, 26, 71); cursor: pointer;"></button><button type="button" title="Vinho" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(74, 14, 31); cursor: pointer;"></button><button type="button" title="Petróleo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(11, 52, 56); cursor: pointer;"></button><button type="button" title="Preto" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(17, 20, 23); cursor: pointer;"></button><button type="button" title="Laranja" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(92, 42, 10); cursor: pointer;"></button><button type="button" title="Rosa" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(92, 20, 54); cursor: pointer;"></button><button type="button" title="Azul-céu" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(14, 58, 92); cursor: pointer;"></button><button type="button" title="Turquesa" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(8, 59, 62); cursor: pointer;"></button><button type="button" title="Marrom" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(58, 36, 21); cursor: pointer;"></button><button type="button" title="Cinza-chumbo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(42, 46, 51); cursor: pointer;"></button></div>
+      <div id="temaSwatches" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:8px;margin-bottom:14px;"><button type="button" title="Azul" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgb(239, 159, 39); background: rgb(4, 44, 83); cursor: pointer;"></button><button type="button" title="Verde" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(11, 61, 46); cursor: pointer;"></button><button type="button" title="Roxo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(46, 26, 71); cursor: pointer;"></button><button type="button" title="Vinho" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(74, 14, 31); cursor: pointer;"></button><button type="button" title="Petróleo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(11, 52, 56); cursor: pointer;"></button><button type="button" title="Preto" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(17, 20, 23); cursor: pointer;"></button><button type="button" title="Laranja" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(92, 42, 10); cursor: pointer;"></button><button type="button" title="Rosa" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(92, 20, 54); cursor: pointer;"></button><button type="button" title="Azul-céu" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(14, 58, 92); cursor: pointer;"></button><button type="button" title="Turquesa" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(8, 59, 62); cursor: pointer;"></button><button type="button" title="Marrom" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(58, 36, 21); cursor: pointer;"></button><button type="button" title="Cinza-chumbo" style="width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; background: rgb(42, 46, 51); cursor: pointer;"></button></div>
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Escolha até 3 fotos pra aparecerem no topo do app, no lugar das fotos padrão.</p>
       <input type="file" id="fotoTopoInput" accept="image/*" multiple="" style="font-size:12px;margin-bottom:8px;">
       <div class="gallery-grid" id="fotoTopoPreview"></div>
@@ -1000,7 +1000,7 @@
       <p class="section-title">Cor de abertura do app (padrão da rede)</p>
       <div class="card">
         <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Essa é a cor que aparece pra TODO MUNDO assim que o app abre, antes de entrar com usuário e senha (e pra quem ainda não escolheu uma cor pessoal). Só a matriz pode mudar.</p>
-        <div id="temaAberturaSwatches" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+        <div id="temaAberturaSwatches" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:8px;"></div>
       </div>
     </div>
 
@@ -10875,7 +10875,9 @@ function criarCardAniversario(pessoa, indice, logoGrupo, destaque){
     if(fotoPessoa){
       const img = document.createElement('img');
       img.src = fotoPessoa;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      // object-fit:contain — mostra a foto inteira, sem cortar a pessoa
+      // (cover cortava cabeça/pés dependendo da proporção da foto).
+      img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
       bannerWrap.appendChild(img);
     } else {
       const iniciais = document.createElement('span');
@@ -10968,71 +10970,34 @@ function criarCardAniversario(pessoa, indice, logoGrupo, destaque){
 // Se por algum motivo não conseguir gerar a imagem (navegador não suporta,
 // erro de CORS etc.), devolve null e quem chamou cai pro compartilhamento só
 // com texto.
-function gerarImagemCardAniversario(cardEl){
-  return new Promise(function(resolve){
-    try{
-      const rect = cardEl.getBoundingClientRect();
-      const largura = Math.max(280, Math.round(rect.width) || 340);
-      const altura = Math.max(120, Math.round(rect.height) || 170);
-      const clone = cardEl.cloneNode(true);
-      clone.querySelectorAll('[data-compartilhar-ignorar]').forEach(el => el.remove());
-      clone.style.marginBottom = '0';
-      const htmlClone = clone.outerHTML;
-      const svgData = '<svg xmlns="http://www.w3.org/2000/svg" width="' + largura + '" height="' + altura + '">' +
-        '<foreignObject width="100%" height="100%">' +
-        '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + largura + 'px;height:' + altura + 'px;font-family:Inter,sans-serif;">' + htmlClone + '</div>' +
-        '</foreignObject></svg>';
-      const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-      const url = URL.createObjectURL(svgBlob);
-      const img = new Image();
-      img.onload = function(){
-        try{
-          const escala = 2;
-          const canvas = document.createElement('canvas');
-          canvas.width = largura * escala;
-          canvas.height = altura * escala;
-          const ctx = canvas.getContext('2d');
-          ctx.scale(escala, escala);
-          ctx.drawImage(img, 0, 0, largura, altura);
-          URL.revokeObjectURL(url);
-          canvas.toBlob(function(blob){ resolve(blob); }, 'image/png');
-        } catch(e){
-          URL.revokeObjectURL(url);
-          resolve(null);
-        }
-      };
-      img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
-      img.src = url;
-    } catch(e){
-      resolve(null);
-    }
-  });
-}
-
-// Compartilha o card de aniversário — tenta o menu nativo de compartilhar do
-// aparelho (com a imagem do card, quando dá pra gerar), que já deixa a
-// pessoa escolher WhatsApp/Instagram/etc. Sem suporte a isso (ex: desktop),
-// cai pro link direto do WhatsApp Web ou copia o texto pra colar no Instagram.
+// Compartilha o aniversário anexando a FOTO DE VERDADE da pessoa (em vez de
+// tentar desenhar o card inteiro num canvas e exportar como imagem — isso
+// falhava em vários navegadores, principalmente Safari do iPhone, que trava
+// a exportação do canvas quando tem fonte do Google Fonts desenhada dentro
+// de um <foreignObject>). Sem foto cadastrada, ou sem suporte a compartilhar
+// arquivo, cai pro compartilhamento só com texto.
 function compartilharCardAniversario(pessoa, cardEl, canal){
   const textoBase = '🎉 Feliz aniversário, ' + pessoa.nome + '! Hoje é dia de comemorar mais um ano de conquistas, disciplina e alegria na capoeira. Parabéns! 🥋';
-  gerarImagemCardAniversario(cardEl).then(function(blob){
-    const arquivo = blob ? new File([blob], 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.png', {type: 'image/png'}) : null;
-    const podeCompartilharArquivo = arquivo && navigator.canShare && navigator.canShare({files: [arquivo]});
-    if(navigator.share && (podeCompartilharArquivo || !arquivo)){
-      const dadosShare = {title: 'Feliz Aniversário!', text: textoBase};
-      if(podeCompartilharArquivo) dadosShare.files = [arquivo];
-      navigator.share(dadosShare).catch(function(){});
-      return;
+  const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
+  let arquivo = null;
+  if(fotoPessoa){
+    try{ arquivo = dataUrlParaArquivo(fotoPessoa, 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.jpg'); } catch(e){ arquivo = null; }
+  }
+  const podeCompartilharArquivo = !!(arquivo && navigator.canShare && navigator.canShare({files: [arquivo]}));
+  if(navigator.share && (podeCompartilharArquivo || !arquivo)){
+    const dadosShare = {title: 'Feliz Aniversário!', text: textoBase};
+    if(podeCompartilharArquivo) dadosShare.files = [arquivo];
+    navigator.share(dadosShare).catch(function(){});
+    return;
+  }
+  if(canal === 'whatsapp'){
+    window.open('https://wa.me/?text=' + encodeURIComponent(textoBase), '_blank');
+  } else {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(textoBase);
     }
-    if(canal === 'whatsapp'){
-      window.open('https://wa.me/?text=' + encodeURIComponent(textoBase), '_blank');
-    } else {
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(textoBase);
-      }
-      alert('Esse navegador não deixa compartilhar direto pro Instagram. Copiei a mensagem — é só colar numa Story ou publicação:\n\n' + textoBase);
-    }
-  });
+    alert('Esse navegador não deixa compartilhar direto pro Instagram. Copiei a mensagem — é só colar numa Story ou publicação:\n\n' + textoBase);
+  }
 }
 
 // Preenche os dois lugares onde os aniversariantes do mês aparecem: o card
@@ -17099,7 +17064,10 @@ const TEMAS = [
   {id:'indigo', nome:'Índigo', navy900:'#1E1A4A', navy700:'#332B7A', navy500:'#4A3FA8', amber500:'#EF9F27', amber700:'#BA7517'},
   {id:'menta', nome:'Menta', navy900:'#0B3D33', navy700:'#146B57', navy500:'#1E9C7F', amber500:'#F4B942', amber700:'#C4900F'},
   {id:'tijolo', nome:'Vermelho-tijolo', navy900:'#4A1E12', navy700:'#7A331F', navy500:'#A8472B', amber500:'#EF9F27', amber700:'#BA7517'},
-  {id:'grafite', nome:'Grafite', navy900:'#1C1F24', navy700:'#31363D', navy500:'#4A505A', amber500:'#EF9F27', amber700:'#BA7517'}
+  {id:'grafite', nome:'Grafite', navy900:'#1C1F24', navy700:'#31363D', navy500:'#4A505A', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'amarelo', nome:'Amarelo', navy900:'#5C4A00', navy700:'#8C7300', navy500:'#BFA000', amber500:'#FFE066', amber700:'#D9B23D'},
+  {id:'azulclaro', nome:'Azul-clarinho', navy900:'#0A4C73', navy700:'#1470A3', navy500:'#3FB6E8', amber500:'#EF9F27', amber700:'#BA7517'},
+  {id:'limao', nome:'Limão', navy900:'#3D4A0A', navy700:'#5C6E12', navy500:'#8FBF1E', amber500:'#F4C430', amber700:'#C4A01A'}
 ];
 
 let _collageDefaults = null;
