@@ -10539,7 +10539,10 @@ function renderChatGrupoParceiro(g){
 }
 
 function excluirProfessorPublico(nome){
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const academiasDoProfessor = rede.filter(a => mesmoProfessor(a.professor, nome));
+  const contasParaExcluir = academiasContas.filter(c => mesmoProfessor(c.nome, nome) || mesmoProfessor(c.user, nome) || academiasDoProfessor.some(a => a.nome === c.nome));
 
   if(contasParaExcluir.length === 0){
     alert('Não encontrei uma conta de acesso pra esse professor (pode ser um nome cadastrado só como texto na rede, sem login próprio).');
