@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="GingaPass">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy-900:#042C53;
@@ -7998,7 +7998,10 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
     }
     const localTxt = ev.local ? (' · ' + ev.local) : '';
     const participantes = contarParticipantesEvento(ev.codigoCheckin);
-    const participantesTxt = participantes > 0 ? (' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes')) : '';
+    // Sempre mostra a contagem (mesmo "0 participantes"), pra ficar claro que
+    // a informação existe e está sendo contada — antes, com 0, o texto
+    // simplesmente sumia e parecia que a função não funcionava.
+    const participantesTxt = ' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes');
     div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
     div.querySelector('h4').textContent = ev.titulo + (ev.publico ? ' 🌐' : '') + (jaPassou ? ' · Realizado' : '');
     div.querySelector('p').textContent = ev.data + localTxt + participantesTxt;
@@ -8227,7 +8230,7 @@ function renderCarrosselEventos(containerId, eventosComIndice, mensagemVazia){
       semImg.textContent = ev.titulo;
     }
     const participantes = contarParticipantesEvento(ev.codigoCheckin);
-    const participantesTxt = participantes > 0 ? (' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes')) : '';
+    const participantesTxt = ' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes');
     tituloEl.textContent = ev.titulo + (ev.publico ? ' 🌐' : '');
     dataEl.textContent = ev.data + (ev.local ? (' · ' + ev.local) : '') + participantesTxt;
     dots.forEach((d, idx) => { d.style.opacity = idx === indice ? '1' : '0.3'; });
@@ -10771,7 +10774,7 @@ function obterAniversariantesDoMes(){
     const mes = Number(partes[1]);
     const dia = Number(partes[2]);
     if(mes === mesAtual){
-      pessoas.push({nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Aluno(a)'});
+      pessoas.push({user: c.user, nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Aluno(a)'});
     }
   });
 
@@ -10784,11 +10787,102 @@ function obterAniversariantesDoMes(){
     const mes = Number(partes[1]);
     const dia = Number(partes[2]);
     if(mes === mesAtual){
-      pessoas.push({nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Professor(a)'});
+      pessoas.push({user: c.user, nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Professor(a)'});
     }
   });
 
   return pessoas.sort((a, b) => a.dia - b.dia);
+}
+
+// Foto/logo do grupo pra estampar no card de aniversário — usa a mesma foto
+// que o professor já cadastrou em "Foto/logo da minha academia" (perfil
+// dele). Funciona pra qualquer papel vendo o card (aluno, pai, professor),
+// não só pro próprio professor.
+function obterLogoDoMeuGrupo(){
+  const meuGrupo = obterMeuGrupoId();
+  if(meuGrupo === 'matriz') return '';
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const profConta = academiasContas.find(c => obterGrupoIdDeAutor('academia:' + c.user, 'academia') === meuGrupo);
+  return profConta ? obterFotoAcademia(profConta.user, profConta) : '';
+}
+
+// Paleta de cores que revezam entre os cards de aniversário, pra não ficar
+// sempre igual quando tem mais de um aniversariante no mês.
+const TEMAS_ANIVERSARIO = [
+  {cor: '#C0392B', clara: '#FBEAE7'},
+  {cor: '#042C53', clara: '#E3EBF3'},
+  {cor: '#BA7517', clara: '#FBEFDA'},
+  {cor: '#2E8B57', clara: '#E1F0E7'},
+  {cor: '#6C3483', clara: '#EDE1F2'},
+];
+
+function criarCardAniversario(pessoa, indice, logoGrupo){
+  const tema = TEMAS_ANIVERSARIO[indice % TEMAS_ANIVERSARIO.length];
+  const card = document.createElement('div');
+  card.style.cssText = 'position:relative;overflow:hidden;border-radius:16px;background:' + tema.clara + ';margin-bottom:14px;padding:18px 16px;min-height:150px;';
+
+  // Faixa diagonal decorativa no canto, só pra dar um ar de "flyer" sem
+  // precisar desenhar nada complexo.
+  const faixa = document.createElement('div');
+  faixa.style.cssText = 'position:absolute;top:-46px;left:-56px;width:130px;height:130px;background:' + tema.cor + ';opacity:0.16;transform:rotate(45deg);';
+  card.appendChild(faixa);
+
+  const linha = document.createElement('div');
+  linha.style.cssText = 'position:relative;z-index:1;display:flex;align-items:center;gap:14px;';
+
+  const textoBox = document.createElement('div');
+  textoBox.style.cssText = 'flex:1;min-width:0;';
+
+  const selo = document.createElement('p');
+  selo.style.cssText = 'font-family:Poppins,sans-serif;font-size:10.5px;font-weight:700;color:' + tema.cor + ';text-transform:uppercase;letter-spacing:1px;margin:0 0 2px;';
+  selo.textContent = '🎂 Feliz Aniversário!';
+  textoBox.appendChild(selo);
+
+  const nomeEl = document.createElement('p');
+  nomeEl.style.cssText = 'font-family:Caveat,cursive;font-size:26px;font-weight:700;color:var(--navy-900);margin:0 0 2px;line-height:1.1;';
+  nomeEl.textContent = pessoa.nome + '!';
+  textoBox.appendChild(nomeEl);
+
+  const legenda = document.createElement('p');
+  legenda.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;';
+  legenda.textContent = 'A equipe celebra com você mais um ano de conquistas, disciplina e alegria!';
+  textoBox.appendChild(legenda);
+
+  const meta = document.createElement('p');
+  meta.style.cssText = 'font-size:11.5px;font-weight:700;color:' + tema.cor + ';margin:0;';
+  meta.textContent = pessoa.tipo + ' · dia ' + String(pessoa.dia).padStart(2, '0');
+  textoBox.appendChild(meta);
+
+  linha.appendChild(textoBox);
+
+  // Foto de perfil do aniversariante (se tiver) num círculo — cai pra
+  // iniciais do nome quando ainda não cadastrou foto.
+  const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
+  const avatarWrap = document.createElement('div');
+  avatarWrap.style.cssText = 'width:76px;height:76px;border-radius:50%;overflow:hidden;border:3px solid ' + tema.cor + ';flex-shrink:0;background:var(--white);display:flex;align-items:center;justify-content:center;';
+  if(fotoPessoa){
+    const img = document.createElement('img');
+    img.src = fotoPessoa;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    avatarWrap.appendChild(img);
+  } else {
+    const iniciais = document.createElement('span');
+    iniciais.style.cssText = 'font-family:Poppins,sans-serif;font-size:22px;font-weight:700;color:' + tema.cor + ';';
+    iniciais.textContent = (pessoa.nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    avatarWrap.appendChild(iniciais);
+  }
+  linha.appendChild(avatarWrap);
+  card.appendChild(linha);
+
+  // Logo do grupo, pequeno, no canto superior direito do card.
+  if(logoGrupo){
+    const logoEl = document.createElement('img');
+    logoEl.src = logoGrupo;
+    logoEl.style.cssText = 'position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--white);box-shadow:0 1px 4px rgba(0,0,0,0.2);z-index:1;';
+    card.appendChild(logoEl);
+  }
+
+  return card;
 }
 
 function renderAniversariantesMes(){
@@ -10803,25 +10897,15 @@ function renderAniversariantesMes(){
   }
   card.style.display = 'block';
   const nomeMes = new Date().toLocaleDateString('pt-BR', {month: 'long'});
+  const logoGrupo = obterLogoDoMeuGrupo();
   lista.innerHTML = '';
   const tituloMes = document.createElement('p');
   tituloMes.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 8px;text-transform:capitalize;';
   tituloMes.textContent = nomeMes;
   lista.appendChild(tituloMes);
-  pessoas.forEach(p => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:13px;';
-    const nomeEl = document.createElement('span');
-    nomeEl.textContent = '🎉 ' + p.nome + ' · ' + p.tipo;
-    const diaEl = document.createElement('span');
-    diaEl.style.cssText = 'color:var(--ink-soft);font-weight:600;';
-    diaEl.textContent = 'dia ' + String(p.dia).padStart(2, '0');
-    row.appendChild(nomeEl);
-    row.appendChild(diaEl);
-    lista.appendChild(row);
+  pessoas.forEach((p, i) => {
+    lista.appendChild(criarCardAniversario(p, i, logoGrupo));
   });
-  const ultimo = lista.lastElementChild;
-  if(ultimo) ultimo.style.borderBottom = 'none';
 }
 
 function renderFotosFeed(grupoIdForcado){
