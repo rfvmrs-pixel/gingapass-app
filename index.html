@@ -821,6 +821,8 @@
       <div class="info-row"><span>Professor</span><span id="perfilProfessorView">Mestrando Borracha</span></div>
       <div class="info-row"><span>E-mail</span><span id="perfilEmailView">cristianoborracha2024@hotmail.com</span></div>
       <div class="info-row"><span>Telefone</span><span id="perfilTelView">+55 21 99192-4296</span></div>
+      <div class="info-row" id="perfilNascimentoRow" style="display:none;"><span>Data de nascimento</span><span id="perfilNascimentoView">—</span></div>
+      <div class="info-row" id="perfilIdadeRow" style="display:none;"><span>Idade</span><span id="perfilIdadeView">—</span></div>
     </div>
     <p class="section-title">Meu histórico por mês</p>
     <div class="card">
@@ -834,6 +836,8 @@
       <input class="admin-input" id="perfilNomeInput" placeholder="Nome completo">
       <input class="admin-input" id="perfilEmailInput" placeholder="E-mail">
       <input class="admin-input" id="perfilTelInput" placeholder="Telefone">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Data de nascimento</label>
+      <input class="admin-input" id="perfilNascimentoInput" type="date">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Foto de perfil</label>
       <input type="file" id="perfilFotoInput" accept="image/*" style="font-size:12px;">
       <div id="perfilCamposMatriz" style="display:none;margin-top:12px;">
@@ -895,6 +899,9 @@
           </select>
           <input class="admin-input" id="agendaAulaHoraInput" type="time" style="flex:1;min-width:110px;">
         </div>
+        <select class="admin-input" id="agendaAulaLocalInput">
+          <option value="">Selecione a academia/núcleo...</option>
+        </select>
         <button class="btn" type="button" onclick="adicionarHorarioAgendaAula()">+ Adicionar horário</button>
       </div>
       <div class="card" id="agendaAulasProfessorLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum horário cadastrado ainda.</p></div>
@@ -1090,6 +1097,12 @@
       <input class="admin-input" id="colagemLegenda" placeholder="Escreva uma legenda (opcional)" style="display:none;">
       <button class="btn" id="colagemPublicarBtn" type="button" onclick="publicarColagem()" style="display:none;">Publicar</button>
       <p id="colagemStatus" style="font-size:11px;color:var(--ink-soft);margin:8px 0 0;"></p>
+    </div>
+
+    <div class="card" id="aniversariantesMesCard" style="display:none;">
+      <div class="card-label">🎂 Aniversariantes do mês</div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-2px 0 8px;">Visível só pra quem é do seu grupo/núcleo</p>
+      <div id="aniversariantesMesLista"></div>
     </div>
 
     <p class="section-title">Mural</p>
@@ -7226,6 +7239,10 @@ function alternarEdicaoPerfilInterno(){
     document.getElementById('perfilNomeInput').value = (nomeAtual === 'Carregando...') ? '' : nomeAtual;
     document.getElementById('perfilEmailInput').value = (emailAtual === '—') ? '' : emailAtual;
     document.getElementById('perfilTelInput').value = (telAtual === '—') ? '' : telAtual;
+    const chavePerfilAtual = obterChavePerfil();
+    const perfilAtualParaEdicao = chavePerfilAtual ? JSON.parse(localStorage.getItem(chavePerfilAtual) || 'null') : null;
+    const nascimentoInput = document.getElementById('perfilNascimentoInput');
+    if(nascimentoInput) nascimentoInput.value = (perfilAtualParaEdicao && perfilAtualParaEdicao.nascimento) || '';
     if(currentRole === 'matriz'){
       camposMatriz.style.display = 'block';
       populaSelectsNucleoProfessor();
@@ -7261,6 +7278,8 @@ function alternarEdicaoPerfilInterno(){
     const nome = document.getElementById('perfilNomeInput').value.trim();
     const email = document.getElementById('perfilEmailInput').value.trim();
     const tel = document.getElementById('perfilTelInput').value.trim();
+    const nascimentoInputSalvar = document.getElementById('perfilNascimentoInput');
+    const nascimento = nascimentoInputSalvar ? nascimentoInputSalvar.value : '';
     const fotoInput = document.getElementById('perfilFotoInput');
     const arquivo = fotoInput && fotoInput.files && fotoInput.files[0];
 
@@ -7298,7 +7317,7 @@ function alternarEdicaoPerfilInterno(){
         return;
       }
       const perfilAnterior = JSON.parse(localStorage.getItem(chave) || '{}');
-      const perfil = {nome, email, tel};
+      const perfil = {nome, email, tel, nascimento};
       const chaveFoto = chave + '_foto';
       const promessas = [setDado(chave, JSON.stringify(perfil))];
       // A foto fica num documento SEPARADO (igual as fotos do topo/mural),
@@ -7570,6 +7589,7 @@ function renderPerfil(){
   if(secaoAulasProfessor) secaoAulasProfessor.style.display = souProfessorOuMatriz ? 'block' : 'none';
   if(souProfessorOuMatriz){
     tentarChamar(function(){ renderPlanosAulaPerfil(); });
+    tentarChamar(function(){ popularSelectLocalAgenda(); });
     tentarChamar(function(){ renderAgendaAulasPerfil(); });
     tentarChamar(function(){ renderValidacaoAulasSemana(); });
   }
@@ -7690,6 +7710,21 @@ function renderPerfil(){
   // de um associado novo, mesmo sem ter nada a ver).
   if(emailView) emailView.textContent = (perfil && perfil.email) ? perfil.email : '—';
   if(telView) telView.textContent = (perfil && perfil.tel) ? perfil.tel : '—';
+
+  const nascimentoRow = document.getElementById('perfilNascimentoRow');
+  const nascimentoView = document.getElementById('perfilNascimentoView');
+  const idadeRow = document.getElementById('perfilIdadeRow');
+  const idadeView = document.getElementById('perfilIdadeView');
+  if(perfil && perfil.nascimento){
+    const dataFmt = new Date(perfil.nascimento + 'T00:00:00').toLocaleDateString('pt-BR');
+    if(nascimentoView) nascimentoView.textContent = dataFmt;
+    if(nascimentoRow) nascimentoRow.style.display = '';
+    if(idadeView) idadeView.textContent = calcularIdade(perfil.nascimento) + ' anos';
+    if(idadeRow) idadeRow.style.display = '';
+  } else {
+    if(nascimentoRow) nascimentoRow.style.display = 'none';
+    if(idadeRow) idadeRow.style.display = 'none';
+  }
 
   // A foto do avatar também precisa ser recalculada mesmo quando "perfil"
   // ainda é null (conta nova, nunca editou nome/e-mail antes) — antes, o
@@ -7814,7 +7849,7 @@ function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, public
   // A imagem (cartaz) NUNCA vai no localStorage — fica só no IndexedDB deste aparelho
   // e sincronizada à parte pela nuvem (ver "Cartazes de evento" mais acima). O array
   // de eventos guarda só um sinalizador temImagem, então nunca fica grande.
-  eventos.push({titulo, data, dataISO, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual(), publico: !!publico});
+  eventos.push({titulo, data, dataISO, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual(), publico: !!publico, likes: [], comentarios: []});
   setDado('gingapass_eventos', JSON.stringify(eventos));
   if(imagem){
     salvarImagemEvento(codigoCheckin, imagem);
@@ -7829,6 +7864,45 @@ function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, public
   }
   alert('Evento publicado! Já saiu com um código de check-in próprio.');
   return true;
+}
+
+// Quantas pessoas tiveram presença confirmada nesse evento (mesma fonte de
+// dados usada na tela de Presença — gingapass_checkins_eventos).
+function contarParticipantesEvento(codigoCheckin){
+  if(!codigoCheckin) return 0;
+  const checkins = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
+  return checkins.filter(c => c.eventoId === codigoCheckin).length;
+}
+
+// Curtir/comentar em eventos, igual ao GingaFeed — mas guardado direto no
+// próprio registro do evento (gingapass_eventos), já que o evento inteiro é
+// um documento só sincronizado pela nuvem (não precisa de coleção separada).
+function curtirEvento(codigoCheckin){
+  if(!currentRole || !currentUser) return;
+  const meuId = identificadorUsuarioAtual();
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos.find(e => e.codigoCheckin === codigoCheckin);
+  if(!ev) return;
+  ev.likes = ev.likes || [];
+  const idx = ev.likes.indexOf(meuId);
+  if(idx >= 0) ev.likes.splice(idx, 1);
+  else ev.likes.push(meuId);
+  setDado('gingapass_eventos', JSON.stringify(eventos));
+  renderEventos();
+}
+
+function comentarEvento(codigoCheckin, inputId){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  const texto = input.value.trim();
+  if(!texto) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos.find(e => e.codigoCheckin === codigoCheckin);
+  if(!ev) return;
+  ev.comentarios = ev.comentarios || [];
+  ev.comentarios.push({autor: obterNomeExibicaoAtual() || 'Associado', texto, data: Date.now()});
+  setDado('gingapass_eventos', JSON.stringify(eventos));
+  renderEventos();
 }
 
 function lerImagemComoBase64(inputEl, callback){
@@ -7915,10 +7989,19 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
     div.className = 'event-row custom';
     div.style.flexDirection = 'column';
     div.style.alignItems = 'flex-start';
+    // Evento já realizado (data programada no passado) fica meio apagado, pra
+    // ficar visualmente claro que já aconteceu — sem esconder ele da lista.
+    const jaPassou = eventoJaPassou(ev);
+    if(jaPassou){
+      div.style.opacity = '0.6';
+      div.style.filter = 'grayscale(0.7)';
+    }
     const localTxt = ev.local ? (' · ' + ev.local) : '';
+    const participantes = contarParticipantesEvento(ev.codigoCheckin);
+    const participantesTxt = participantes > 0 ? (' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes')) : '';
     div.innerHTML = '<div style="display:flex;gap:10px;width:100%;"><span class="event-dot" style="margin-top:6px;"></span><div style="flex:1;"><h4></h4><p></p></div></div>';
-    div.querySelector('h4').textContent = ev.titulo + (ev.publico ? ' 🌐' : '');
-    div.querySelector('p').textContent = ev.data + localTxt;
+    div.querySelector('h4').textContent = ev.titulo + (ev.publico ? ' 🌐' : '') + (jaPassou ? ' · Realizado' : '');
+    div.querySelector('p').textContent = ev.data + localTxt + participantesTxt;
     if(ev.temImagem || ev.imagem){
       // ev.imagem só existe em eventos muito antigos que ainda não passaram pela
       // migração automática (ver migrarImagensEventosAntigas); o normal é buscar do
@@ -7954,8 +8037,7 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
     // Só quem criou o evento (ou a matriz/senha master) pode dar presença —
     // não fica mais habilitado pra qualquer professor da rede marcar presença
     // em eventos que não são dele.
-    const souCriadorOuMatriz = currentRole === 'matriz' || (currentRole === 'academia' && !!ev.criadoPor && ev.criadoPor === meuId);
-    if(souCriadorOuMatriz){
+    if(podeGerenciarEvento(ev)){
       const presBtn = document.createElement('button');
       presBtn.type = 'button';
       presBtn.textContent = '✅ Dar presença';
@@ -7963,6 +8045,58 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
       presBtn.onclick = () => abrirPresencaEvento(indiceReal);
       div.appendChild(presBtn);
     }
+
+    // Curtir/comentar, igual ao GingaFeed.
+    const likes = ev.likes || [];
+    const comentarios = ev.comentarios || [];
+    const curti = likes.includes(meuId);
+    const acoes = document.createElement('div');
+    acoes.style.cssText = 'display:flex;align-items:center;gap:14px;margin-top:10px;';
+    const likeBtn = document.createElement('button');
+    likeBtn.type = 'button';
+    likeBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:' + (curti ? '#C0392B' : 'var(--ink-soft)') + ';padding:0;';
+    likeBtn.textContent = (curti ? '❤️' : '🤍') + ' ' + likes.length;
+    likeBtn.onclick = () => curtirEvento(ev.codigoCheckin);
+    acoes.appendChild(likeBtn);
+    const comentCount = document.createElement('span');
+    comentCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
+    comentCount.textContent = comentarios.length + (comentarios.length === 1 ? ' comentário' : ' comentários');
+    acoes.appendChild(comentCount);
+    div.appendChild(acoes);
+
+    if(comentarios.length){
+      const listaComentarios = document.createElement('div');
+      listaComentarios.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:4px;';
+      comentarios.forEach(c => {
+        const linha = document.createElement('p');
+        linha.style.cssText = 'font-size:12px;color:var(--ink);margin:0;';
+        const b = document.createElement('b');
+        b.textContent = c.autor + ': ';
+        linha.appendChild(b);
+        linha.appendChild(document.createTextNode(c.texto));
+        listaComentarios.appendChild(linha);
+      });
+      div.appendChild(listaComentarios);
+    }
+
+    const inputId = 'comentarioInput_evento_' + ev.codigoCheckin;
+    const respRow = document.createElement('div');
+    respRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;width:100%;';
+    const respInput = document.createElement('input');
+    respInput.className = 'admin-input';
+    respInput.id = inputId;
+    respInput.placeholder = 'Escreva um comentário...';
+    respInput.style.marginBottom = '0';
+    const respBtn = document.createElement('button');
+    respBtn.className = 'btn';
+    respBtn.type = 'button';
+    respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;';
+    respBtn.textContent = 'Enviar';
+    respBtn.onclick = () => comentarEvento(ev.codigoCheckin, inputId);
+    respRow.appendChild(respInput);
+    respRow.appendChild(respBtn);
+    div.appendChild(respRow);
+
     lista.appendChild(div);
   });
 }
@@ -7992,8 +8126,11 @@ function renderCarrosselEventos(containerId, eventosComIndice, mensagemVazia){
   const moldura = document.createElement('div');
   moldura.style.cssText = 'position:relative;border-radius:14px;overflow:hidden;background:#EFE6D2;';
 
+  // object-fit:contain (em vez de cover) + altura maior: mostra o cartaz
+  // inteiro, sem cortar as bordas — antes um cartaz vertical típico perdia
+  // boa parte do conteúdo com "cover" numa caixa baixa de 170px.
   const imgEl = document.createElement('img');
-  imgEl.style.cssText = 'width:100%;height:170px;object-fit:cover;display:none;transition:opacity .2s;cursor:pointer;';
+  imgEl.style.cssText = 'width:100%;height:280px;object-fit:contain;display:none;transition:opacity .2s;cursor:pointer;';
   imgEl.onclick = () => abrirLightboxEventoCarrossel(containerId);
   moldura.appendChild(imgEl);
 
@@ -8040,9 +8177,41 @@ function renderCarrosselEventos(containerId, eventosComIndice, mensagemVazia){
   infoEl.appendChild(tituloEl);
   infoEl.appendChild(dataEl);
 
+  // Curtir/comentar direto na tela de início, igual ao GingaFeed — o
+  // conteúdo é trocado a cada slide dentro de mostrar(), como o resto.
+  const acoesEl = document.createElement('div');
+  acoesEl.style.cssText = 'display:flex;align-items:center;gap:14px;margin-top:8px;';
+  const likeBtn = document.createElement('button');
+  likeBtn.type = 'button';
+  likeBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;padding:0;';
+  const comentCount = document.createElement('span');
+  comentCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
+  acoesEl.appendChild(likeBtn);
+  acoesEl.appendChild(comentCount);
+
+  const comentariosListEl = document.createElement('div');
+  comentariosListEl.style.cssText = 'margin-top:6px;display:flex;flex-direction:column;gap:4px;';
+
+  const respRow = document.createElement('div');
+  respRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+  const respInput = document.createElement('input');
+  respInput.className = 'admin-input';
+  respInput.placeholder = 'Escreva um comentário...';
+  respInput.style.marginBottom = '0';
+  const respBtn = document.createElement('button');
+  respBtn.className = 'btn';
+  respBtn.type = 'button';
+  respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;';
+  respBtn.textContent = 'Enviar';
+  respRow.appendChild(respInput);
+  respRow.appendChild(respBtn);
+
   wrap.appendChild(moldura);
   if(eventosComIndice.length > 1) wrap.appendChild(dotsWrap);
   wrap.appendChild(infoEl);
+  wrap.appendChild(acoesEl);
+  wrap.appendChild(comentariosListEl);
+  wrap.appendChild(respRow);
 
   function mostrar(i){
     indice = ((i % eventosComIndice.length) + eventosComIndice.length) % eventosComIndice.length;
@@ -8057,10 +8226,35 @@ function renderCarrosselEventos(containerId, eventosComIndice, mensagemVazia){
       semImg.style.display = 'flex';
       semImg.textContent = ev.titulo;
     }
+    const participantes = contarParticipantesEvento(ev.codigoCheckin);
+    const participantesTxt = participantes > 0 ? (' · ' + participantes + (participantes === 1 ? ' participante' : ' participantes')) : '';
     tituloEl.textContent = ev.titulo + (ev.publico ? ' 🌐' : '');
-    dataEl.textContent = ev.data + (ev.local ? (' · ' + ev.local) : '');
+    dataEl.textContent = ev.data + (ev.local ? (' · ' + ev.local) : '') + participantesTxt;
     dots.forEach((d, idx) => { d.style.opacity = idx === indice ? '1' : '0.3'; });
     wrap._indiceAtual = indice;
+
+    const meuId = identificadorUsuarioAtual();
+    const likes = ev.likes || [];
+    const comentarios = ev.comentarios || [];
+    const curti = likes.includes(meuId);
+    likeBtn.style.color = curti ? '#C0392B' : 'var(--ink-soft)';
+    likeBtn.textContent = (curti ? '❤️' : '🤍') + ' ' + likes.length;
+    likeBtn.onclick = () => curtirEvento(ev.codigoCheckin);
+    comentCount.textContent = comentarios.length + (comentarios.length === 1 ? ' comentário' : ' comentários');
+    comentariosListEl.innerHTML = '';
+    comentarios.forEach(c => {
+      const linha = document.createElement('p');
+      linha.style.cssText = 'font-size:12px;color:var(--ink);margin:0;';
+      const b = document.createElement('b');
+      b.textContent = c.autor + ': ';
+      linha.appendChild(b);
+      linha.appendChild(document.createTextNode(c.texto));
+      comentariosListEl.appendChild(linha);
+    });
+    respInput.value = '';
+    const inputId = 'comentarioInput_evento_home_' + ev.codigoCheckin;
+    respInput.id = inputId;
+    respBtn.onclick = () => comentarEvento(ev.codigoCheckin, inputId);
   }
 
   function reiniciarAutoplay(){
@@ -8130,20 +8324,11 @@ function renderEventosGerenciar(){
       qrBtn.style.color = 'var(--amber-700)';
       qrBtn.textContent = 'QR';
       qrBtn.onclick = () => mostrarQrEvento(indiceReal, sufixo);
-      const editBtn = document.createElement('button');
-      editBtn.className = 'aluno-del';
-      editBtn.style.color = 'var(--navy-700)';
-      editBtn.textContent = 'Editar';
-      editBtn.onclick = () => editarEvento(indiceReal);
-      const delBtn = document.createElement('button');
-      delBtn.className = 'aluno-del';
-      delBtn.textContent = 'Remover';
-      delBtn.onclick = () => removerEvento(indiceReal);
       actions.appendChild(qrBtn);
-      // Só quem criou o evento (ou a matriz/senha master) pode dar ou tirar
-      // presença — não fica mais aberto pra qualquer professor da rede.
-      const meuIdGer = identificadorUsuarioAtual();
-      const souCriadorOuMatrizGer = currentRole === 'matriz' || (currentRole === 'academia' && !!ev.criadoPor && ev.criadoPor === meuIdGer);
+      // Só quem criou o evento (ou a matriz/senha master) pode dar presença,
+      // editar ou remover — não fica mais aberto pra qualquer professor da
+      // rede mexer em eventos que não são dele (ver podeGerenciarEvento).
+      const souCriadorOuMatrizGer = podeGerenciarEvento(ev);
       if(souCriadorOuMatrizGer){
         const presBtn = document.createElement('button');
         presBtn.className = 'aluno-del';
@@ -8151,9 +8336,20 @@ function renderEventosGerenciar(){
         presBtn.textContent = 'Presença';
         presBtn.onclick = () => abrirPresencaEvento(indiceReal);
         actions.appendChild(presBtn);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'aluno-del';
+        editBtn.style.color = 'var(--navy-700)';
+        editBtn.textContent = 'Editar';
+        editBtn.onclick = () => editarEvento(indiceReal);
+        actions.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'aluno-del';
+        delBtn.textContent = 'Remover';
+        delBtn.onclick = () => removerEvento(indiceReal);
+        actions.appendChild(delBtn);
       }
-      actions.appendChild(editBtn);
-      actions.appendChild(delBtn);
       row.appendChild(span);
       row.appendChild(actions);
       container.appendChild(row);
@@ -9171,9 +9367,23 @@ function sairDaChamada(){
 }
 /* =================== fim: Aula ao vivo (chamada de vídeo) =================== */
 
+// Só quem criou o evento, ou a matriz/senha master, pode dar presença,
+// editar ou remover — evita que qualquer professor da mesma rede mexa em
+// eventos publicados por outro professor.
+function podeGerenciarEvento(ev){
+  if(!ev) return false;
+  if(currentRole === 'matriz') return true;
+  const meuId = identificadorUsuarioAtual();
+  return currentRole === 'academia' && !!ev.criadoPor && ev.criadoPor === meuId;
+}
+
 function editarEvento(i){
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const ev = eventos[i];
+  if(!podeGerenciarEvento(ev)){
+    alert('Só quem criou este evento (ou a senha master/matriz) pode editá-lo.');
+    return;
+  }
   const titulo = prompt('Nome do evento:', ev.titulo);
   if(titulo === null) return;
   const dataISO = prompt('Data programada (AAAA-MM-DD, usada pra saber quando o evento vira "realizado"; deixe em branco se não souber):', ev.dataISO || '');
@@ -9204,8 +9414,12 @@ function editarEvento(i){
 }
 
 function removerEvento(i){
-  if(!confirm('Remover este evento?')) return;
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  if(!podeGerenciarEvento(eventos[i])){
+    alert('Só quem criou este evento (ou a senha master/matriz) pode removê-lo.');
+    return;
+  }
+  if(!confirm('Remover este evento?')) return;
   const removido = eventos[i];
   eventos.splice(i, 1);
   setDado('gingapass_eventos', JSON.stringify(eventos));
@@ -10540,9 +10754,80 @@ function navegarFeedFotos(delta){
   renderFotosFeed();
 }
 
+// Aniversariantes do mês (alunos + professores) do MESMO grupo/núcleo de
+// quem está vendo — nunca de outros grupos. Usa a data de nascimento salva
+// no perfil de cada um (gingapass_perfil_<user>), quando existir.
+function obterAniversariantesDoMes(){
+  const meuGrupo = obterMeuGrupoId();
+  const mesAtual = new Date().getMonth() + 1;
+  const pessoas = [];
+
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  alunosContas.forEach(c => {
+    if(obterGrupoIdDeAutor('aluno:' + c.user, 'aluno') !== meuGrupo) return;
+    const perfil = JSON.parse(localStorage.getItem('gingapass_perfil_' + c.user) || 'null');
+    if(!perfil || !perfil.nascimento) return;
+    const partes = perfil.nascimento.split('-');
+    const mes = Number(partes[1]);
+    const dia = Number(partes[2]);
+    if(mes === mesAtual){
+      pessoas.push({nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Aluno(a)'});
+    }
+  });
+
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  academiasContas.forEach(c => {
+    if(obterGrupoIdDeAutor('academia:' + c.user, 'academia') !== meuGrupo) return;
+    const perfil = JSON.parse(localStorage.getItem('gingapass_perfil_' + c.user) || 'null');
+    if(!perfil || !perfil.nascimento) return;
+    const partes = perfil.nascimento.split('-');
+    const mes = Number(partes[1]);
+    const dia = Number(partes[2]);
+    if(mes === mesAtual){
+      pessoas.push({nome: (perfil.nome || c.nome || c.user), dia, tipo: 'Professor(a)'});
+    }
+  });
+
+  return pessoas.sort((a, b) => a.dia - b.dia);
+}
+
+function renderAniversariantesMes(){
+  const card = document.getElementById('aniversariantesMesCard');
+  const lista = document.getElementById('aniversariantesMesLista');
+  if(!card || !lista || !currentRole) return;
+  const pessoas = obterAniversariantesDoMes();
+  if(pessoas.length === 0){
+    card.style.display = 'none';
+    lista.innerHTML = '';
+    return;
+  }
+  card.style.display = 'block';
+  const nomeMes = new Date().toLocaleDateString('pt-BR', {month: 'long'});
+  lista.innerHTML = '';
+  const tituloMes = document.createElement('p');
+  tituloMes.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 8px;text-transform:capitalize;';
+  tituloMes.textContent = nomeMes;
+  lista.appendChild(tituloMes);
+  pessoas.forEach(p => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:13px;';
+    const nomeEl = document.createElement('span');
+    nomeEl.textContent = '🎉 ' + p.nome + ' · ' + p.tipo;
+    const diaEl = document.createElement('span');
+    diaEl.style.cssText = 'color:var(--ink-soft);font-weight:600;';
+    diaEl.textContent = 'dia ' + String(p.dia).padStart(2, '0');
+    row.appendChild(nomeEl);
+    row.appendChild(diaEl);
+    lista.appendChild(row);
+  });
+  const ultimo = lista.lastElementChild;
+  if(ultimo) ultimo.style.borderBottom = 'none';
+}
+
 function renderFotosFeed(grupoIdForcado){
   _carrosselTimers.forEach(t => clearInterval(t));
   _carrosselTimers = [];
+  renderAniversariantesMes();
   const container = document.getElementById('feedFotos');
   if(!container || !currentRole) return;
   const grupoAlvo = grupoIdForcado || obterMeuGrupoId();
@@ -12144,6 +12429,19 @@ function extrairAnoMesDeDataEvento(dataTexto){
   return m[3] + '-' + mes;
 }
 
+// Idade em anos completos a partir de uma data de nascimento ISO (AAAA-MM-DD).
+function calcularIdade(nascimentoIso){
+  if(!nascimentoIso) return null;
+  const nasc = new Date(nascimentoIso + 'T00:00:00');
+  if(isNaN(nasc.getTime())) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const aindaNaoFezAniversario = (hoje.getMonth() < nasc.getMonth()) ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate());
+  if(aindaNaoFezAniversario) idade--;
+  return idade;
+}
+
 // Formata uma data ISO (AAAA-MM-DD, vinda do seletor de data) por extenso,
 // pra usar como texto de exibição quando o campo livre não foi preenchido.
 function formatarDataEventoExtenso(iso){
@@ -12733,23 +13031,41 @@ function adicionarHorarioAgendaAula(){
   }
   const diaInput = document.getElementById('agendaAulaDiaInput');
   const horaInput = document.getElementById('agendaAulaHoraInput');
+  const localInput = document.getElementById('agendaAulaLocalInput');
   const dia = diaInput ? Number(diaInput.value) : NaN;
   const hora = horaInput ? horaInput.value : '';
+  const local = localInput ? localInput.value.trim() : '';
   if(isNaN(dia) || !hora){
     alert('Escolha o dia da semana e o horário.');
     return;
   }
   const chave = _chaveAgendaAulas(nomeProf);
   const agenda = JSON.parse(localStorage.getItem(chave) || '[]');
-  if(agenda.some(h => h.dia === dia && h.hora === hora)){
+  if(agenda.some(h => h.dia === dia && h.hora === hora && (h.local || '') === local)){
     alert('Esse horário já está cadastrado.');
     return;
   }
-  agenda.push({id: Date.now() + '_' + Math.random().toString(36).slice(2, 8), dia: dia, hora: hora});
+  agenda.push({id: Date.now() + '_' + Math.random().toString(36).slice(2, 8), dia: dia, hora: hora, local: local});
   setDado(chave, JSON.stringify(agenda));
   if(horaInput) horaInput.value = '';
   renderAgendaAulasPerfil();
   renderValidacaoAulasSemana();
+}
+
+// Popula o select de local da agenda com as academias/núcleos que o
+// professor já cadastrou em "Minhas academias" (ele pode dar aula em mais
+// de um lugar) — mantém o valor escolhido se ainda existir na lista nova.
+function popularSelectLocalAgenda(){
+  const select = document.getElementById('agendaAulaLocalInput');
+  if(!select || currentRole !== 'academia') return;
+  const minhaConta = obterMinhaConta();
+  const nomesNucleos = (minhaConta && minhaConta.nucleosGerenciados && minhaConta.nucleosGerenciados.length)
+    ? minhaConta.nucleosGerenciados
+    : (minhaConta ? [minhaConta.nome] : []);
+  const valorAtual = select.value;
+  select.innerHTML = '<option value="">Selecione a academia/núcleo...</option>' +
+    nomesNucleos.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n + '</option>').join('');
+  if(nomesNucleos.includes(valorAtual)) select.value = valorAtual;
 }
 
 function removerHorarioAgendaAula(id){
@@ -12778,7 +13094,7 @@ function renderAgendaAulasPerfil(){
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
-    span.textContent = NOMES_DIAS_SEMANA[h.dia] + ' às ' + h.hora;
+    span.textContent = NOMES_DIAS_SEMANA[h.dia] + ' às ' + h.hora + (h.local ? (' · ' + h.local) : '');
     const delBtn = document.createElement('button');
     delBtn.className = 'aluno-del';
     delBtn.textContent = 'Remover';
