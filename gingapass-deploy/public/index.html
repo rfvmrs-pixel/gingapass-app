@@ -4866,9 +4866,27 @@ function fazerLogin(){
 
   if(selectedRole === 'academia'){
     const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-    const conta = contas.find(c => c.user === user && c.senha === pass);
+    let conta = contas.find(c => c.user === user && c.senha === pass);
+    if(!conta){
+      // Muita gente digita o PRÓPRIO NOME em vez do usuário curto gerado
+      // automaticamente (ex: "Mestrando Borracha" em vez de "borracha") —
+      // aceita login também pelo nome, desde que bata com uma única conta
+      // (evita logar na conta errada quando dois núcleos têm o mesmo nome
+      // de professor e a mesma senha).
+      const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      const candidatos = contas.filter(c => c.senha === pass && (
+        mesmoProfessor(c.nome, user) ||
+        rede.some(a => a.nome === c.nome && mesmoProfessor(a.professor, user))
+      ));
+      if(candidatos.length === 1){
+        conta = candidatos[0];
+      } else if(candidatos.length > 1){
+        alert('Encontrei mais de um núcleo com esse nome e essa senha. Peça pra matriz o usuário exato (não é o seu nome — é um "apelido" curto, tipo "borracha").');
+        return;
+      }
+    }
     if(conta){
-      currentUser = user;
+      currentUser = conta.user;
       entrar('academia');
     } else {
       alert('Usuário ou senha incorretos. Esse acesso precisa ser concedido pela matriz.');
