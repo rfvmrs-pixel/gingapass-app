@@ -1977,6 +1977,14 @@
       <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;">Isso já cadastra a academia na rede automaticamente — não precisa repetir em "Academias da rede".</p>
     </div>
 
+    <p class="section-title">Liberar acesso em massa (núcleos já cadastrados sem login)</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Esses núcleos já estão na rede (nome, endereço, professor) mas ainda não têm usuário/senha pra entrar no app — normalmente porque o acesso foi perdido ou nunca foi criado. Revise o usuário e a senha sugeridos (pode editar cada um) e gere o acesso de todos de uma vez, com uma senha master só.</p>
+      <div id="liberacaoEmMassaLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+      <button class="btn" type="button" onclick="liberarAcessoEmMassa()" style="margin-top:10px;">Gerar acesso pros selecionados</button>
+      <div id="liberacaoEmMassaResultado" style="margin-top:12px;"></div>
+    </div>
+
     <p class="section-title">Cadastrar grupos</p>
     <div class="card">
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Só o admin cadastra grupos (ex: "Capoeira Team"). Depois, ao abrir conta de professor/academia parceira, ele escolhe o grupo numa lista e o mestre responsável — assim nenhum mestrando fica sem vínculo.</p>
@@ -5176,6 +5184,7 @@ function aplicarPermissoes(){
     tentarChamar(function(){ popularSeletorGrupoDoProfessorPrincipal(); });
   }
   tentarChamar(function(){ renderAcademiasContas(); });
+  tentarChamar(function(){ renderLiberacaoEmMassa(); });
   tentarChamar(function(){ renderAlunosContas(); });
   tentarChamar(function(){ renderEnderecos(); });
   tentarChamar(function(){ renderCheckin(); });
@@ -5739,6 +5748,156 @@ function criarAcessoAcademia(){
   }
   finalizarCriacaoAcessoAcademia({nome, endereco, professor, graduacao, diasAulas, distancia, meuMestre, inicio, vencimento, user, senha, pergunta, resposta, ehIndependente, grupoNome, grupoParceiroId, grupoFoto: '', contas});
 }
+
+/* ===================== Liberar acesso em massa (recuperação/agilidade) =====================
+   Pega os núcleos que já estão cadastrados em "gingapass_rede_academias" (nome, endereço,
+   professor) mas que ainda não têm uma conta de login em "gingapass_academias_contas" —
+   sugere usuário/senha pra cada um e libera todos de uma vez, com uma única confirmação de
+   senha master, em vez de precisar preencher o formulário um por um. */
+function obterNucleosSemAcesso(){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const nomesComAcesso = new Set();
+  contas.forEach(c => {
+    const nucleos = (c.nucleosGerenciados && c.nucleosGerenciados.length > 0) ? c.nucleosGerenciados : [c.nome];
+    nucleos.forEach(n => nomesComAcesso.add(n));
+  });
+  return rede.filter(a => a.nome && !nomesComAcesso.has(a.nome));
+}
+
+function _sugerirUsuarioLiberacaoMassa(nomeBase, jaUsados){
+  let slug = (nomeBase || 'prof').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+  if(!slug) slug = 'prof';
+  let candidato = slug;
+  let i = 1;
+  while(jaUsados.has(candidato)){
+    i++;
+    candidato = slug + i;
+  }
+  jaUsados.add(candidato);
+  return candidato;
+}
+
+function _gerarSenhaAleatoriaLiberacaoMassa(){
+  return Math.random().toString(36).slice(2, 6) + Math.floor(10 + Math.random() * 90);
+}
+
+function renderLiberacaoEmMassa(){
+  const container = document.getElementById('liberacaoEmMassaLista');
+  if(!container || currentRole !== 'matriz') return;
+  const resultado = document.getElementById('liberacaoEmMassaResultado');
+  if(resultado) resultado.innerHTML = '';
+  const semAcesso = obterNucleosSemAcesso();
+  container.innerHTML = '';
+  if(semAcesso.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Todos os núcleos da rede já têm acesso liberado.</p>';
+    return;
+  }
+  const usuariosExistentes = new Set(JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').map(c => c.user));
+  semAcesso.forEach((a, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+    row.dataset.nucleo = a.nome;
+    row.dataset.professor = a.professor || '';
+    const userSugerido = _sugerirUsuarioLiberacaoMassa(a.professor || a.nome, usuariosExistentes);
+    const senhaSugerida = _gerarSenhaAleatoriaLiberacaoMassa();
+
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:13px;color:var(--navy-900);font-weight:600;margin-bottom:6px;cursor:pointer;';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = true;
+    chk.style.cssText = 'width:16px;height:16px;flex-shrink:0;';
+    label.appendChild(chk);
+    label.appendChild(document.createTextNode(a.nome + (a.professor ? ' — Prof. ' + a.professor : '')));
+    row.appendChild(label);
+
+    const camposWrap = document.createElement('div');
+    camposWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;padding-left:24px;';
+    const userInput = document.createElement('input');
+    userInput.className = 'admin-input liber-massa-user';
+    userInput.placeholder = 'Usuário';
+    userInput.value = userSugerido;
+    userInput.style.cssText = 'flex:1;min-width:120px;margin-bottom:0;';
+    const senhaInput = document.createElement('input');
+    senhaInput.className = 'admin-input liber-massa-senha';
+    senhaInput.placeholder = 'Senha';
+    senhaInput.value = senhaSugerida;
+    senhaInput.style.cssText = 'flex:1;min-width:120px;margin-bottom:0;';
+    camposWrap.appendChild(userInput);
+    camposWrap.appendChild(senhaInput);
+    row.appendChild(camposWrap);
+
+    container.appendChild(row);
+  });
+  const ultima = container.lastElementChild;
+  if(ultima) ultima.style.borderBottom = 'none';
+}
+
+function liberarAcessoEmMassa(){
+  if(currentRole !== 'matriz') return;
+  const container = document.getElementById('liberacaoEmMassaLista');
+  if(!container) return;
+  const linhas = Array.from(container.children).filter(el => el.dataset && el.dataset.nucleo);
+  const selecionadas = [];
+  for(const row of linhas){
+    const chk = row.querySelector('input[type="checkbox"]');
+    if(!chk || !chk.checked) continue;
+    const userInput = row.querySelector('.liber-massa-user');
+    const senhaInput = row.querySelector('.liber-massa-senha');
+    const user = userInput ? userInput.value.trim() : '';
+    const senha = senhaInput ? senhaInput.value.trim() : '';
+    if(!user || !senha){
+      alert('Preencha usuário e senha pra "' + row.dataset.nucleo + '" (ou desmarque essa linha).');
+      return;
+    }
+    selecionadas.push({nucleo: row.dataset.nucleo, professor: row.dataset.professor, user, senha});
+  }
+  if(selecionadas.length === 0){
+    alert('Nenhum núcleo selecionado.');
+    return;
+  }
+
+  const contasAtuais = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const usersJaExistentes = new Set(contasAtuais.map(c => c.user));
+  const usersNovos = new Set();
+  for(const item of selecionadas){
+    if(usersJaExistentes.has(item.user) || usersNovos.has(item.user)){
+      alert('O usuário "' + item.user + '" já está em uso (por outra conta ou repetido na lista). Ajuste antes de continuar.');
+      return;
+    }
+    usersNovos.add(item.user);
+  }
+
+  if(!confirm('Gerar acesso pra ' + selecionadas.length + ' núcleo(s) agora?')) return;
+  if(!confirmarSenhaMaster()) return;
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  selecionadas.forEach(item => {
+    contas.push({
+      nome: item.nucleo, user: item.user, senha: item.senha, pergunta: '', resposta: '',
+      meuMestre: '', inicioComoProfessor: '', vencimentoMensalidade: '', mensalidadeStatus: 'Em dia',
+      nucleosGerenciados: [item.nucleo], grupo: '', grupoParceiroId: '', grupoNome: '', grupoFoto: '', foto: '', daAula: true
+    });
+  });
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    renderAcademiasContas();
+    renderLiberacaoEmMassa();
+    tentarChamar(function(){ renderListaProfessoresPublica(); });
+    tentarChamar(function(){ renderMensalidadesProfessores(); });
+    const resultado = document.getElementById('liberacaoEmMassaResultado');
+    if(resultado){
+      resultado.innerHTML = '<p class="card-label" style="margin:0 0 8px;">Acessos gerados — copie e envie pra cada professor:</p>' +
+        selecionadas.map(item => '<div style="padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:12.5px;"><b>' + item.nucleo + '</b>' + (item.professor ? ' (' + item.professor + ')' : '') + '<br>Usuário: <b>' + item.user + '</b> · Senha: <b>' + item.senha + '</b></div>').join('');
+    }
+    if(!ok){
+      alert('Os acessos foram salvos neste aparelho, mas NÃO sincronizaram com a nuvem agora (conexão instável) — os professores não vão conseguir entrar em outros aparelhos até sincronizar. Verifique a conexão e, se precisar, refaça essa mesma liberação.');
+    } else {
+      alert('Pronto! ' + selecionadas.length + ' acesso(s) gerado(s) e confirmados na nuvem. Copie os usuários e senhas mostrados abaixo e envie pra cada professor.');
+    }
+  });
+}
+/* =================== fim: Liberar acesso em massa =================== */
 
 function finalizarCriacaoAcessoAcademia(p){
   const {nome, endereco, professor, graduacao, diasAulas, distancia, meuMestre, inicio, vencimento, user, senha, pergunta, resposta, ehIndependente, grupoNome, grupoParceiroId, grupoFoto, contas} = p;
