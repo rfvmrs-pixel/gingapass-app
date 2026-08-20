@@ -2110,6 +2110,10 @@
         <input type="checkbox" id="resetTambemLimparRede" checked style="width:16px;height:16px;">
         Também apagar a lista antiga de núcleos/academias da rede (recomendado — evita ficar com endereços de professores que não existem mais)
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);margin-bottom:12px;cursor:pointer;">
+        <input type="checkbox" id="resetTambemLimparGrupos" style="width:16px;height:16px;">
+        Também apagar os grupos cadastrados (deixa o app zerado, só com a conta master)
+      </label>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Pra confirmar, digite <b>APAGAR TUDO</b> no campo abaixo:</label>
       <input class="admin-input" id="resetConfirmacaoTexto" placeholder="Digite APAGAR TUDO">
       <button class="btn" type="button" style="background:#C0392B;" onclick="reiniciarCadastrosProfessoresEAlunos()">Apagar todas as contas de professor e aluno</button>
@@ -12537,10 +12541,18 @@ function reiniciarCadastrosProfessoresEAlunos(){
   }
   const tambemRede = document.getElementById('resetTambemLimparRede');
   const limparRede = !!(tambemRede && tambemRede.checked);
+  const tambemGrupos = document.getElementById('resetTambemLimparGrupos');
+  const limparGrupos = !!(tambemGrupos && tambemGrupos.checked);
 
   const totalProfessores = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').length;
   const totalAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').length;
-  if(!confirm('Isso vai apagar ' + totalProfessores + ' conta(s) de professor e ' + totalAlunos + ' conta(s) de aluno' + (limparRede ? ', além da lista de núcleos/academias da rede' : '') + '. Os grupos cadastrados e sua conta master continuam intactos. Essa ação NÃO pode ser desfeita. Confirma?')) return;
+  const totalGrupos = JSON.parse(localStorage.getItem('gingapass_grupos_parceiros') || '[]').length;
+  let msgConfirmacao = 'Isso vai apagar ' + totalProfessores + ' conta(s) de professor e ' + totalAlunos + ' conta(s) de aluno';
+  if(limparRede) msgConfirmacao += ', a lista de núcleos/academias da rede';
+  if(limparGrupos) msgConfirmacao += ', e os ' + totalGrupos + ' grupo(s) cadastrado(s) — o app fica só com a conta master';
+  else msgConfirmacao += '. Os grupos cadastrados continuam intactos';
+  msgConfirmacao += '. Essa ação NÃO pode ser desfeita. Confirma?';
+  if(!confirm(msgConfirmacao)) return;
   if(!confirmarSenhaMaster()) return;
 
   const promessas = [
@@ -12551,10 +12563,15 @@ function reiniciarCadastrosProfessoresEAlunos(){
   if(limparRede){
     promessas.push(setDado('gingapass_rede_academias', '[]'));
   }
+  if(limparGrupos){
+    promessas.push(setDado('gingapass_grupos_parceiros', '[]'));
+  }
   Promise.all(promessas).then(function(resultados){
     if(confirmacaoInput) confirmacaoInput.value = '';
     if(resultados.some(r => !r)){
       alert('Apagado neste aparelho, mas alguma parte não sincronizou com a nuvem agora — verifique a conexão e confira de novo em alguns segundos.');
+    } else if(limparGrupos){
+      alert('Pronto! Tudo apagado — o app está zerado, só com sua conta master. Pode começar cadastrando o(s) grupo(s) de novo.');
     } else {
       alert('Pronto! Contas de professor e aluno apagadas. Os grupos continuam aí — agora é só conceder acesso aos professores (escolhendo o grupo de cada um) e, só depois, cadastrar os alunos.');
     }
@@ -12564,6 +12581,9 @@ function reiniciarCadastrosProfessoresEAlunos(){
     tentarChamar(function(){ renderListaProfessoresPublica(); });
     tentarChamar(function(){ renderLiberacaoEmMassa(); });
     tentarChamar(function(){ renderAvisoSemGrupo(); });
+    tentarChamar(function(){ renderGruposOficiaisList(); });
+    tentarChamar(function(){ renderGruposOficiaisTela(); });
+    tentarChamar(function(){ renderGruposParceiros(); });
     tentarChamar(function(){ renderMensalidadesProfessores(); });
     tentarChamar(function(){ renderRedeAcademias(); });
     tentarChamar(function(){ renderAcademiasScreen(); });
