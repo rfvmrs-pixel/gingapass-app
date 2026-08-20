@@ -2219,6 +2219,10 @@
         <input type="checkbox" id="resetTambemLimparGrupos" style="width:16px;height:16px;">
         Também apagar os grupos cadastrados (deixa o app zerado, só com a conta master)
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);margin-bottom:12px;cursor:pointer;">
+        <input type="checkbox" id="resetTambemLimparHistorico" checked style="width:16px;height:16px;">
+        Também apagar presença, faltas, agenda e mensalidades antigas (recomendado — sem isso, recriar alguém com o mesmo nome traz o histórico velho de volta)
+      </label>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Pra confirmar, digite <b>APAGAR TUDO</b> no campo abaixo:</label>
       <input class="admin-input" id="resetConfirmacaoTexto" placeholder="Digite APAGAR TUDO">
       <button class="btn" type="button" style="background:#C0392B;" onclick="reiniciarCadastrosProfessoresEAlunos()">Apagar todas as contas de professor e aluno</button>
@@ -13089,12 +13093,15 @@ function reiniciarCadastrosProfessoresEAlunos(){
   const limparRede = !!(tambemRede && tambemRede.checked);
   const tambemGrupos = document.getElementById('resetTambemLimparGrupos');
   const limparGrupos = !!(tambemGrupos && tambemGrupos.checked);
+  const tambemHistorico = document.getElementById('resetTambemLimparHistorico');
+  const limparHistorico = !!(tambemHistorico && tambemHistorico.checked);
 
   const totalProfessores = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').length;
   const totalAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').length;
   const totalGrupos = JSON.parse(localStorage.getItem('gingapass_grupos_parceiros') || '[]').length;
   let msgConfirmacao = 'Isso vai apagar ' + totalProfessores + ' conta(s) de professor e ' + totalAlunos + ' conta(s) de aluno';
   if(limparRede) msgConfirmacao += ', a lista de núcleos/academias da rede';
+  if(limparHistorico) msgConfirmacao += ', o histórico de presença/agenda/mensalidades';
   if(limparGrupos) msgConfirmacao += ', e os ' + totalGrupos + ' grupo(s) cadastrado(s) — o app fica só com a conta master';
   else msgConfirmacao += '. Os grupos cadastrados continuam intactos';
   msgConfirmacao += '. Essa ação NÃO pode ser desfeita. Confirma?';
@@ -13112,6 +13119,9 @@ function reiniciarCadastrosProfessoresEAlunos(){
   if(limparGrupos){
     promessas.push(setDado('gingapass_grupos_parceiros', '[]'));
   }
+  if(limparHistorico){
+    promessas.push(..._promessasLimparHistoricoAntigo());
+  }
   Promise.all(promessas).then(function(resultados){
     if(confirmacaoInput) confirmacaoInput.value = '';
     if(resultados.some(r => !r)){
@@ -13121,6 +13131,7 @@ function reiniciarCadastrosProfessoresEAlunos(){
     } else {
       alert('Pronto! Contas de professor e aluno apagadas. Os grupos continuam aí — agora é só conceder acesso aos professores (escolhendo o grupo de cada um) e, só depois, cadastrar os alunos.');
     }
+    if(limparHistorico) _renderAposLimparHistorico();
     tentarChamar(function(){ renderAcademiasContas(); });
     tentarChamar(function(){ renderAlunosContas(); });
     tentarChamar(function(){ renderAlunos(); });
@@ -13143,11 +13154,10 @@ function reiniciarCadastrosProfessoresEAlunos(){
 // uma conta e recriar alguém com o mesmo nome faz o histórico antigo dele
 // reaparecer sozinho, como se já tivesse dado aula/pago mensalidade.
 // NÃO mexe nas contas em si (gingapass_academias_contas / alunos_contas).
-function limparHistoricoAntigoCompleto(){
-  if(currentRole !== 'matriz') return;
-  if(!confirm('Isso apaga todo o histórico de presença, faltas, agenda de aulas, planos de aula, avisos e mensalidades pagas — de TODOS os professores e alunos, mesmo os atuais. As contas em si (login/senha) não são apagadas, só o histórico. Não pode ser desfeito. Confirma?')) return;
-  if(!confirmarSenhaMaster()) return;
-
+// Monta as promessas que limpam o histórico "solto" (salvo pelo nome, não
+// por conta) — reaproveitado tanto pelo botão avulso quanto pelo reset
+// completo de contas, pra não duplicar a lógica.
+function _promessasLimparHistoricoAntigo(){
   // Coleções de nome fixo, sempre um array/objeto só.
   const chavesFixas = {
     'gingapass_checkin_log': '[]',
@@ -13188,20 +13198,33 @@ function limparHistoricoAntigoCompleto(){
     }
   });
 
+  return promessas;
+}
+
+function _renderAposLimparHistorico(){
+  tentarChamar(function(){ renderEstatisticas(); });
+  tentarChamar(function(){ renderMinhaMensalidadeProfessor(); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
+  tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
+  tentarChamar(function(){ renderPerfil(); });
+  tentarChamar(function(){ renderAgendaAulasPerfil(); });
+  tentarChamar(function(){ renderValidacaoAulasSemana(); });
+  tentarChamar(function(){ renderPlanosAulaPerfil(); });
+}
+
+function limparHistoricoAntigoCompleto(){
+  if(currentRole !== 'matriz') return;
+  if(!confirm('Isso apaga todo o histórico de presença, faltas, agenda de aulas, planos de aula, avisos e mensalidades pagas — de TODOS os professores e alunos, mesmo os atuais. As contas em si (login/senha) não são apagadas, só o histórico. Não pode ser desfeito. Confirma?')) return;
+  if(!confirmarSenhaMaster()) return;
+
+  const promessas = _promessasLimparHistoricoAntigo();
   Promise.all(promessas).then(function(resultados){
     if(resultados.some(r => !r)){
       alert('Limpo neste aparelho, mas alguma parte não sincronizou com a nuvem agora — verifique a conexão e tente de novo.');
     } else {
       alert('Pronto! Histórico antigo apagado (' + promessas.length + ' registro(s)). As contas continuam como estavam — só o histórico foi zerado.');
     }
-    tentarChamar(function(){ renderEstatisticas(); });
-    tentarChamar(function(){ renderMinhaMensalidadeProfessor(); });
-    tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
-    tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
-    tentarChamar(function(){ renderPerfil(); });
-    tentarChamar(function(){ renderAgendaAulasPerfil(); });
-    tentarChamar(function(){ renderValidacaoAulasSemana(); });
-    tentarChamar(function(){ renderPlanosAulaPerfil(); });
+    _renderAposLimparHistorico();
   });
 }
 
