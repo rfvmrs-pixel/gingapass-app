@@ -1510,6 +1510,11 @@
       <div class="card">
         <input class="admin-input" id="novoAlunoNomeAd" placeholder="Nome do aluno">
         <input class="admin-input" id="novoAlunoCordaAd" placeholder="Graduação/corda (ex: Corda Verde e Amarela)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
+        <select class="admin-input" id="novoAlunoTipoMensalidadeAd">
+          <option value="mensalista">Mensalista (paga mensalidade)</option>
+          <option value="bolsista">Bolsista de projeto social (não paga)</option>
+        </select>
         <select class="admin-input" id="novoAlunoNivelAd"><option value="">Nível na hierarquia (opcional — Graduações)</option></select>
         <select class="admin-input" id="novoAlunoNucleoAd"><option value="">Selecione o núcleo (se você tiver mais de um)...</option></select>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Tipo de cadastro</label>
@@ -1561,6 +1566,11 @@
       <div class="card">
         <input class="admin-input" id="novoAlunoNome" placeholder="Nome do aluno">
         <input class="admin-input" id="novoAlunoCorda" placeholder="Graduação/corda (ex: Verde e Amarela)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
+        <select class="admin-input" id="novoAlunoTipoMensalidade">
+          <option value="mensalista">Mensalista (paga mensalidade)</option>
+          <option value="bolsista">Bolsista de projeto social (não paga)</option>
+        </select>
         <select class="admin-input" id="novoAlunoNivel"><option value="">Nível na hierarquia (opcional — Graduações)</option></select>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Tipo de cadastro</label>
         <div style="display:flex;gap:8px;margin-bottom:14px;">
@@ -1930,6 +1940,7 @@
 
     <div class="card">
       <div class="card-label">Adicionar professor (academia filiada) — pede senha master</div>
+      <p id="avisoSemGrupoProfessor" style="display:none;font-size:12.5px;font-weight:600;color:#C0392B;background:#FBEAE7;border-radius:10px;padding:10px 12px;margin:0 0 12px;">⚠️ Cadastre um grupo antes de conceder acesso a um professor — vá na seção "Cadastrar grupos" logo abaixo. Sem grupo cadastrado, não tem como vincular o professor a ninguém.</p>
       <input class="admin-input" id="novaAcademiaNome" placeholder="Nome da academia/núcleo">
       <input class="admin-input" id="novaAcademiaEndereco" placeholder="Endereço">
       <input class="admin-input" id="novaAcademiaProfessor" placeholder="Nome do professor responsável">
@@ -1958,8 +1969,8 @@
         </div>
       </div>
 
-      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Grupo do professor (opcional — escolhendo, o mestre dele vem da lista de mestres do grupo)</label>
-      <select class="admin-input" id="novaAcademiaGrupoDoProfessorSelect" onchange="alternarGrupoDoProfessorPrincipal()"><option value="">Sem grupo / digitar o mestre manualmente</option></select>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Grupo do professor (obrigatório — o mestre dele vem da lista de mestres do grupo)</label>
+      <select class="admin-input" id="novaAcademiaGrupoDoProfessorSelect" onchange="alternarGrupoDoProfessorPrincipal()"><option value="">Selecione o grupo...</option></select>
       <select class="admin-input" id="novaAcademiaGrupoDoProfessorMestreSelect" style="display:none;"><option value="">Selecione o grupo acima primeiro</option></select>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;" id="novaAcademiaMeuMestreLabel">Quem é o professor/mestre DESTE professor (de quem ele também é aluno)</label>
       <input class="admin-input" id="novaAcademiaMeuMestre" list="novaAcademiaMeuMestreSugestoes" placeholder="Nome do mestre dele (opcional)">
@@ -1973,7 +1984,7 @@
       <input class="admin-input" id="novaAcademiaPergunta" placeholder="Pergunta de segurança (pra recuperar senha depois)">
       <input class="admin-input" id="novaAcademiaResposta" placeholder="Resposta da pergunta">
       <p style="font-size:11px;color:var(--ink-soft);margin:-4px 0 10px;">A forma de pagamento (Pix/cartão) da academia é preenchida pelo próprio professor, no login dele — não aqui.</p>
-      <button class="btn" onclick="criarAcessoAcademia()">Conceder acesso à academia</button>
+      <button class="btn" id="btnConcederAcessoAcademia" onclick="criarAcessoAcademia()">Conceder acesso à academia</button>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;">Isso já cadastra a academia na rede automaticamente — não precisa repetir em "Academias da rede".</p>
     </div>
 
@@ -1987,9 +1998,10 @@
 
     <p class="section-title">Cadastrar grupos</p>
     <div class="card">
-      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Só o admin cadastra grupos (ex: "Capoeira Team"). Depois, ao abrir conta de professor/academia parceira, ele escolhe o grupo numa lista e o mestre responsável — assim nenhum mestrando fica sem vínculo.</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Só o admin cadastra grupos. É o primeiro passo obrigatório: sem um grupo cadastrado, não dá pra conceder acesso a nenhum professor. Depois, ao conceder acesso, você escolhe o grupo numa lista e quem é o mestre/professor responsável dentro dele — assim ninguém fica sem vínculo.</p>
       <input class="admin-input" id="grupoOficialNome" placeholder="Nome do grupo (ex: Capoeira Team)">
-      <input class="admin-input" id="grupoOficialMestres" placeholder="Mestre(s) representante(s), separados por vírgula (ex: Mestre Pelezinho, Mestre Sabia, Mestre Montanha)">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Mestres e professores que dão aula nesse grupo — um nome por linha</label>
+      <textarea class="admin-input" id="grupoOficialMestres" placeholder="Mestre Pelezinho&#10;Mestre Sabia&#10;Professor Fulano" style="min-height:100px;resize:vertical;"></textarea>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Foto/logo do grupo (opcional)</label>
       <input class="admin-input" id="grupoOficialFoto" type="file" accept="image/*" style="font-size:12px;margin-bottom:8px;">
       <button class="btn" type="button" onclick="cadastrarGrupoOficial()">Cadastrar grupo</button>
@@ -2088,6 +2100,20 @@
     <div class="card" id="historicoGerenciar"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum lançamento ainda. Os valores mostrados no app são só o exemplo padrão.</p></div>
 
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;">A senha matriz é a única que cria novos acessos. Cada academia filiada, ao receber seu usuário e senha aqui, passa a poder publicar seus próprios eventos, fotos e cadastrar seus alunos — sem precisar da senha matriz.</p>
+
+    <p class="section-title" style="color:#C0392B;">⚠️ Zona de risco</p>
+    <div class="card" style="border:1.5px solid #C0392B;">
+      <p class="card-label" style="color:#C0392B;margin:0 0 6px;">Reiniciar cadastros de professores e alunos</p>
+      <p style="font-size:12px;color:var(--ink);margin:0 0 10px;">Apaga TODAS as contas de professor e de aluno (e os responsáveis vinculados a eles) — pra você recomeçar do zero seguindo a ordem certa: 1) cadastrar o(s) grupo(s), 2) conceder acesso aos professores (agora exige escolher um grupo), 3) só depois cadastrar os alunos. <b>Isso não é desfeito.</b></p>
+      <p style="font-size:12px;color:var(--ink);margin:0 0 10px;">O que <b>continua intacto</b>: sua conta master, os grupos já cadastrados (nome, mestres/professores, foto) e o histórico de pagamentos/mensalidades já lançado aqui em cima.</p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);margin-bottom:12px;cursor:pointer;">
+        <input type="checkbox" id="resetTambemLimparRede" checked style="width:16px;height:16px;">
+        Também apagar a lista antiga de núcleos/academias da rede (recomendado — evita ficar com endereços de professores que não existem mais)
+      </label>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Pra confirmar, digite <b>APAGAR TUDO</b> no campo abaixo:</label>
+      <input class="admin-input" id="resetConfirmacaoTexto" placeholder="Digite APAGAR TUDO">
+      <button class="btn" type="button" style="background:#C0392B;" onclick="reiniciarCadastrosProfessoresEAlunos()">Apagar todas as contas de professor e aluno</button>
+    </div>
   </div>
 
   <!-- ESTATÍSTICAS -->
@@ -4039,7 +4065,9 @@ function criarGrupoParceiro(nome, foto, mestres){
 
 function _normalizarListaMestres(mestres){
   if(Array.isArray(mestres)) return mestres.map(m => (m || '').trim()).filter(Boolean);
-  return (mestres || '').split(',').map(m => m.trim()).filter(Boolean);
+  // Aceita um nome por linha (jeito atual do textarea) e também por vírgula
+  // (compatibilidade com o campo antigo, de uma linha só).
+  return (mestres || '').split(/\r?\n|,/).map(m => m.trim()).filter(Boolean);
 }
 
 // Limpa o vínculo grupoParceiroId/grupoNome de QUALQUER conta de professor
@@ -4079,6 +4107,22 @@ function removerGrupoParceiro(id, nomeConhecido){
   tentarChamar(function(){ popularSeletorGrupoDoProfessorPrincipal(); });
   tentarChamar(function(){ renderGruposOficiaisTela(); });
   tentarChamar(function(){ renderGruposParceiros(); });
+  tentarChamar(function(){ renderAvisoSemGrupo(); });
+}
+
+// Sem nenhum grupo cadastrado, não tem como conceder acesso a um professor
+// (o mestre/professor dele viria de um grupo) — mostra um aviso claro e
+// desabilita o botão em vez de deixar a pessoa preencher tudo e travar só
+// na hora de salvar.
+function renderAvisoSemGrupo(){
+  const aviso = document.getElementById('avisoSemGrupoProfessor');
+  const btn = document.getElementById('btnConcederAcessoAcademia');
+  if(!aviso || !btn) return;
+  const semGrupo = listarTodosGruposParceirosCadastrados().length === 0;
+  aviso.style.display = semGrupo ? 'block' : 'none';
+  btn.disabled = semGrupo;
+  btn.style.opacity = semGrupo ? '0.5' : '1';
+  btn.style.cursor = semGrupo ? 'not-allowed' : 'pointer';
 }
 
 function editarGrupoParceiro(id){
@@ -4143,7 +4187,7 @@ function cadastrarGrupoOficial(){
     return;
   }
   if(mestres.length === 0){
-    alert('Digite ao menos um mestre representante do grupo (separe vários por vírgula).');
+    alert('Digite ao menos um mestre/professor que dá aula nesse grupo (um nome por linha).');
     return;
   }
   const finalizarCadastroGrupo = (fotoDataUrl) => {
@@ -4156,7 +4200,8 @@ function cadastrarGrupoOficial(){
     tentarChamar(function(){ popularSeletorGrupoParceiro('novaAcademiaGrupoSelect'); });
     tentarChamar(function(){ popularSeletorGrupoDoProfessorPrincipal(); });
     tentarChamar(function(){ renderGruposOficiaisTela(); });
-    alert('Grupo cadastrado! Ele já aparece na lista pra quem for abrir conta de professor.');
+    tentarChamar(function(){ renderAvisoSemGrupo(); });
+    alert('Grupo cadastrado! Ele já aparece na lista pra quem for conceder acesso a um professor.');
   };
   const arquivoFoto = (fotoInput && fotoInput.files && fotoInput.files[0]) ? fotoInput.files[0] : null;
   if(arquivoFoto){
@@ -5197,6 +5242,7 @@ function aplicarPermissoes(){
     tentarChamar(function(){ popularSeletorGrupoParceiro('parceiraAdGrupoSelect'); });
   }
   tentarChamar(function(){ renderGruposOficiaisTela(); });
+  tentarChamar(function(){ renderAvisoSemGrupo(); });
   if(currentRole === 'matriz'){
     tentarChamar(function(){ popularSeletorGrupoParceiro('novaAcademiaGrupoSelect'); });
     tentarChamar(function(){ popularSeletorGrupoDoProfessorPrincipal(); });
@@ -5730,15 +5776,23 @@ function criarAcessoAcademia(){
     grupoNome = gExistente ? gExistente.nome : '';
     meuMestre = grupoMestreSelect ? grupoMestreSelect.value.trim() : '';
   } else {
-    // Rede principal: se um grupo foi escolhido, o mestre vem do select de
-    // mestres do grupo; senão, do campo de texto livre (compatibilidade).
+    // Rede principal: grupo agora é obrigatório — sem ele, não dá pra
+    // conceder acesso a ninguém (evita professor ficar "solto", sem
+    // nenhum vínculo de grupo, o que causou confusão no passado).
     const grupoProfSelect = document.getElementById('novaAcademiaGrupoDoProfessorSelect');
     const grupoProfMestreSelect = document.getElementById('novaAcademiaGrupoDoProfessorMestreSelect');
-    if(grupoProfSelect && grupoProfSelect.value){
-      meuMestre = grupoProfMestreSelect ? grupoProfMestreSelect.value.trim() : '';
-    } else {
-      const meuMestreInput = document.getElementById('novaAcademiaMeuMestre');
-      meuMestre = meuMestreInput ? meuMestreInput.value.trim() : '';
+    if(!grupoProfSelect || !grupoProfSelect.value){
+      if(listarTodosGruposParceirosCadastrados().length === 0){
+        alert('Ainda não existe nenhum grupo cadastrado. Cadastre um grupo primeiro em "Cadastrar grupos" (nome, mestres/professores e foto) antes de conceder acesso a um professor.');
+      } else {
+        alert('Escolha o grupo desse professor antes de conceder o acesso.');
+      }
+      return;
+    }
+    meuMestre = grupoProfMestreSelect ? grupoProfMestreSelect.value.trim() : '';
+    if(!meuMestre){
+      alert('Escolha quem é o mestre/professor responsável dentro do grupo selecionado.');
+      return;
     }
   }
   const fotoInput = document.getElementById('novaAcademiaFoto');
@@ -7414,8 +7468,10 @@ function criarAcessoAluno(){
     alert('Já existe um aluno com esse usuário.');
     return;
   }
+  const tipoMensalidade = document.getElementById('novoAlunoTipoMensalidade') ? document.getElementById('novoAlunoTipoMensalidade').value : 'mensalista';
   contas.push({
     nome, user, senha, corda, nucleo, professor,
+    tipoMensalidade,
     nivelGraduacao: document.getElementById('novoAlunoNivel') ? document.getElementById('novoAlunoNivel').value : '',
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
@@ -7446,6 +7502,8 @@ function criarAcessoAluno(){
 
   const nivelSelectMatriz = document.getElementById('novoAlunoNivel');
   if(nivelSelectMatriz) nivelSelectMatriz.value = '';
+  const tipoMensalidadeSelect = document.getElementById('novoAlunoTipoMensalidade');
+  if(tipoMensalidadeSelect) tipoMensalidadeSelect.value = 'mensalista';
   document.getElementById('novoAlunoNome').value = '';
   document.getElementById('novoAlunoCorda').value = '';
   document.getElementById('novoAlunoInicio').value = '';
@@ -12464,6 +12522,55 @@ function garantirProfessorComoAlunoDoMestre(nomeProfessor, nomeMestre, graduacao
   tentarChamar(function(){ renderEstatisticas(); });
 }
 
+// Zona de risco (Dados > "Reiniciar cadastros"): apaga TODAS as contas de
+// professor e de aluno (e os responsáveis vinculados a alunos), pra a
+// matriz recomeçar do zero seguindo a ordem certa — grupo primeiro, depois
+// professor (que agora exige grupo), só depois aluno. Mantém intactos:
+// conta master, grupos cadastrados e histórico de pagamentos/mensalidade.
+function reiniciarCadastrosProfessoresEAlunos(){
+  if(currentRole !== 'matriz') return;
+  const confirmacaoInput = document.getElementById('resetConfirmacaoTexto');
+  const texto = confirmacaoInput ? confirmacaoInput.value.trim() : '';
+  if(texto !== 'APAGAR TUDO'){
+    alert('Digite exatamente "APAGAR TUDO" (tudo em maiúsculo) no campo pra confirmar.');
+    return;
+  }
+  const tambemRede = document.getElementById('resetTambemLimparRede');
+  const limparRede = !!(tambemRede && tambemRede.checked);
+
+  const totalProfessores = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').length;
+  const totalAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').length;
+  if(!confirm('Isso vai apagar ' + totalProfessores + ' conta(s) de professor e ' + totalAlunos + ' conta(s) de aluno' + (limparRede ? ', além da lista de núcleos/academias da rede' : '') + '. Os grupos cadastrados e sua conta master continuam intactos. Essa ação NÃO pode ser desfeita. Confirma?')) return;
+  if(!confirmarSenhaMaster()) return;
+
+  const promessas = [
+    setDado('gingapass_academias_contas', '[]'),
+    setDado('gingapass_alunos_contas', '[]'),
+    setDado('gingapass_pais_contas', '[]')
+  ];
+  if(limparRede){
+    promessas.push(setDado('gingapass_rede_academias', '[]'));
+  }
+  Promise.all(promessas).then(function(resultados){
+    if(confirmacaoInput) confirmacaoInput.value = '';
+    if(resultados.some(r => !r)){
+      alert('Apagado neste aparelho, mas alguma parte não sincronizou com a nuvem agora — verifique a conexão e confira de novo em alguns segundos.');
+    } else {
+      alert('Pronto! Contas de professor e aluno apagadas. Os grupos continuam aí — agora é só conceder acesso aos professores (escolhendo o grupo de cada um) e, só depois, cadastrar os alunos.');
+    }
+    tentarChamar(function(){ renderAcademiasContas(); });
+    tentarChamar(function(){ renderAlunosContas(); });
+    tentarChamar(function(){ renderAlunos(); });
+    tentarChamar(function(){ renderListaProfessoresPublica(); });
+    tentarChamar(function(){ renderLiberacaoEmMassa(); });
+    tentarChamar(function(){ renderAvisoSemGrupo(); });
+    tentarChamar(function(){ renderMensalidadesProfessores(); });
+    tentarChamar(function(){ renderRedeAcademias(); });
+    tentarChamar(function(){ renderAcademiasScreen(); });
+    tentarChamar(function(){ renderConfigGeral(); });
+  });
+}
+
 function unificarNomeProfessor(){
   const nomeErrado = (prompt('Nome/apelido que está duplicado ou errado, como aparece hoje em algum lugar (ex: Borracha):') || '').trim();
   if(!nomeErrado) return;
@@ -12567,8 +12674,10 @@ function criarAcessoAlunoAcademia(){
     if(minhaAcademia) professor = minhaAcademia.professor || '';
   }
 
+  const tipoMensalidadeAd = document.getElementById('novoAlunoTipoMensalidadeAd') ? document.getElementById('novoAlunoTipoMensalidadeAd').value : 'mensalista';
   contas.push({
     nome, user, senha, corda, nucleo, professor,
+    tipoMensalidade: tipoMensalidadeAd,
     nivelGraduacao: document.getElementById('novoAlunoNivelAd') ? document.getElementById('novoAlunoNivelAd').value : '',
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
@@ -12599,6 +12708,8 @@ function criarAcessoAlunoAcademia(){
 
   const nivelSelectAd = document.getElementById('novoAlunoNivelAd');
   if(nivelSelectAd) nivelSelectAd.value = '';
+  const tipoMensalidadeSelectAd = document.getElementById('novoAlunoTipoMensalidadeAd');
+  if(tipoMensalidadeSelectAd) tipoMensalidadeSelectAd.value = 'mensalista';
   document.getElementById('novoAlunoNomeAd').value = '';
   document.getElementById('novoAlunoCordaAd').value = '';
   document.getElementById('novoAlunoInicioAd').value = '';
@@ -12872,6 +12983,9 @@ function renderAlunos(){
     span.innerHTML = (atrasado
       ? '<span style="display:inline-block;background:#C0392B;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;border-radius:100px;margin-right:8px;">🔴 ATRASADO' + (dias > 0 ? ' · ' + dias + 'd' : '') + '</span>'
       : '') +
+      (c.tipoMensalidade === 'bolsista'
+        ? '<span style="display:inline-block;background:var(--cream-2);color:var(--amber-700);font-weight:700;font-size:11px;padding:3px 8px;border-radius:100px;margin-right:8px;">🎗️ BOLSISTA</span>'
+        : '') +
       '<span style="' + (atrasado ? 'color:#8B1E0F;font-weight:700;' : '') + '">' + c.nome + '</span>' +
       (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
 
@@ -12912,6 +13026,8 @@ function editarAluno(i){
   if(novoNome === null) return;
   const novaCorda = prompt('Graduação/corda:', conta.corda || '');
   if(novaCorda === null) return;
+  const novoTipoMensalidade = prompt('Esse aluno é mensalista (paga) ou bolsista de projeto social (não paga)? Digite "mensalista" ou "bolsista":', conta.tipoMensalidade || 'mensalista');
+  if(novoTipoMensalidade === null) return;
   const niveisDisponiveis = obterOrdemGraduacaoAtual();
   const novoNivel = prompt('Nível na hierarquia (deixe em branco pra continuar sem nível definido). Opções cadastradas: ' + niveisDisponiveis.join(', '), conta.nivelGraduacao || '');
   if(novoNivel === null) return;
@@ -12950,6 +13066,7 @@ function editarAluno(i){
 
   conta.nome = novoNome.trim() || conta.nome;
   conta.corda = novaCorda.trim();
+  conta.tipoMensalidade = /bols/i.test(novoTipoMensalidade.trim()) ? 'bolsista' : 'mensalista';
   conta.nivelGraduacao = novoNivel.trim();
   conta.nucleo = novoNucleo.trim();
   conta.professor = novoProfessor.trim();
@@ -14494,6 +14611,7 @@ function alterarMensalidadeAluno(userAluno, novoStatus){
 // manualmente, isso continua valendo (ex: aluno negociou um prazo).
 function statusMensalidadeReal(conta){
   if(!conta) return 'Em dia';
+  if(conta.tipoMensalidade === 'bolsista') return 'Em dia'; // bolsista de projeto social não paga, então nunca fica "atrasado"
   if(conta.mensalidadeStatus === 'Atrasado') return 'Atrasado';
   if(conta.vencimentoMensalidade){
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -14505,6 +14623,7 @@ function statusMensalidadeReal(conta){
 
 function diasEmAtrasoReal(conta){
   if(!conta) return 0;
+  if(conta.tipoMensalidade === 'bolsista') return 0;
   if(conta.vencimentoMensalidade){
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     const venc = new Date(conta.vencimentoMensalidade + 'T00:00:00');
@@ -14515,7 +14634,7 @@ function diasEmAtrasoReal(conta){
 }
 
 function diasEmAtraso(conta){
-  if(!conta || conta.mensalidadeStatus !== 'Atrasado' || !conta.atrasadoDesde) return 0;
+  if(!conta || conta.tipoMensalidade === 'bolsista' || conta.mensalidadeStatus !== 'Atrasado' || !conta.atrasadoDesde) return 0;
   return Math.floor((Date.now() - conta.atrasadoDesde) / 86400000);
 }
 
@@ -15348,6 +15467,15 @@ function renderEstatisticas(){
     const resumoVazio = document.getElementById('resumoMensalidadesEstatisticas');
     if(resumoVazio) resumoVazio.innerHTML = '';
   } else {
+    const totalMensalistas = alunos.filter(a => a.tipoMensalidade !== 'bolsista').length;
+    const totalBolsistas = alunos.filter(a => a.tipoMensalidade === 'bolsista').length;
+    const resumoTipoAluno = document.createElement('div');
+    resumoTipoAluno.style.cssText = 'display:flex;gap:10px;margin-bottom:14px;';
+    resumoTipoAluno.innerHTML =
+      '<div style="flex:1;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--navy-900);display:block;">' + totalMensalistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Mensalistas</span></div>' +
+      '<div style="flex:1;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--amber-700);display:block;">' + totalBolsistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">🎗️ Bolsistas</span></div>';
+    container.appendChild(resumoTipoAluno);
+
     const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
     const linhas = alunos.map(a => {
       // Dias de aula considerados são só os do PRÓPRIO professor desse aluno.
