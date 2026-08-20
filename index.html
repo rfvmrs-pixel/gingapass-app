@@ -643,6 +643,65 @@
   .aluno-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #EDE3D0;font-size:13px;}
   .aluno-row:last-child{border-bottom:none;}
   .aluno-del{background:none;border:none;color:#C0392B;font-size:12px;font-weight:600;cursor:pointer;}
+
+  /* GingaSocial — visual propositalmente diferente do resto do app, pra
+     passar a ideia de "rede social que conecta todo mundo" (rede toda, não
+     só o grupo). Gradiente vibrante + pontinhos conectados no fundo do topo. */
+  .social-header{
+    position:relative;
+    border-radius:var(--radius-lg);
+    padding:22px 18px 18px;
+    margin-bottom:16px;
+    overflow:hidden;
+    background:linear-gradient(135deg,#6C3FA6 0%,#C22C75 55%,#EF9F27 100%);
+    color:#fff;
+  }
+  .social-header::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background-image:radial-gradient(circle, rgba(255,255,255,0.35) 1.5px, transparent 1.6px);
+    background-size:26px 26px;
+    opacity:0.35;
+    pointer-events:none;
+  }
+  .social-header-inner{position:relative;z-index:1;}
+  .social-header h2{margin:0 0 2px;font-size:19px;font-family:'Poppins',sans-serif;}
+  .social-header p{margin:0;font-size:12px;color:rgba(255,255,255,0.9);}
+  .social-handle-chip{
+    display:inline-block;
+    margin-top:10px;
+    background:rgba(255,255,255,0.18);
+    border:1px solid rgba(255,255,255,0.5);
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    padding:6px 14px;
+    border-radius:100px;
+  }
+  .social-card{
+    background:var(--white);
+    border-radius:var(--radius-lg);
+    padding:16px;
+    margin-bottom:14px;
+    box-shadow:0 4px 16px rgba(108,63,166,0.10);
+    border:1px solid #F1E7F7;
+  }
+  .social-avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,#6C3FA6,#C22C75);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;flex-shrink:0;
+    background-size:cover;background-position:center;
+  }
+  .social-evento-card{
+    display:flex;gap:10px;align-items:center;
+    background:linear-gradient(135deg,#FBF0FF,#FFF6E9);
+    border:1px dashed #C22C75;
+    border-radius:12px;
+    padding:10px 12px;
+    margin-top:10px;
+  }
 </style>
 <script>
 // Aplica a "cor de abertura" (padrão da rede, configurada pela matriz) o mais
@@ -1009,6 +1068,15 @@
       <div id="idiomaSwatches" style="display:flex;flex-wrap:wrap;gap:8px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
     </div>
 
+    <p class="section-title">Foto do GingaSocial</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Uma foto só pra sua conta no GingaSocial — pode ser diferente da sua foto de perfil oficial.</p>
+      <p style="font-size:13px;color:var(--navy-900);font-weight:700;margin:0 0 8px;" id="perfilMeuHandleTexto">@...</p>
+      <div id="perfilFotoSocialPreview" style="margin-bottom:8px;"></div>
+      <input type="file" id="perfilFotoSocialInput" accept="image/*" style="font-size:12px;margin-bottom:8px;">
+      <button class="btn" type="button" onclick="salvarFotoSocial()">Salvar foto do GingaSocial</button>
+    </div>
+
     <div class="card" id="perfilMensalidadeResumoBox" style="display:none;">
       <div class="card-label">Minha mensalidade</div>
       <p id="perfilMensalidadeResumoTexto" style="font-size:12.5px;color:var(--ink);margin:0;line-height:1.6;"></p>
@@ -1141,6 +1209,40 @@
 
     <p class="section-title">Mural</p>
     <div id="feedFotos"><div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;"><button type="button" style="border: 1.5px solid var(--navy-900); background: var(--white); color: var(--navy-900); font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 100px; cursor: pointer;">◀ Anterior</button><span style="font-size: 11.5px; color: var(--ink-soft); font-weight: 600;">3 de 12</span><button type="button" style="border: 1.5px solid var(--navy-900); background: var(--white); color: var(--navy-900); font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 100px; cursor: pointer;">Próxima ▶</button></div><div class="card"><div style="font-weight: 600; font-size: 13px; color: var(--navy-900); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;"><span style="cursor: pointer; text-decoration: underline;">Cristiano · 26/07/2026</span><button type="button" title="Apagar foto" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: none; cursor: pointer; font-size: 14px; padding: 2px 4px; flex-shrink: 0;">🗑️</button></div><div style="position: relative; width: 100%; padding-bottom: 100%; border-radius: 12px; overflow: hidden; background: rgb(11, 28, 44); touch-action: pan-y;"><div style="position: absolute; top: 0px; left: 0px; height: 100%; display: flex; width: 100%; transition: transform 0.28s;"><div style="width: 100%; height: 100%; flex-shrink: 0;"></div></div></div><p style="font-size: 12.5px; color: var(--ink); margin: 8px 0px 0px;">Evento Fundação Capoeira</p><div style="display: flex; align-items: center; gap: 14px; margin-top: 10px;"><button type="button" style="border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft); padding: 0px;">🤍 2</button><span style="font-size: 12px; color: var(--ink-soft);">0 comentários</span></div><div style="display: flex; gap: 6px; margin-top: 8px;"><input class="admin-input" id="comentarioInput_foto_isldix0t" placeholder="Escreva um comentário..." style="margin-bottom: 0px;"><button class="btn" type="button" style="margin-top: 0px; width: auto; padding: 0px 16px;">Enviar</button></div></div></div>
+  </div>
+
+  <!-- GINGASOCIAL: rede toda (qualquer grupo), com @handle e foto próprios,
+       separado do GingaFeed (que continua sendo só do grupo da pessoa). -->
+  <div class="screen" id="gingaSocial">
+    <div class="social-header">
+      <div class="social-header-inner">
+        <h2>🔗 GingaSocial</h2>
+        <p>Conecte-se com todo mundo da rede — de qualquer grupo, não só o seu</p>
+        <span class="social-handle-chip" id="socialMeuHandleChip">@...</span>
+      </div>
+    </div>
+
+    <div class="social-card" id="socialComposerBox">
+      <div class="card-label">Publicar</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+        <button type="button" class="role-btn active" id="socialTipoFotoBtn" onclick="alternarTipoPostSocial('foto')" style="flex:1;">📷 Foto</button>
+        <button type="button" class="role-btn" id="socialTipoVideoBtn" onclick="alternarTipoPostSocial('video')" style="flex:1;">🎥 Vídeo</button>
+        <button type="button" class="role-btn" id="socialTipoFraseBtn" onclick="alternarTipoPostSocial('frase')" style="flex:1;">💬 Frase</button>
+      </div>
+      <div id="socialCampoFoto">
+        <input type="file" id="socialFotoInput" accept="image/*" multiple style="font-size:12px;margin-bottom:8px;">
+        <div class="gallery-grid" id="socialFotoPreview"></div>
+      </div>
+      <div id="socialCampoVideo" style="display:none;">
+        <input type="file" id="socialVideoInput" accept="video/*" style="font-size:12px;margin-bottom:8px;">
+      </div>
+      <textarea class="admin-input" id="socialTextoInput" placeholder="Escreva uma legenda ou sua frase..." style="min-height:64px;resize:vertical;"></textarea>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Convidar pra um evento (opcional)</label>
+      <select class="admin-input" id="socialEventoSelect"><option value="">Nenhum evento</option></select>
+      <button class="btn" type="button" onclick="publicarPostSocial()" style="background:linear-gradient(135deg,#6C3FA6,#C22C75);">Publicar no GingaSocial</button>
+    </div>
+
+    <div id="gingaSocialFeed"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
   </div>
 
   <!-- ADMIN -->
@@ -2245,6 +2347,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5.5-5.5L11 15l-3-3-5 5"></path></svg>
           <span data-i18n="tabFotos">GingaFeed</span>
         </button>
+        <button class="menu-mais-item" data-target="gingaSocial" onclick="selecionarMenuMais(&#39;gingaSocial&#39;, this)" style="display:flex;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M8.2 7.6L10.5 15.6M15.8 7.6L13.5 15.6M9 6h6"></path></svg>
+          <span>GingaSocial</span>
+        </button>
         <button class="menu-mais-item tab" data-target="professores" onclick="selecionarMenuMais(&#39;professores&#39;, this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
           <span data-i18n="tabProfessores">Professores</span>
@@ -2357,6 +2463,7 @@ let localizacoesCollection = null;
 let presencaCollection = null;
 let videosNuvemCollection = null;
 let lojaProdutosCollection = null;
+let socialPostsCollection = null;
 let storageBucketRef = null;
 const DIAS_EXPIRACAO_VIDEO = 3; // vídeo do mural fica visível pra todo mundo por 3 dias, depois some sozinho
 let firebaseSynced = false;
@@ -2427,6 +2534,7 @@ window._fotosPerfilMemCache = {};
 function _ehChaveDeFotoPerfil(chave){
   if(!chave) return false;
   if(chave.indexOf('gingapass_academia_foto:') === 0) return true;
+  if(chave.indexOf('gingapass_social_foto:') === 0) return true;
   if(chave.indexOf('gingapass_perfil_') === 0 && chave.slice(-5) === '_foto') return true;
   // Fotos do carrossel do topo (3 por conta): gingapass_aparencia_foto0_<id>,
   // _foto1_, _foto2_ — cada uma facilmente 100-700KB em base64, o maior
@@ -3514,6 +3622,7 @@ function iniciarFirebase(tentativas){
     eventoPostersCollection = db.collection('gingapass_eventos_posters');
     videosNuvemCollection = db.collection('gingapass_videos_nuvem');
     lojaProdutosCollection = db.collection('gingapass_loja_produtos_itens');
+    socialPostsCollection = db.collection('gingapass_social_posts');
     try{
       if(typeof firebase.storage === 'function'){
         storageBucketRef = firebase.storage(app).ref();
@@ -3692,6 +3801,17 @@ function iniciarFirebase(tentativas){
       }
     }, function(e){
       console.error('Erro ao sincronizar produtos da loja:', e);
+    });
+
+    socialPostsCollection.orderBy('data', 'desc').limit(200).onSnapshot(function(snapshot){
+      const posts = [];
+      snapshot.forEach(function(doc){ posts.push(doc.data()); });
+      window._socialPostsCache = posts;
+      if(typeof currentRole !== 'undefined' && currentRole){
+        if(typeof renderGingaSocial === 'function') renderGingaSocial();
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar posts do GingaSocial:', e);
     });
 
     videosNuvemCollection.orderBy('data', 'desc').limit(150).onSnapshot(function(snapshot){
@@ -5238,6 +5358,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderPerfil(); });
   tentarChamar(function(){ renderPainelPai(); });
   tentarChamar(function(){ renderLojaTela(); });
+  tentarChamar(function(){ renderGingaSocial(); });
   tentarChamar(function(){ renderArmazenamento(); });
   tentarChamar(function(){ renderListaProfessoresPublica(); });
   tentarChamar(function(){ renderGruposParceiros(); });
@@ -5460,6 +5581,9 @@ function showScreen(id, btn){
   }
   if(id === 'loja'){
     renderLojaTela();
+  }
+  if(id === 'gingaSocial'){
+    renderGingaSocial();
   }
   if(id === 'inicio'){
     renderMinhaFrequencia();
@@ -12390,6 +12514,417 @@ function renderThreadVendedorLoja(box, produto, compradores){
 }
 // ===================== fim: LOJA GINGAPASS =====================
 
+/* ===================== GINGASOCIAL (rede toda, @handle e foto próprios) =====================
+   Aba separada do GingaFeed (que continua só do grupo). Aqui é rede toda —
+   qualquer pessoa vê e interage com posts de qualquer grupo. Cada conta
+   ganha um @handle gerado automaticamente (nome + nome do grupo) e pode ter
+   uma foto própria pro GingaSocial, diferente da foto de perfil oficial. */
+window._socialPostsCache = window._socialPostsCache || [];
+window._socialFotosSelecionadas = window._socialFotosSelecionadas || [];
+let _socialTipoPostAtual = 'foto';
+
+function _slugSocial(texto){
+  return (texto || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+}
+
+function _obterNomeCompletoParaHandle(){
+  if(currentRole === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const c = contas.find(x => x.user === currentUser);
+    const perfil = JSON.parse(localStorage.getItem('gingapass_perfil_' + currentUser) || 'null');
+    return (perfil && perfil.nome) || (c && c.nome) || currentUser || '';
+  }
+  if(currentRole === 'academia'){
+    return obterMeuNomeProfessor() || currentUser || '';
+  }
+  if(currentRole === 'matriz'){
+    const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    const masterDados = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+    return (meuProf && meuProf.nome) || (masterDados && masterDados.nome) || 'Matriz';
+  }
+  return currentUser || '';
+}
+
+function obterGrupoNomeParaHandle(grupoId){
+  if(!grupoId || grupoId === 'matriz'){
+    const grupoMatriz = JSON.parse(localStorage.getItem('gingapass_grupo_matriz') || 'null');
+    return (grupoMatriz && grupoMatriz.nome) ? grupoMatriz.nome : 'gingapass';
+  }
+  if(grupoId.indexOf('grp:') === 0){
+    const g = listarTodosGruposParceirosCadastrados().find(x => x.id === grupoId.slice(4));
+    if(g && g.nome) return g.nome;
+  }
+  return 'gingapass';
+}
+
+function _gerarHandleSocialUnico(nomeBase, grupoNome, handlesExistentes){
+  let base = _slugSocial(nomeBase) + _slugSocial(grupoNome);
+  if(!base) base = 'associado';
+  let candidato = '@' + base;
+  let i = 1;
+  while(handlesExistentes.has(candidato)){
+    i++;
+    candidato = '@' + base + i;
+  }
+  handlesExistentes.add(candidato);
+  return candidato;
+}
+
+// Lê o @handle já salvo pra essa conta, ou gera um novo na hora (e salva,
+// pra da próxima vez já vir pronto). chaveConta é do formato "papel:usuario".
+function obterHandleSocial(chaveConta, nomeFallback, grupoIdFallback){
+  const mapa = JSON.parse(localStorage.getItem('gingapass_social_handles') || '{}');
+  if(mapa[chaveConta]) return mapa[chaveConta];
+  const grupoNome = obterGrupoNomeParaHandle(grupoIdFallback);
+  const handlesExistentes = new Set(Object.values(mapa));
+  const novoHandle = _gerarHandleSocialUnico(nomeFallback, grupoNome, handlesExistentes);
+  mapa[chaveConta] = novoHandle;
+  setDado('gingapass_social_handles', JSON.stringify(mapa));
+  return novoHandle;
+}
+
+function obterMeuHandleSocial(){
+  if(!currentRole || !currentUser) return '';
+  return obterHandleSocial(identificadorUsuarioAtual(), _obterNomeCompletoParaHandle(), obterMeuGrupoId());
+}
+
+function chaveFotoSocial(chaveConta){
+  return 'gingapass_social_foto:' + chaveConta;
+}
+
+function obterFotoSocial(chaveConta){
+  return lerFotoPerfilLocal(chaveFotoSocial(chaveConta)) || '';
+}
+
+function salvarFotoSocial(){
+  if(!currentRole || !currentUser) return;
+  const input = document.getElementById('perfilFotoSocialInput');
+  const arquivo = input && input.files && input.files[0];
+  if(!arquivo){
+    alert('Escolha uma foto primeiro.');
+    return;
+  }
+  comprimirImagem(arquivo, 480, 0.6).then(function(dataUrl){
+    if(!dataUrl){
+      alert('Não consegui processar essa foto. Tenta outra.');
+      return;
+    }
+    setDado(chaveFotoSocial(identificadorUsuarioAtual()), dataUrl).then(function(ok){
+      if(!ok){
+        alert('A foto ficou salva neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      } else {
+        alert('Foto do GingaSocial atualizada!');
+      }
+      renderPerfil();
+      tentarChamar(function(){ renderGingaSocial(); });
+    });
+  });
+}
+
+function alternarTipoPostSocial(tipo){
+  _socialTipoPostAtual = tipo;
+  const btnFoto = document.getElementById('socialTipoFotoBtn');
+  const btnVideo = document.getElementById('socialTipoVideoBtn');
+  const btnFrase = document.getElementById('socialTipoFraseBtn');
+  if(btnFoto) btnFoto.classList.toggle('active', tipo === 'foto');
+  if(btnVideo) btnVideo.classList.toggle('active', tipo === 'video');
+  if(btnFrase) btnFrase.classList.toggle('active', tipo === 'frase');
+  const campoFoto = document.getElementById('socialCampoFoto');
+  const campoVideo = document.getElementById('socialCampoVideo');
+  if(campoFoto) campoFoto.style.display = tipo === 'foto' ? 'block' : 'none';
+  if(campoVideo) campoVideo.style.display = tipo === 'video' ? 'block' : 'none';
+}
+
+function popularSelectEventoSocial(){
+  const sel = document.getElementById('socialEventoSelect');
+  if(!sel) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]').filter(ev => !eventoJaPassou(ev));
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Nenhum evento</option>' +
+    eventos.map(ev => '<option value="' + ev.codigoCheckin + '">' + ev.titulo + ' — ' + ev.data + '</option>').join('');
+  if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
+}
+
+function publicarPostSocial(){
+  if(!currentRole || !currentUser){
+    alert('Entre com sua conta primeiro.');
+    return;
+  }
+  if(!socialPostsCollection){
+    alert('Sem conexão com a nuvem agora — tente publicar de novo em instantes.');
+    return;
+  }
+  const textoInput = document.getElementById('socialTextoInput');
+  const texto = textoInput ? textoInput.value.trim() : '';
+  const eventoSelect = document.getElementById('socialEventoSelect');
+  const eventoId = eventoSelect ? eventoSelect.value : '';
+
+  if(_socialTipoPostAtual === 'frase'){
+    if(!texto){
+      alert('Escreva sua frase antes de publicar.');
+      return;
+    }
+    _finalizarPublicacaoSocial({tipo: 'frase', imagens: [], videoUrl: '', texto, eventoId});
+    return;
+  }
+
+  if(_socialTipoPostAtual === 'foto'){
+    if(window._socialFotosSelecionadas.length === 0){
+      alert('Escolha ao menos uma foto.');
+      return;
+    }
+    _finalizarPublicacaoSocial({tipo: 'foto', imagens: window._socialFotosSelecionadas.slice(0, 4), videoUrl: '', texto, eventoId});
+    return;
+  }
+
+  if(_socialTipoPostAtual === 'video'){
+    const videoInput = document.getElementById('socialVideoInput');
+    const arquivo = videoInput && videoInput.files && videoInput.files[0];
+    if(!arquivo){
+      alert('Escolha um vídeo primeiro.');
+      return;
+    }
+    if(!arquivo.type || arquivo.type.indexOf('video') !== 0){
+      alert('Esse arquivo não é um vídeo.');
+      return;
+    }
+    const tamanhoMB = arquivo.size / (1024 * 1024);
+    if(tamanhoMB > LIMITE_VIDEO_MB){
+      alert('Esse vídeo tem ' + tamanhoMB.toFixed(1) + 'MB. O limite é ' + LIMITE_VIDEO_MB + 'MB — grave um vídeo mais curto.');
+      return;
+    }
+    if(!storageBucketRef){
+      alert('O armazenamento de vídeo ainda não está disponível neste aparelho/conexão agora. Tente publicar uma foto, ou tente de novo em instantes.');
+      return;
+    }
+    const id = 'social_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const nomeSeguro = (arquivo.name || 'video.mp4').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const caminho = 'gingasocial_videos/' + id + '_' + nomeSeguro;
+    alert('Enviando vídeo... pode demorar um pouco dependendo da conexão. Você pode continuar usando o app.');
+    const tarefa = storageBucketRef.child(caminho).put(arquivo, {contentType: arquivo.type});
+    tarefa.then(function(){
+      return tarefa.snapshot.ref.getDownloadURL();
+    }).then(function(url){
+      _finalizarPublicacaoSocial({tipo: 'video', imagens: [], videoUrl: url, videoStoragePath: caminho, texto, eventoId, id});
+    }).catch(function(e){
+      console.error('Erro ao publicar vídeo no GingaSocial:', e);
+      alert('Não consegui publicar esse vídeo agora. Tenta de novo com uma internet mais estável.');
+    });
+  }
+}
+
+function _finalizarPublicacaoSocial(dados){
+  const post = {
+    id: dados.id || ('social_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)),
+    autorId: identificadorUsuarioAtual(),
+    autorHandle: obterMeuHandleSocial(),
+    autorNome: _obterNomeCompletoParaHandle(),
+    autorFoto: obterFotoSocial(identificadorUsuarioAtual()),
+    tipo: dados.tipo,
+    imagens: dados.imagens || [],
+    videoUrl: dados.videoUrl || '',
+    videoStoragePath: dados.videoStoragePath || '',
+    texto: dados.texto || '',
+    eventoId: dados.eventoId || '',
+    likes: [],
+    comentarios: [],
+    data: Date.now()
+  };
+  socialPostsCollection.doc(post.id).set(post).then(function(){
+    const textoInput = document.getElementById('socialTextoInput');
+    const fotoInput = document.getElementById('socialFotoInput');
+    const videoInput = document.getElementById('socialVideoInput');
+    const preview = document.getElementById('socialFotoPreview');
+    const eventoSelect = document.getElementById('socialEventoSelect');
+    if(textoInput) textoInput.value = '';
+    if(fotoInput) fotoInput.value = '';
+    if(videoInput) videoInput.value = '';
+    if(preview) preview.innerHTML = '';
+    window._socialFotosSelecionadas = [];
+    if(eventoSelect) eventoSelect.value = '';
+    alert('Publicado no GingaSocial!');
+  }).catch(function(e){
+    console.error('Erro ao publicar no GingaSocial:', e);
+    alert('Não consegui publicar agora. Verifique a conexão e tente de novo.');
+  });
+}
+
+function renderGingaSocial(){
+  if(!currentRole) return;
+  const meuHandle = obterMeuHandleSocial();
+  const chip = document.getElementById('socialMeuHandleChip');
+  if(chip) chip.textContent = meuHandle || '@...';
+  const textoHandlePerfil = document.getElementById('perfilMeuHandleTexto');
+  if(textoHandlePerfil) textoHandlePerfil.textContent = meuHandle || '@...';
+
+  const previewFoto = document.getElementById('perfilFotoSocialPreview');
+  if(previewFoto){
+    const minhaFotoSocial = obterFotoSocial(identificadorUsuarioAtual());
+    previewFoto.innerHTML = minhaFotoSocial
+      ? '<img src="' + minhaFotoSocial + '" style="width:80px;height:80px;border-radius:12px;object-fit:cover;">'
+      : '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma foto cadastrada ainda pro GingaSocial.</p>';
+  }
+
+  tentarChamar(function(){ popularSelectEventoSocial(); });
+
+  const composer = document.getElementById('socialComposerBox');
+  if(composer) composer.style.display = (currentRole === 'pai') ? 'none' : 'block';
+
+  const feed = document.getElementById('gingaSocialFeed');
+  if(!feed) return;
+  const posts = (window._socialPostsCache || []).slice().sort((a, b) => b.data - a.data);
+  feed.innerHTML = '';
+  if(posts.length === 0){
+    feed.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém postou nada ainda. Seja o primeiro!</p>';
+    return;
+  }
+  const meuId = identificadorUsuarioAtual();
+  posts.forEach(post => feed.appendChild(criarCardPostSocial(post, meuId)));
+}
+
+function criarCardPostSocial(post, meuId){
+  const card = document.createElement('div');
+  card.className = 'social-card';
+
+  const cabecalho = document.createElement('div');
+  cabecalho.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+  const avatar = document.createElement('div');
+  avatar.className = 'social-avatar';
+  if(post.autorFoto){
+    avatar.style.backgroundImage = 'url(' + post.autorFoto + ')';
+  } else {
+    avatar.textContent = (post.autorNome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(p => p[0]).join('').toUpperCase();
+  }
+  const infoAutor = document.createElement('div');
+  infoAutor.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + (post.autorNome || 'Associado') + '</b>' +
+    '<span style="font-size:11.5px;color:#C22C75;font-weight:600;">' + (post.autorHandle || '') + '</span>';
+  cabecalho.appendChild(avatar);
+  cabecalho.appendChild(infoAutor);
+  card.appendChild(cabecalho);
+
+  if(post.tipo === 'foto' && post.imagens && post.imagens.length > 0){
+    card.appendChild(criarCarrosselFoto({imagens: post.imagens, src: post.imagens[0]}));
+  } else if(post.tipo === 'video' && post.videoUrl){
+    const videoEl = document.createElement('video');
+    videoEl.src = post.videoUrl;
+    videoEl.controls = true;
+    videoEl.playsInline = true;
+    videoEl.style.cssText = 'width:100%;border-radius:12px;display:block;background:#000;';
+    card.appendChild(videoEl);
+  }
+
+  if(post.texto){
+    const textoEl = document.createElement('p');
+    textoEl.style.cssText = 'font-size:' + (post.tipo === 'frase' ? '16px' : '12.5px') + ';color:var(--ink);margin:10px 0 0;white-space:pre-wrap;' + (post.tipo === 'frase' ? 'font-family:Caveat,cursive;font-weight:700;text-align:center;' : '');
+    textoEl.textContent = post.texto;
+    card.appendChild(textoEl);
+  }
+
+  if(post.eventoId){
+    const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+    const ev = eventos.find(e => e.codigoCheckin === post.eventoId);
+    if(ev){
+      const eventoCard = document.createElement('div');
+      eventoCard.className = 'social-evento-card';
+      eventoCard.style.cursor = 'pointer';
+      eventoCard.innerHTML = '<span style="font-size:20px;">🎉</span><div style="flex:1;min-width:0;"><b style="font-size:12.5px;color:var(--navy-900);display:block;">' + ev.titulo + '</b><span style="font-size:11px;color:var(--ink-soft);">' + ev.data + (ev.local ? ' · ' + ev.local : '') + '</span></div>';
+      eventoCard.onclick = () => { selecionarMenuMais('eventos', null); };
+      card.appendChild(eventoCard);
+    }
+  }
+
+  const likes = post.likes || [];
+  const comentarios = post.comentarios || [];
+  const curti = likes.includes(meuId);
+  const acoes = document.createElement('div');
+  acoes.style.cssText = 'display:flex;align-items:center;gap:14px;margin-top:10px;';
+  const likeBtn = document.createElement('button');
+  likeBtn.type = 'button';
+  likeBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:' + (curti ? '#C22C75' : 'var(--ink-soft)') + ';padding:0;';
+  likeBtn.textContent = (curti ? '💜' : '🤍') + ' ' + likes.length;
+  likeBtn.onclick = () => curtirPostSocial(post.id);
+  acoes.appendChild(likeBtn);
+  const comentCount = document.createElement('span');
+  comentCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
+  comentCount.textContent = comentarios.length + (comentarios.length === 1 ? ' comentário' : ' comentários');
+  acoes.appendChild(comentCount);
+  card.appendChild(acoes);
+
+  if(comentarios.length){
+    const listaComentarios = document.createElement('div');
+    listaComentarios.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:4px;';
+    comentarios.forEach(c => {
+      const linha = document.createElement('p');
+      linha.style.cssText = 'font-size:12px;color:var(--ink);margin:0;';
+      const b = document.createElement('b');
+      b.textContent = (c.autorHandle || c.autor || 'Alguém') + ': ';
+      linha.appendChild(b);
+      linha.appendChild(document.createTextNode(c.texto));
+      listaComentarios.appendChild(linha);
+    });
+    card.appendChild(listaComentarios);
+  }
+
+  const inputId = 'socialComentarioInput_' + post.id;
+  const respRow = document.createElement('div');
+  respRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+  const respInput = document.createElement('input');
+  respInput.className = 'admin-input';
+  respInput.id = inputId;
+  respInput.placeholder = 'Escreva um comentário...';
+  respInput.style.marginBottom = '0';
+  const respBtn = document.createElement('button');
+  respBtn.className = 'btn';
+  respBtn.type = 'button';
+  respBtn.style.cssText = 'margin-top:0;width:auto;padding:0 16px;background:linear-gradient(135deg,#6C3FA6,#C22C75);';
+  respBtn.textContent = 'Enviar';
+  respBtn.onclick = () => comentarPostSocial(post.id, inputId);
+  respRow.appendChild(respInput);
+  respRow.appendChild(respBtn);
+  card.appendChild(respRow);
+
+  const dataEl = document.createElement('p');
+  dataEl.style.cssText = 'font-size:10px;color:var(--ink-soft);margin:8px 0 0;';
+  dataEl.textContent = new Date(post.data).toLocaleString('pt-BR');
+  card.appendChild(dataEl);
+
+  return card;
+}
+
+function curtirPostSocial(id){
+  if(!currentRole || !currentUser || !socialPostsCollection) return;
+  const meuId = identificadorUsuarioAtual();
+  const post = (window._socialPostsCache || []).find(p => p.id === id);
+  if(!post) return;
+  const likes = post.likes || [];
+  const idx = likes.indexOf(meuId);
+  if(idx >= 0) likes.splice(idx, 1);
+  else likes.push(meuId);
+  socialPostsCollection.doc(id).update({likes}).catch(function(e){
+    console.error('Erro ao curtir post do GingaSocial:', e);
+  });
+  post.likes = likes;
+  renderGingaSocial();
+}
+
+function comentarPostSocial(id, inputId){
+  const input = document.getElementById(inputId);
+  if(!input || !socialPostsCollection) return;
+  const texto = input.value.trim();
+  if(!texto) return;
+  const post = (window._socialPostsCache || []).find(p => p.id === id);
+  if(!post) return;
+  const comentarios = post.comentarios || [];
+  comentarios.push({autorHandle: obterMeuHandleSocial(), autor: _obterNomeCompletoParaHandle(), texto, data: Date.now()});
+  socialPostsCollection.doc(id).update({comentarios}).catch(function(e){
+    console.error('Erro ao comentar no GingaSocial:', e);
+  });
+  post.comentarios = comentarios;
+  input.value = '';
+  renderGingaSocial();
+}
+/* =================== fim: GINGASOCIAL =================== */
+
 function abrirPagamento(tipo){
   const valor = tipo === 'pix' ? pagamentoAtual.pix : pagamentoAtual.cartao;
   if(!valor) return;
@@ -18215,6 +18750,35 @@ document.addEventListener('DOMContentLoaded', function(){
           _colagemFotos.push(dataUrl);
           loaded++;
           if(loaded === files.length) _atualizarPreviewCarrosselNovo();
+        });
+      });
+    });
+  }
+
+  const socialFotoInput = document.getElementById('socialFotoInput');
+  if(socialFotoInput){
+    socialFotoInput.addEventListener('change', function(e){
+      window._socialFotosSelecionadas = [];
+      const files = Array.from(e.target.files).slice(0, 4);
+      const preview = document.getElementById('socialFotoPreview');
+      if(preview) preview.innerHTML = '';
+      if(files.length === 0) return;
+      let loaded = 0;
+      files.forEach(file => {
+        comprimirImagem(file, 900, 0.75).then(function(dataUrl){
+          window._socialFotosSelecionadas.push(dataUrl);
+          loaded++;
+          if(loaded === files.length){
+            const preview2 = document.getElementById('socialFotoPreview');
+            if(preview2){
+              preview2.innerHTML = '';
+              window._socialFotosSelecionadas.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                preview2.appendChild(img);
+              });
+            }
+          }
         });
       });
     });
