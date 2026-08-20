@@ -2118,6 +2118,12 @@
       <input class="admin-input" id="resetConfirmacaoTexto" placeholder="Digite APAGAR TUDO">
       <button class="btn" type="button" style="background:#C0392B;" onclick="reiniciarCadastrosProfessoresEAlunos()">Apagar todas as contas de professor e aluno</button>
     </div>
+
+    <div class="card" style="border:1.5px solid #C0392B;margin-top:12px;">
+      <p class="card-label" style="color:#C0392B;margin:0 0 6px;">Limpar histórico antigo (sem apagar nenhuma conta)</p>
+      <p style="font-size:12px;color:var(--ink);margin:0 0 10px;">O histórico de presença, faltas, agenda de aulas e mensalidades fica salvo pelo <b>nome</b> do professor/aluno, não por um código único — então, se você apagou uma conta e recriou alguém com o mesmo nome, o histórico antigo dele "ressuscita" sozinho. Use este botão pra apagar só esse histórico, mantendo as contas atuais intactas.</p>
+      <button class="btn" type="button" style="background:#C0392B;" onclick="limparHistoricoAntigoCompleto()">Limpar histórico de presença/faltas/agenda/mensalidades</button>
+    </div>
   </div>
 
   <!-- ESTATÍSTICAS -->
@@ -5746,7 +5752,7 @@ function popularMestresDoGrupoSelecionado(grupoSelectId, mestreSelectId){
     mestreSel.innerHTML = '<option value="">Esse grupo não tem mestre cadastrado</option>';
     return;
   }
-  mestreSel.innerHTML = '<option value="">Selecione o mestre dele...</option>' +
+  mestreSel.innerHTML = '<option value="">Nenhum — é o responsável máximo, não paga mensalidade pra ninguém</option>' +
     mestres.map(m => '<option value="' + m.replace(/"/g, '&quot;') + '">' + m + '</option>').join('');
 }
 
@@ -5795,7 +5801,9 @@ function criarAcessoAcademia(){
     }
     meuMestre = grupoProfMestreSelect ? grupoProfMestreSelect.value.trim() : '';
     if(!meuMestre){
-      alert('Escolha quem é o mestre/professor responsável dentro do grupo selecionado.');
+      if(!confirm('Você não escolheu nenhum mestre pra esse professor — isso quer dizer que ele é o RESPONSÁVEL MÁXIMO (não vai pagar mensalidade a ninguém). Confirma?')) return;
+    } else if(mesmoProfessor(meuMestre, professor)){
+      alert('O mestre escolhido não pode ser o próprio professor que você está cadastrando. Se ele for o responsável máximo, deixe em branco ("Nenhum").');
       return;
     }
   }
@@ -12588,6 +12596,74 @@ function reiniciarCadastrosProfessoresEAlunos(){
     tentarChamar(function(){ renderRedeAcademias(); });
     tentarChamar(function(){ renderAcademiasScreen(); });
     tentarChamar(function(){ renderConfigGeral(); });
+  });
+}
+
+// Apaga o histórico "solto" que fica salvo pelo NOME do professor/aluno (não
+// por um código único de conta) — presença, faltas, agenda semanal, planos
+// de aula, avisos, QR codes do dia e o log de pagamentos. Sem isso, apagar
+// uma conta e recriar alguém com o mesmo nome faz o histórico antigo dele
+// reaparecer sozinho, como se já tivesse dado aula/pago mensalidade.
+// NÃO mexe nas contas em si (gingapass_academias_contas / alunos_contas).
+function limparHistoricoAntigoCompleto(){
+  if(currentRole !== 'matriz') return;
+  if(!confirm('Isso apaga todo o histórico de presença, faltas, agenda de aulas, planos de aula, avisos e mensalidades pagas — de TODOS os professores e alunos, mesmo os atuais. As contas em si (login/senha) não são apagadas, só o histórico. Não pode ser desfeito. Confirma?')) return;
+  if(!confirmarSenhaMaster()) return;
+
+  // Coleções de nome fixo, sempre um array/objeto só.
+  const chavesFixas = {
+    'gingapass_checkin_log': '[]',
+    'gingapass_pagamentos_log': '[]',
+    'gingapass_faltas_excluidas': '[]',
+    'gingapass_faltas_obs': '[]',
+    'gingapass_dias_checkin': '[]',
+    'gingapass_checkins_eventos': '[]',
+    'gingapass_comprovantes': '[]'
+  };
+  const promessas = Object.keys(chavesFixas).map(chave => setDado(chave, chavesFixas[chave]));
+
+  // Coleções com uma chave por professor/data (nome dinâmico) — varre todas
+  // as chaves já sincronizadas neste aparelho (o cache local tem uma cópia
+  // de tudo que está na nuvem) e limpa cada uma encontrada.
+  const prefixosParaLimparArray = [
+    'gingapass_dias_checkin_prof_',
+    'gingapass_agenda_aulas_prof_',
+    'gingapass_planos_aula_prof_',
+    'gingapass_aulas_nao_houve_prof_'
+  ];
+  const prefixosParaLimparTexto = [
+    'gingapass_aviso:',
+    'gingapass_qrcode_meta_'
+  ];
+  const chaveCheckinDiario = /^gingapass_checkin_\d{4}-\d{2}-\d{2}$/;
+  const chaveQrCodigo = /^gingapass_qrcode_\d{4}-\d{2}-\d{2}__/;
+
+  Object.keys(localStorage).forEach(chave => {
+    if(prefixosParaLimparArray.some(p => chave.indexOf(p) === 0)){
+      promessas.push(setDado(chave, '[]'));
+    } else if(prefixosParaLimparTexto.some(p => chave.indexOf(p) === 0)){
+      promessas.push(setDado(chave, ''));
+    } else if(chaveCheckinDiario.test(chave)){
+      promessas.push(setDado(chave, '{}'));
+    } else if(chaveQrCodigo.test(chave)){
+      promessas.push(setDado(chave, ''));
+    }
+  });
+
+  Promise.all(promessas).then(function(resultados){
+    if(resultados.some(r => !r)){
+      alert('Limpo neste aparelho, mas alguma parte não sincronizou com a nuvem agora — verifique a conexão e tente de novo.');
+    } else {
+      alert('Pronto! Histórico antigo apagado (' + promessas.length + ' registro(s)). As contas continuam como estavam — só o histórico foi zerado.');
+    }
+    tentarChamar(function(){ renderEstatisticas(); });
+    tentarChamar(function(){ renderMinhaMensalidadeProfessor(); });
+    tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia'); });
+    tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
+    tentarChamar(function(){ renderPerfil(); });
+    tentarChamar(function(){ renderAgendaAulasPerfil(); });
+    tentarChamar(function(){ renderValidacaoAulasSemana(); });
+    tentarChamar(function(){ renderPlanosAulaPerfil(); });
   });
 }
 
