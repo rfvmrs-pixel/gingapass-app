@@ -843,6 +843,7 @@
         <div id="socialSlideshowLegenda" style="position:absolute;left:0;right:0;bottom:0;padding:8px 10px;background:linear-gradient(0deg,rgba(0,0,0,0.65),transparent);color:#fff;font-size:11px;font-weight:600;"></div>
       </div>
       <p id="socialSlideshowVazio" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;display:none;">Ninguém postou no GingaSocial ainda. Poste a primeira foto!</p>
+      <div id="socialHomeAtividades" style="margin-top:8px;"></div>
     </div>
 
     <div class="card" id="aniversariantesHomeCard" style="display:none;">
@@ -1323,6 +1324,12 @@
       </div>
 
       <div class="social-card" id="gingaSocialBadalados" style="display:none;"></div>
+
+      <div class="social-card">
+        <div class="card-label">⚙️ Preferências — o que eu não quero ver</div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Silencie um grupo ou uma pessoa clicando no 🔇 de qualquer post — eles somem do seu feed (só do seu, ninguém mais é afetado). Gerencie aqui quem/o que já está silenciado.</p>
+        <div id="socialPreferenciasLista"><p style="font-size:12px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+      </div>
 
       <div id="gingaSocialFeed"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
     </div>
@@ -5621,6 +5628,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ atualizarListaDestinatariosLocalizacao(); });
   tentarChamar(function(){ iniciarSlideshowMural(); });
   tentarChamar(function(){ iniciarSlideshowSocial(); });
+  tentarChamar(function(){ renderAtividadesHomeSocial(); });
   tentarChamar(function(){ renderAviso(); });
   tentarChamar(function(){ renderAlunos(); });
   tentarChamar(function(){ renderPerfil(); });
@@ -13583,6 +13591,108 @@ function contarSeguidoresSocial(chaveAlvo){
   return total;
 }
 
+// ===================== Preferências: silenciar grupos/pessoas no GingaSocial =====================
+// Cada conta tem a própria lista de grupos e pessoas que não quer ver no
+// feed — é individual (não afeta o que os outros veem), guardada só pra
+// quem tá logado.
+function chaveMuteSocial(){
+  return 'gingapass_social_mute:' + identificadorUsuarioAtual();
+}
+
+function obterMuteSocial(){
+  if(!currentRole || !currentUser) return {grupos: [], pessoas: []};
+  const m = JSON.parse(localStorage.getItem(chaveMuteSocial()) || 'null');
+  return m || {grupos: [], pessoas: []};
+}
+
+function grupoEstaSilenciado(grupoId){
+  if(!grupoId) return false;
+  return obterMuteSocial().grupos.indexOf(grupoId) !== -1;
+}
+
+function pessoaEstaSilenciada(chaveAlvo){
+  return obterMuteSocial().pessoas.indexOf(chaveAlvo) !== -1;
+}
+
+function alternarSilenciarGrupoSocial(grupoId, nomeGrupo){
+  if(!currentRole || !currentUser || !grupoId) return;
+  const mute = obterMuteSocial();
+  mute.grupos = mute.grupos || [];
+  const idx = mute.grupos.indexOf(grupoId);
+  if(idx >= 0){
+    mute.grupos.splice(idx, 1);
+  } else {
+    if(!confirm('Parar de ver postagens do grupo "' + (nomeGrupo || '') + '" no seu GingaSocial? Dá pra reverter depois em "Preferências".')) return;
+    mute.grupos.push(grupoId);
+  }
+  setDado(chaveMuteSocial(), JSON.stringify(mute));
+  renderGingaSocial();
+}
+
+function alternarSilenciarPessoaSocial(chaveAlvo, nomePessoa){
+  if(!currentRole || !currentUser || !chaveAlvo || chaveAlvo === identificadorUsuarioAtual()) return;
+  const mute = obterMuteSocial();
+  mute.pessoas = mute.pessoas || [];
+  const idx = mute.pessoas.indexOf(chaveAlvo);
+  if(idx >= 0){
+    mute.pessoas.splice(idx, 1);
+  } else {
+    if(!confirm('Parar de ver postagens de "' + (nomePessoa || '') + '" no seu GingaSocial? Dá pra reverter depois em "Preferências".')) return;
+    mute.pessoas.push(chaveAlvo);
+  }
+  setDado(chaveMuteSocial(), JSON.stringify(mute));
+  renderGingaSocial();
+}
+
+function _postVisivelComMute(post, mute){
+  if(!mute) return true;
+  if(mute.pessoas && mute.pessoas.indexOf(post.autorId) !== -1) return false;
+  if(mute.grupos && post.autorGrupoId && mute.grupos.indexOf(post.autorGrupoId) !== -1) return false;
+  return true;
+}
+
+// Menu simples (confirm em duas etapas) pra escolher entre silenciar só a
+// pessoa ou o grupo dela inteiro, a partir de um post do feed.
+function abrirMenuSilenciarPost(post){
+  if(!post.autorGrupoId){
+    alternarSilenciarPessoaSocial(post.autorId, post.autorNome);
+    return;
+  }
+  const silenciarGrupo = confirm('Silenciar "' + (post.autorGrupoNome || 'o grupo') + '" inteiro?\n\nOK = silenciar o grupo todo\nCancelar = silenciar só ' + (post.autorNome || 'essa pessoa'));
+  if(silenciarGrupo){
+    alternarSilenciarGrupoSocial(post.autorGrupoId, post.autorGrupoNome);
+  } else {
+    alternarSilenciarPessoaSocial(post.autorId, post.autorNome);
+  }
+}
+
+function renderPreferenciasSilencioSocial(){
+  const box = document.getElementById('socialPreferenciasLista');
+  if(!box || !currentRole || !currentUser) return;
+  const mute = obterMuteSocial();
+  const grupos = listarTodosGruposParceirosCadastrados();
+  const gruposMutados = (mute.grupos || []).map(id => grupos.find(g => g.id === id)).filter(Boolean);
+
+  let html = '';
+  if(gruposMutados.length === 0 && (mute.pessoas || []).length === 0){
+    html = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nada silenciado. Pra silenciar um grupo ou pessoa, use o 🔇 nos posts ou perfis do GingaSocial.</p>';
+  } else {
+    if(gruposMutados.length > 0){
+      html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 4px;font-weight:600;">Grupos silenciados</p>';
+      html += gruposMutados.map(g => '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:12.5px;color:var(--ink);">' + g.nome + '</span><button type="button" onclick="alternarSilenciarGrupoSocial(&quot;' + g.id + '&quot;, &quot;' + g.nome.replace(/"/g, '&quot;') + '&quot;)" style="border:none;background:none;color:#C22C75;font-size:11px;cursor:pointer;">Reativar</button></div>').join('');
+    }
+    if((mute.pessoas || []).length > 0){
+      html += '<p style="font-size:11px;color:var(--ink-soft);margin:8px 0 4px;font-weight:600;">Pessoas silenciadas</p>';
+      html += mute.pessoas.map(chave => {
+        const partes = chave.split(':');
+        const nome = _resolverNomeDeChaveConta(chave) || chave;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:12.5px;color:var(--ink);">' + nome + '</span><button type="button" onclick="alternarSilenciarPessoaSocial(&quot;' + chave + '&quot;, &quot;' + nome.replace(/"/g, '&quot;') + '&quot;)" style="border:none;background:none;color:#C22C75;font-size:11px;cursor:pointer;">Reativar</button></div>';
+      }).join('');
+    }
+  }
+  box.innerHTML = html;
+}
+
 function estouSeguindoSocial(chaveAlvo){
   if(!currentRole || !currentUser) return false;
   const mapa = JSON.parse(localStorage.getItem('gingapass_social_seguindo') || '{}');
@@ -13651,6 +13761,14 @@ function renderBuscaSocial(){
       segueBtn.style.cssText = 'border:1.5px solid #C22C75;background:' + (seguindo ? '#C22C75' : 'var(--white)') + ';color:' + (seguindo ? '#fff' : '#C22C75') + ';font-size:11px;font-weight:600;padding:6px 12px;border-radius:100px;cursor:pointer;flex-shrink:0;';
       segueBtn.onclick = () => alternarSeguirSocial(p.chaveConta);
       row.appendChild(segueBtn);
+      const muteBtn = document.createElement('button');
+      muteBtn.type = 'button';
+      const silenciada = pessoaEstaSilenciada(p.chaveConta);
+      muteBtn.textContent = silenciada ? '🔇' : '🔈';
+      muteBtn.title = silenciada ? 'Reativar postagens dessa pessoa' : 'Silenciar postagens dessa pessoa';
+      muteBtn.style.cssText = 'border:none;background:none;font-size:14px;cursor:pointer;padding:6px 4px;flex-shrink:0;';
+      muteBtn.onclick = () => { alternarSilenciarPessoaSocial(p.chaveConta, p.nome); renderBuscaSocial(); };
+      row.appendChild(muteBtn);
     }
     resultadoEl.appendChild(row);
   });
@@ -13755,13 +13873,15 @@ function publicarPostSocial(){
 }
 
 function _finalizarPublicacaoSocial(dados){
+  const meuGrupoObjPost = currentRole === 'matriz' ? null : obterGrupoCadastradoDaConta(currentRole, currentUser);
   const post = {
     id: dados.id || ('social_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)),
     autorId: identificadorUsuarioAtual(),
     autorHandle: obterMeuHandleSocial(),
     autorNome: _obterNomeCompletoParaHandle(),
     autorFoto: obterFotoSocial(identificadorUsuarioAtual()),
-    autorGrupoNome: currentRole === 'matriz' ? 'ADM' : ((obterGrupoCadastradoDaConta(currentRole, currentUser) || {}).nome || ''),
+    autorGrupoNome: currentRole === 'matriz' ? 'ADM' : (meuGrupoObjPost ? meuGrupoObjPost.nome : ''),
+    autorGrupoId: meuGrupoObjPost ? meuGrupoObjPost.id : '',
     autorGraduacao: _obterGraduacaoParaHandle(),
     tipo: dados.tipo,
     imagens: dados.imagens || [],
@@ -13797,6 +13917,7 @@ function _finalizarPublicacaoSocial(dados){
 function renderGingaSocial(){
   if(!currentRole) return;
   tentarChamar(function(){ iniciarSlideshowSocial(); });
+  tentarChamar(function(){ renderAtividadesHomeSocial(); });
   const meuHandle = obterMeuHandleSocial();
   const chip = document.getElementById('socialMeuHandleChip');
   if(chip) chip.textContent = meuHandle || '@...';
@@ -13837,7 +13958,11 @@ function renderGingaSocial(){
       socialPostsCollection.doc(p.id).delete().catch(function(){});
     }
   });
-  const postsVisiveis = (window._socialPostsCache || []).filter(p => !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora));
+  const meuMute = obterMuteSocial();
+  const postsVisiveis = (window._socialPostsCache || [])
+    .filter(p => !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora))
+    .filter(p => p.autorId === identificadorUsuarioAtual() || _postVisivelComMute(p, meuMute));
+  tentarChamar(function(){ renderPreferenciasSilencioSocial(); });
 
   tentarChamar(function(){ renderBadaladosSocial(postsVisiveis); });
 
@@ -13938,6 +14063,61 @@ function iniciarSlideshowSocial(){
   }
 }
 
+// Mini-feed misturado (fotos/vídeos/frases/pensamentos + desafios ativos) na
+// tela Início, embaixo do slideshow — respeitando o que a pessoa silenciou
+// em "Preferências". Clicar em qualquer linha abre o GingaSocial (e a aba
+// Desafios, se for um desafio).
+function renderAtividadesHomeSocial(){
+  const box = document.getElementById('socialHomeAtividades');
+  if(!box) return;
+  if(!currentRole || !currentUser){ box.innerHTML = ''; return; }
+  const agora = Date.now();
+  const meuMute = obterMuteSocial();
+  const meuId = identificadorUsuarioAtual();
+
+  const posts = (window._socialPostsCache || [])
+    .filter(p => !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora))
+    .filter(p => p.autorId === meuId || _postVisivelComMute(p, meuMute))
+    .map(p => ({tipo: 'post', data: p.data, item: p}));
+
+  const desafios = (window._socialDesafiosCache || [])
+    .filter(d => typeof podeVerDesafio === 'function' && podeVerDesafio(d))
+    .filter(d => !desafioEncerrado(d))
+    .filter(d => d.criadorChave === meuId || _postVisivelComMute({autorId: d.criadorChave, autorGrupoId: d.grupoId || ''}, meuMute))
+    .map(d => ({tipo: 'desafio', data: d.criadoEm, item: d}));
+
+  const combinados = posts.concat(desafios).sort((a, b) => (b.data || 0) - (a.data || 0)).slice(0, 6);
+
+  if(combinados.length === 0){
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = combinados.map((c, i) => {
+    if(c.tipo === 'desafio'){
+      const d = c.item;
+      return '<div class="_atividadeHomeRow" data-idx="' + i + '" data-kind="desafio" style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F1E7F7;cursor:pointer;">' +
+        '<span style="font-size:15px;flex-shrink:0;">🏆</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">Desafio: ' + d.titulo + '</b>' +
+        '<p style="font-size:10.5px;color:var(--ink-soft);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Por ' + (d.criadorHandle || d.criadorNome) + '</p></div></div>';
+    }
+    const p = c.item;
+    const icone = p.tipo === 'foto' ? '📷' : (p.tipo === 'video' ? '🎥' : (p.tipo === 'pensamento' ? '🌤️' : '💬'));
+    const snippet = p.texto ? (p.texto.length > 60 ? p.texto.slice(0, 60) + '…' : p.texto) : (p.tipo === 'foto' ? 'publicou uma foto' : 'publicou um vídeo');
+    const comentCount = (p.comentarios || []).length;
+    return '<div class="_atividadeHomeRow" data-idx="' + i + '" data-kind="post" style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F1E7F7;cursor:pointer;">' +
+      '<span style="font-size:15px;flex-shrink:0;">' + icone + '</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">' + (p.autorHandle || p.autorNome) + '</b>' +
+      '<p style="font-size:11px;color:var(--ink);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + snippet + (comentCount > 0 ? ' · 💬 ' + comentCount : '') + '</p></div></div>';
+  }).join('');
+
+  Array.from(box.querySelectorAll('._atividadeHomeRow')).forEach(row => {
+    row.onclick = () => {
+      const abaAlvo = row.dataset.kind === 'desafio' ? 'desafios' : 'feed';
+      selecionarMenuMais('gingaSocial', null);
+      tentarChamar(function(){ alternarAbaSocial(abaAlvo); });
+    };
+  });
+}
+
 function criarCardPostSocial(post, meuId){
   const card = document.createElement('div');
   card.className = 'social-card';
@@ -13967,6 +14147,15 @@ function criarCardPostSocial(post, meuId){
   infoAutor.onclick = () => abrirPerfilSocial(post.autorId);
   cabecalho.appendChild(avatar);
   cabecalho.appendChild(infoAutor);
+  if(post.autorId !== meuId){
+    const muteBtn = document.createElement('button');
+    muteBtn.type = 'button';
+    muteBtn.textContent = '🔇';
+    muteBtn.title = 'Silenciar essa pessoa ou o grupo dela';
+    muteBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;';
+    muteBtn.onclick = () => abrirMenuSilenciarPost(post);
+    cabecalho.appendChild(muteBtn);
+  }
   if(post.autorId === meuId || currentRole === 'matriz'){
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
@@ -14295,6 +14484,14 @@ function renderPerfilSocialAberto(){
     btn.style.cssText = 'border:1.5px solid #C22C75;background:' + (seguindo ? '#C22C75' : 'var(--white)') + ';color:' + (seguindo ? '#fff' : '#C22C75') + ';font-size:12px;font-weight:600;padding:7px 16px;border-radius:100px;cursor:pointer;margin-top:10px;';
     btn.onclick = () => { alternarSeguirSocial(chaveConta); renderPerfilSocialAberto(); };
     cabecalho.appendChild(btn);
+
+    const silenciada = pessoaEstaSilenciada(chaveConta);
+    const muteBtn = document.createElement('button');
+    muteBtn.type = 'button';
+    muteBtn.textContent = silenciada ? '🔇 Silenciado — reativar' : '🔈 Silenciar essa pessoa';
+    muteBtn.style.cssText = 'border:none;background:none;color:var(--ink-soft);font-size:11.5px;text-decoration:underline;cursor:pointer;margin:8px 0 0 10px;';
+    muteBtn.onclick = () => { alternarSilenciarPessoaSocial(chaveConta, nome); renderPerfilSocialAberto(); };
+    cabecalho.appendChild(muteBtn);
   }
 
   const agora = Date.now();
