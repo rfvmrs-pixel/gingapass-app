@@ -13461,8 +13461,33 @@ function chaveFotoSocial(chaveConta){
   return 'gingapass_social_foto:' + chaveConta;
 }
 
+// Igual obterChavePerfil(), mas pra QUALQUER conta (não só quem tá logado
+// agora) — precisa pra buscar a foto de perfil normal de outra pessoa.
+function obterChavePerfilDeConta(role, user){
+  if(role === 'aluno' || role === 'academia'){
+    return user ? ('gingapass_perfil_' + user) : null;
+  }
+  if(role === 'matriz') return 'gingapass_perfil_master';
+  return null;
+}
+
+// Se a pessoa nunca subiu uma foto específica pro GingaSocial, usa a MESMA
+// foto de perfil que já aparece no resto do app (em vez de deixar só as
+// iniciais) — assim todo mundo já entra com foto no GingaSocial.
 function obterFotoSocial(chaveConta){
-  return lerFotoPerfilLocal(chaveFotoSocial(chaveConta)) || '';
+  const fotoPropria = lerFotoPerfilLocal(chaveFotoSocial(chaveConta));
+  if(fotoPropria) return fotoPropria;
+  const partes = chaveConta.split(':');
+  const role = partes[0];
+  const user = partes.slice(1).join(':');
+  const chavePerfil = obterChavePerfilDeConta(role, user);
+  let fotoPerfil = chavePerfil ? lerFotoPerfilLocal(chavePerfil + '_foto') : '';
+  if(!fotoPerfil && role === 'academia'){
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const conta = academiasContas.find(c => c.user === user);
+    fotoPerfil = obterFotoAcademia(user, conta);
+  }
+  return fotoPerfil || '';
 }
 
 function _salvarArquivoComoFotoSocial(arquivo, aoTerminar){
