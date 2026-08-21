@@ -13314,10 +13314,7 @@ function obterFotoSocial(chaveConta){
   return lerFotoPerfilLocal(chaveFotoSocial(chaveConta)) || '';
 }
 
-function salvarFotoSocial(){
-  if(!currentRole || !currentUser) return;
-  const input = document.getElementById('perfilFotoSocialInput');
-  const arquivo = input && input.files && input.files[0];
+function _salvarArquivoComoFotoSocial(arquivo, aoTerminar){
   if(!arquivo){
     alert('Escolha uma foto primeiro.');
     return;
@@ -13333,9 +13330,31 @@ function salvarFotoSocial(){
       } else {
         alert('Foto do GingaSocial atualizada!');
       }
-      renderPerfil();
-      tentarChamar(function(){ renderGingaSocial(); });
+      if(aoTerminar) aoTerminar();
     });
+  });
+}
+
+function salvarFotoSocial(){
+  if(!currentRole || !currentUser) return;
+  const input = document.getElementById('perfilFotoSocialInput');
+  const arquivo = input && input.files && input.files[0];
+  _salvarArquivoComoFotoSocial(arquivo, function(){
+    renderPerfil();
+    tentarChamar(function(){ renderGingaSocial(); });
+  });
+}
+
+// Mesma coisa, mas chamada de dentro do próprio perfil aberto no GingaSocial
+// (clicando na foto ou em "Trocar foto") — pra não precisar ir até a aba
+// Perfil só pra isso.
+function salvarFotoSocialDoPerfilAberto(inputEl){
+  if(!currentRole || !currentUser) return;
+  const arquivo = inputEl && inputEl.files && inputEl.files[0];
+  _salvarArquivoComoFotoSocial(arquivo, function(){
+    renderPerfil();
+    tentarChamar(function(){ renderPerfilSocialAberto(); });
+    tentarChamar(function(){ renderGingaSocial(); });
   });
 }
 
@@ -14100,13 +14119,30 @@ function renderPerfilSocialAberto(){
   const souEu = chaveConta === meuId;
 
   let html = '<div style="display:flex;align-items:center;gap:12px;">';
-  html += '<div class="social-avatar" style="width:64px;height:64px;font-size:20px;' + (foto ? 'background-image:url(' + foto + ');' : '') + '">' + (foto ? '' : (nome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join('').toUpperCase()) + '</div>';
+  html += '<div class="social-avatar" id="socialPerfilAbertoAvatar" style="width:64px;height:64px;font-size:20px;position:relative;' + (souEu ? 'cursor:pointer;' : '') + (foto ? 'background-image:url(' + foto + ');' : '') + '">' +
+    (foto ? '' : (nome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join('').toUpperCase()) +
+    (souEu ? '<span style="position:absolute;bottom:-3px;right:-3px;background:#C22C75;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid var(--white);">📷</span>' : '') +
+    '</div>';
   html += '<div style="flex:1;min-width:0;"><b style="font-size:16px;color:var(--navy-900);display:block;">' + nome + '</b>';
   html += '<span style="font-size:12px;color:#C22C75;font-weight:600;">' + handle + '</span>';
   if(grupo && grupo.nome) html += '<span style="font-size:11px;color:var(--ink-soft);display:block;">' + grupo.nome + '</span>';
   html += '<span style="font-size:11px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
   html += '</div></div>';
+  if(souEu){
+    html += '<input type="file" id="socialPerfilAbertoFotoInput" accept="image/*" style="display:none;">' +
+      '<button type="button" id="socialPerfilAbertoTrocarFotoBtn" style="border:none;background:none;color:#C22C75;font-size:11.5px;font-weight:600;text-decoration:underline;cursor:pointer;padding:8px 0 0;">📷 Trocar foto do GingaSocial</button>';
+  }
   cabecalho.innerHTML = html;
+
+  if(souEu){
+    const avatarClicavel = document.getElementById('socialPerfilAbertoAvatar');
+    const trocarBtn = document.getElementById('socialPerfilAbertoTrocarFotoBtn');
+    const fotoInput = document.getElementById('socialPerfilAbertoFotoInput');
+    const abrirSeletor = () => { if(fotoInput) fotoInput.click(); };
+    if(avatarClicavel) avatarClicavel.onclick = abrirSeletor;
+    if(trocarBtn) trocarBtn.onclick = abrirSeletor;
+    if(fotoInput) fotoInput.onchange = () => salvarFotoSocialDoPerfilAberto(fotoInput);
+  }
 
   if(!souEu && meuId){
     const seguindo = estouSeguindoSocial(chaveConta);
@@ -14152,7 +14188,7 @@ function renderPerfilSocialAberto(){
         const linha = document.createElement('div');
         linha.className = 'social-card';
         const meuParticipante = (d.participantes || []).find(p => p.chaveConta === chaveConta);
-        const pts = meuParticipante ? calcularPontosParticipanteDesafio(meuParticipante) : 0;
+        const pts = meuParticipante ? calcularPontosParticipanteDesafio(meuParticipante, d) : 0;
         const papel = d.criadorChave === chaveConta ? 'Criou' : 'Participou';
         linha.innerHTML = '<b style="font-size:12.5px;color:var(--navy-900);">' + d.titulo + '</b><p style="font-size:11px;color:var(--ink-soft);margin:4px 0 0;">' + papel + (meuParticipante ? ' · ' + pts + ' pts' : '') + (desafioEncerrado(d) ? ' · encerrado' : ' · em andamento') + '</p>';
         boxDesafios.appendChild(linha);
@@ -14315,11 +14351,18 @@ function podeVerDesafio(d){
   return false;
 }
 
-function calcularPontosParticipanteDesafio(p){
+// "desafio" é opcional — quando passado, soma +1 ponto pra quem venceu a
+// enquete de votação desse desafio (a opção mais votada, quando ela é a
+// opção de um participante — ex: "Usar participantes como opções").
+function calcularPontosParticipanteDesafio(p, desafio){
   let pontos = 1; // participou até o fim
   if(p.concluiu) pontos++;
   if(p.fezAlem) pontos++;
   if(p.terminouPrimeiro) pontos++;
+  if(desafio){
+    const vencedorVotacao = _vencedorEnqueteDesafio(desafio);
+    if(vencedorVotacao && vencedorVotacao.chaveConta && vencedorVotacao.chaveConta === p.chaveConta) pontos++;
+  }
   return pontos;
 }
 
@@ -14702,7 +14745,7 @@ function renderDesafiosSocial(){
     const pontosPorPessoa = {};
     encerrados.forEach(d => {
       (d.participantes || []).forEach(p => {
-        const pontos = calcularPontosParticipanteDesafio(p);
+        const pontos = calcularPontosParticipanteDesafio(p, d);
         if(!pontosPorPessoa[p.chaveConta]) pontosPorPessoa[p.chaveConta] = {nome: p.nome, handle: p.handle, pontos: 0, desafios: 0};
         pontosPorPessoa[p.chaveConta].pontos += pontos;
         pontosPorPessoa[p.chaveConta].desafios += 1;
@@ -14724,7 +14767,7 @@ function renderDesafiosSocial(){
       boxMural.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum desafio encerrado ainda.</p>';
     } else {
       encerrados.forEach(d => {
-        const participantes = (d.participantes || []).slice().sort((a, b) => calcularPontosParticipanteDesafio(b) - calcularPontosParticipanteDesafio(a));
+        const participantes = (d.participantes || []).slice().sort((a, b) => calcularPontosParticipanteDesafio(b, d) - calcularPontosParticipanteDesafio(a, d));
         const card = document.createElement('div');
         card.className = 'social-card';
         let html = '<div class="card-label">🏁 ' + d.titulo + '</div>';
@@ -14739,7 +14782,7 @@ function renderDesafiosSocial(){
         if(participantes.length === 0){
           html += '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Ninguém participou desse desafio.</p>';
         } else {
-          html += participantes.map(p => '<p style="font-size:12px;color:var(--ink);margin:2px 0;">' + p.nome + ' — <b>' + calcularPontosParticipanteDesafio(p) + ' pts</b></p>').join('');
+          html += participantes.map(p => '<p style="font-size:12px;color:var(--ink);margin:2px 0;">' + p.nome + ' — <b>' + calcularPontosParticipanteDesafio(p, d) + ' pts</b></p>').join('');
         }
         card.innerHTML = html;
         boxMural.appendChild(card);
