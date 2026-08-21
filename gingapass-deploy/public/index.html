@@ -1261,6 +1261,7 @@
           <h2 style="margin:0 0 2px;">GingaSocial <span style="font-size:14px;">🥋🤸🪘🎶</span></h2>
           <p style="margin:0;">Conecte-se com todo mundo da rede — de qualquer grupo, não só o seu</p>
           <span class="social-handle-chip" id="socialMeuHandleChip">@...</span>
+          <button type="button" id="socialRecalcularHandlesBtn" onclick="recalcularTodosHandlesSocial()" style="display:none;margin-left:8px;border:none;background:none;color:rgba(255,255,255,0.85);font-size:10.5px;text-decoration:underline;cursor:pointer;padding:0;">Recalcular @handles</button>
         </div>
       </div>
       <svg viewBox="0 0 100 100" style="position:absolute;right:2px;bottom:-8px;width:78px;height:78px;opacity:0.3;z-index:0;pointer-events:none;" aria-hidden="true">
@@ -12805,21 +12806,42 @@ function _obterGraduacaoParaHandle(){
   return '';
 }
 
-function obterGrupoNomeParaHandle(grupoId){
-  if(!grupoId || grupoId === 'matriz'){
-    const grupoMatriz = JSON.parse(localStorage.getItem('gingapass_grupo_matriz') || 'null');
-    return (grupoMatriz && grupoMatriz.nome) ? grupoMatriz.nome : 'gingapass';
+// O GRUPO OFICIAL (cadastrado em "Cadastrar grupos") de uma conta — usado só
+// pro @handle e pra mostrar o grupo no post do GingaSocial. É DIFERENTE do
+// "grupo de feed" (obterMeuGrupoId) que é compartilhado por toda a rede
+// matriz — usar aquele fazia todo professor da rede principal (Flecha,
+// Borracha, etc.) cair no mesmo sufixo genérico. Aqui cada um pega o grupo
+// específico que foi escolhido quando ganhou acesso.
+function obterGrupoCadastradoDaConta(role, user){
+  if(role === 'matriz') return null;
+  if(role === 'academia'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const c = contas.find(x => x.user === user);
+    const grupoId = c && (c.grupoCadastroId || c.grupoParceiroId);
+    return grupoId ? (listarTodosGruposParceirosCadastrados().find(g => g.id === grupoId) || null) : null;
   }
-  if(grupoId.indexOf('grp:') === 0){
-    const g = listarTodosGruposParceirosCadastrados().find(x => x.id === grupoId.slice(4));
-    if(g && g.nome) return g.nome;
+  if(role === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const c = contas.find(x => x.user === user);
+    if(!c || !c.professor) return null;
+    const contaProf = obterAcademiaContaPorNucleoOuProfessor(c.professor);
+    const grupoId = contaProf && (contaProf.grupoCadastroId || contaProf.grupoParceiroId);
+    return grupoId ? (listarTodosGruposParceirosCadastrados().find(g => g.id === grupoId) || null) : null;
   }
-  return 'gingapass';
+  return null;
 }
 
-function _gerarHandleSocialUnico(nomeBase, grupoNome, handlesExistentes){
-  let base = _slugSocial(nomeBase) + _slugSocial(grupoNome);
-  if(!base) base = 'associado';
+function _primeiraPalavra(texto){
+  return (texto || '').trim().split(/\s+/)[0] || '';
+}
+
+// Formato: @nome + primeira palavra do nome do grupo + "gingasocial" (ex:
+// "@flechateamgingasocial"). Só a conta ADM (matriz) usa "adm" no lugar do
+// grupo, já que ela não pertence a nenhum grupo cadastrado.
+function _gerarHandleSocialUnico(nomeBase, grupo, ehAdm, handlesExistentes){
+  const sufixoGrupo = ehAdm ? 'adm' : _slugSocial(_primeiraPalavra(grupo ? grupo.nome : ''));
+  let base = _slugSocial(nomeBase) + sufixoGrupo + 'gingasocial';
+  if(!base) base = 'associadogingasocial';
   let candidato = '@' + base;
   let i = 1;
   while(handlesExistentes.has(candidato)){
@@ -12832,12 +12854,16 @@ function _gerarHandleSocialUnico(nomeBase, grupoNome, handlesExistentes){
 
 // Lê o @handle já salvo pra essa conta, ou gera um novo na hora (e salva,
 // pra da próxima vez já vir pronto). chaveConta é do formato "papel:usuario".
-function obterHandleSocial(chaveConta, nomeFallback, grupoIdFallback){
+function obterHandleSocial(chaveConta, nomeFallback){
   const mapa = JSON.parse(localStorage.getItem('gingapass_social_handles') || '{}');
   if(mapa[chaveConta]) return mapa[chaveConta];
-  const grupoNome = obterGrupoNomeParaHandle(grupoIdFallback);
+  const partes = chaveConta.split(':');
+  const role = partes[0];
+  const user = partes.slice(1).join(':');
+  const ehAdm = role === 'matriz';
+  const grupo = ehAdm ? null : obterGrupoCadastradoDaConta(role, user);
   const handlesExistentes = new Set(Object.values(mapa));
-  const novoHandle = _gerarHandleSocialUnico(nomeFallback, grupoNome, handlesExistentes);
+  const novoHandle = _gerarHandleSocialUnico(nomeFallback, grupo, ehAdm, handlesExistentes);
   mapa[chaveConta] = novoHandle;
   setDado('gingapass_social_handles', JSON.stringify(mapa));
   return novoHandle;
@@ -12845,7 +12871,24 @@ function obterHandleSocial(chaveConta, nomeFallback, grupoIdFallback){
 
 function obterMeuHandleSocial(){
   if(!currentRole || !currentUser) return '';
-  return obterHandleSocial(identificadorUsuarioAtual(), _obterNomeCompletoParaHandle(), obterMeuGrupoId());
+  return obterHandleSocial(identificadorUsuarioAtual(), _obterNomeCompletoParaHandle());
+}
+
+// Apaga todos os @handles já gerados, pra recalcular do zero com a lógica
+// nova (grupo específico de cada um, em vez do grupo compartilhado da
+// rede). Não apaga posts nem fotos — só o "apelido" de cada conta, que é
+// recriado sozinho na próxima vez que a pessoa abrir o GingaSocial.
+function recalcularTodosHandlesSocial(){
+  if(currentRole !== 'matriz') return;
+  if(!confirm('Isso apaga todos os @handles já gerados (inclusive o seu) pra recalcular certinho, usando o grupo específico de cada professor/aluno. Ninguém perde posts nem fotos. Confirma?')) return;
+  setDado('gingapass_social_handles', '{}').then(function(ok){
+    if(!ok){
+      alert('Limpo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    alert('Pronto! Os @handles vão ser recalculados automaticamente conforme cada pessoa for abrindo o GingaSocial.');
+    renderGingaSocial();
+  });
 }
 
 function chaveFotoSocial(chaveConta){
@@ -12998,7 +13041,7 @@ function renderBuscaSocial(){
     else { avatar.textContent = (p.nome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join('').toUpperCase(); }
     const info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
-    const handle = obterHandleSocial(p.chaveConta, p.nome, grupoId);
+    const handle = obterHandleSocial(p.chaveConta, p.nome);
     info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + p.nome + '</b><span style="font-size:11px;color:#C22C75;">' + handle + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + p.graduacao + '</span>' : '');
     row.appendChild(avatar);
     row.appendChild(info);
@@ -13101,7 +13144,7 @@ function _finalizarPublicacaoSocial(dados){
     autorHandle: obterMeuHandleSocial(),
     autorNome: _obterNomeCompletoParaHandle(),
     autorFoto: obterFotoSocial(identificadorUsuarioAtual()),
-    autorGrupoNome: obterGrupoNomeParaHandle(obterMeuGrupoId()),
+    autorGrupoNome: currentRole === 'matriz' ? 'ADM' : ((obterGrupoCadastradoDaConta(currentRole, currentUser) || {}).nome || ''),
     autorGraduacao: _obterGraduacaoParaHandle(),
     tipo: dados.tipo,
     imagens: dados.imagens || [],
@@ -13140,6 +13183,8 @@ function renderGingaSocial(){
   if(chip) chip.textContent = meuHandle || '@...';
   const textoHandlePerfil = document.getElementById('perfilMeuHandleTexto');
   if(textoHandlePerfil) textoHandlePerfil.textContent = meuHandle || '@...';
+  const btnRecalcular = document.getElementById('socialRecalcularHandlesBtn');
+  if(btnRecalcular) btnRecalcular.style.display = (currentRole === 'matriz') ? 'inline' : 'none';
 
   const previewFoto = document.getElementById('perfilFotoSocialPreview');
   if(previewFoto){
