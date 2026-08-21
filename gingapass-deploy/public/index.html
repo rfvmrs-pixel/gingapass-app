@@ -2165,6 +2165,8 @@
     <p class="section-title">Liberar acesso em massa (núcleos já cadastrados sem login)</p>
     <div class="card">
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Esses núcleos já estão na rede (nome, endereço, professor) mas ainda não têm usuário/senha pra entrar no app — normalmente porque o acesso foi perdido ou nunca foi criado. Revise o usuário e a senha sugeridos (pode editar cada um) e gere o acesso de todos de uma vez, com uma senha master só.</p>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Grupo desses professores (obrigatório — necessário pro @handle do GingaSocial vir certo)</label>
+      <select class="admin-input" id="liberacaoEmMassaGrupoSelect"><option value="">Selecione o grupo...</option></select>
       <div id="liberacaoEmMassaLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
       <button class="btn" type="button" onclick="liberarAcessoEmMassa()" style="margin-top:10px;">Gerar acesso pros selecionados</button>
       <div id="liberacaoEmMassaResultado" style="margin-top:12px;"></div>
@@ -6170,6 +6172,14 @@ function renderLiberacaoEmMassa(){
   if(!container || currentRole !== 'matriz') return;
   const resultado = document.getElementById('liberacaoEmMassaResultado');
   if(resultado) resultado.innerHTML = '';
+  const grupoSel = document.getElementById('liberacaoEmMassaGrupoSelect');
+  if(grupoSel){
+    const grupos = listarTodosGruposParceirosCadastrados();
+    const atual = grupoSel.value;
+    grupoSel.innerHTML = '<option value="">Selecione o grupo...</option>' +
+      grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+    if(atual && grupoSel.querySelector('option[value="' + atual + '"]')) grupoSel.value = atual;
+  }
   const semAcesso = obterNucleosSemAcesso();
   container.innerHTML = '';
   if(semAcesso.length === 0){
@@ -6240,6 +6250,12 @@ function liberarAcessoEmMassa(){
     alert('Nenhum núcleo selecionado.');
     return;
   }
+  const grupoSel = document.getElementById('liberacaoEmMassaGrupoSelect');
+  const grupoCadastroId = grupoSel ? grupoSel.value : '';
+  if(!grupoCadastroId){
+    alert('Escolha o grupo desses professores antes de gerar o acesso (necessário pro @handle do GingaSocial vir certo). Se ainda não existe grupo, cadastre um em "Cadastrar grupos" primeiro.');
+    return;
+  }
 
   const contasAtuais = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const usersJaExistentes = new Set(contasAtuais.map(c => c.user));
@@ -6260,7 +6276,7 @@ function liberarAcessoEmMassa(){
     contas.push({
       nome: item.nucleo, user: item.user, senha: item.senha, pergunta: '', resposta: '',
       meuMestre: '', inicioComoProfessor: '', vencimentoMensalidade: '', mensalidadeStatus: 'Em dia',
-      nucleosGerenciados: [item.nucleo], grupo: '', grupoParceiroId: '', grupoNome: '', grupoFoto: '', foto: '', daAula: true
+      nucleosGerenciados: [item.nucleo], grupo: '', grupoParceiroId: '', grupoCadastroId, grupoNome: '', grupoFoto: '', foto: '', daAula: true
     });
   });
   setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
@@ -6826,6 +6842,12 @@ function renderLinhaAcademiaConta(container, c, i, independente){
     btnLogin.title = 'Trocar o usuário e/ou a senha de acesso dessa conta';
     btnLogin.style.cssText = 'border:none;background:none;color:var(--navy-900);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
     btnLogin.onclick = () => editarUsuarioSenhaAcademia(c.user);
+    const btnGrupo = document.createElement('button');
+    btnGrupo.type = 'button';
+    btnGrupo.textContent = '🏷️ Grupo';
+    btnGrupo.title = 'Vincular esse professor a um grupo cadastrado (necessário pro @handle do GingaSocial vir certo)';
+    btnGrupo.style.cssText = 'border:none;background:none;color:var(--navy-900);font-size:12px;font-weight:600;cursor:pointer;padding:0;';
+    btnGrupo.onclick = () => editarGrupoAcademiaConta(c.user);
     const btnOcultar = document.createElement('button');
     btnOcultar.type = 'button';
     btnOcultar.textContent = c.oculto ? '👁️ Mostrar' : '🙈 Ocultar';
@@ -6844,6 +6866,7 @@ function renderLinhaAcademiaConta(container, c, i, independente){
     btnGroup.appendChild(btnNome);
     btnGroup.appendChild(btnFoto);
     btnGroup.appendChild(btnLogin);
+    btnGroup.appendChild(btnGrupo);
     btnGroup.appendChild(btnOcultar);
     btnGroup.appendChild(btnNucleo);
     btnGroup.appendChild(btn);
@@ -7661,6 +7684,42 @@ function alternarOcultarAcademiaConta(user){
 // professor já existente — útil quando o usuário gerado automaticamente
 // ficou confuso (ex: "borracha" em vez do nome completo que a pessoa
 // esperava digitar) ou quando o professor esqueceu a senha.
+// Vincula (ou troca) o grupo cadastrado de uma conta de professor já
+// existente — necessário pra contas antigas/criadas em massa, que nunca
+// passaram pela tela que hoje já exige grupo. Sem isso, o @handle do
+// GingaSocial dessa pessoa fica sem o nome do time.
+function editarGrupoAcademiaConta(user){
+  if(currentRole !== 'matriz') return;
+  const grupos = listarTodosGruposParceirosCadastrados();
+  if(grupos.length === 0){
+    alert('Nenhum grupo cadastrado ainda. Cadastre um grupo primeiro em "Cadastrar grupos".');
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === user);
+  if(idx < 0) return;
+  const conta = contas[idx];
+  const grupoAtual = grupos.find(g => g.id === (conta.grupoCadastroId || conta.grupoParceiroId));
+  const listaTexto = grupos.map((g, i) => (i + 1) + '. ' + g.nome).join('\n');
+  const escolha = prompt('Grupo de "' + conta.nome + '" (atual: ' + (grupoAtual ? grupoAtual.nome : 'nenhum') + ')\n\nDigite o número do grupo:\n' + listaTexto);
+  if(escolha === null) return;
+  const indice = parseInt(escolha.trim(), 10) - 1;
+  if(isNaN(indice) || indice < 0 || indice >= grupos.length){
+    alert('Número inválido.');
+    return;
+  }
+  conta.grupoCadastroId = grupos[indice].id;
+  contas[idx] = conta;
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    renderAcademiasContas();
+    alert('Pronto! "' + conta.nome + '" agora pertence ao grupo "' + grupos[indice].nome + '". Use "Recalcular @handles" no GingaSocial pra atualizar o apelido dele.');
+  });
+}
+
 function editarUsuarioSenhaAcademia(userAtual){
   if(currentRole !== 'matriz') return;
   if(!confirmarSenhaMaster()) return;
