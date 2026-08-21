@@ -8448,6 +8448,18 @@ function renderPerfil(){
     if(nomeView) nomeView.textContent = minhaConta.nome;
     if(nucleoView) nucleoView.textContent = obterNucleoAtualDoAluno(minhaConta) || cfg.nucleo || 'Ainda não definido';
     if(profView) profView.textContent = minhaConta.professor || cfg.professor || 'Ainda não definido';
+    const grupoRowAluno = document.getElementById('perfilGrupoRow');
+    const grupoViewAluno = document.getElementById('perfilGrupoView');
+    if(grupoRowAluno && grupoViewAluno){
+      const contaProfAluno = minhaConta.professor ? obterAcademiaContaPorNucleoOuProfessor(minhaConta.professor) : null;
+      const grupoDoAluno = contaProfAluno ? obterGrupoCadastradoDaConta('academia', contaProfAluno.user) : null;
+      if(grupoDoAluno && grupoDoAluno.nome){
+        grupoViewAluno.textContent = grupoDoAluno.nome;
+        grupoRowAluno.style.display = '';
+      } else {
+        grupoRowAluno.style.display = 'none';
+      }
+    }
     if(cordaView){
       cordaView.textContent = minhaConta.corda ? ('Corda ' + minhaConta.corda) : 'Corda ainda não definida';
       cordaView.style.display = '';
@@ -8488,13 +8500,16 @@ function renderPerfil(){
       const grupoRow = document.getElementById('perfilGrupoRow');
       const grupoView = document.getElementById('perfilGrupoView');
       if(grupoRow && grupoView){
-        // Mostra sempre que houver QUALQUER vínculo — grupo oficial cadastrado
-        // (grupoNome) e/ou só o nome do mestre (meuMestre), que é o que fica
-        // salvo quando um professor cadastra outro diretamente vinculado a
-        // si, sem passar pelo registro formal de grupo.
-        if(minhaContaAcademia && (minhaContaAcademia.grupoNome || minhaContaAcademia.meuMestre)){
+        // O nome do GRUPO em si vem do grupo cadastrado (Cadastrar grupos) —
+        // não do campo antigo "grupoNome" (que só é preenchido pra academias
+        // parceiras independentes, ficando vazio pra todo professor da rede
+        // principal, mesmo já tendo um grupo vinculado). "aluno de X" é uma
+        // informação à parte (quem é o mestre dele), não o grupo.
+        const grupoCadastrado = obterGrupoCadastradoDaConta('academia', currentUser);
+        const nomeGrupo = (grupoCadastrado && grupoCadastrado.nome) || minhaContaAcademia.grupoNome || '';
+        if(minhaContaAcademia && (nomeGrupo || minhaContaAcademia.meuMestre)){
           const partes = [];
-          if(minhaContaAcademia.grupoNome) partes.push(minhaContaAcademia.grupoNome);
+          if(nomeGrupo) partes.push(nomeGrupo);
           if(minhaContaAcademia.meuMestre) partes.push('aluno de ' + minhaContaAcademia.meuMestre);
           grupoView.textContent = partes.join(' · ');
           grupoRow.style.display = '';
