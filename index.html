@@ -1286,7 +1286,9 @@
           <button type="button" class="role-btn active" id="socialTipoFotoBtn" onclick="alternarTipoPostSocial('foto')" style="flex:1;">📷 Foto</button>
           <button type="button" class="role-btn" id="socialTipoVideoBtn" onclick="alternarTipoPostSocial('video')" style="flex:1;">🎥 Vídeo</button>
           <button type="button" class="role-btn" id="socialTipoFraseBtn" onclick="alternarTipoPostSocial('frase')" style="flex:1;">💬 Frase</button>
+          <button type="button" class="role-btn" id="socialTipoPensamentoBtn" onclick="alternarTipoPostSocial('pensamento')" style="flex:1;">🌤️ Pensamento do dia</button>
         </div>
+        <p id="socialAvisoPensamento" style="display:none;font-size:11px;color:var(--ink-soft);margin:-4px 0 8px;">Esse post some sozinho depois de 24h — igual um "story".</p>
         <div id="socialCampoFoto">
           <input type="file" id="socialFotoInput" accept="image/*" multiple style="font-size:12px;margin-bottom:8px;">
           <div class="gallery-grid" id="socialFotoPreview"></div>
@@ -1313,10 +1315,16 @@
         <div id="socialBuscaResultado"></div>
       </div>
 
+      <div class="social-card" id="gingaSocialBadalados" style="display:none;"></div>
+
       <div id="gingaSocialFeed"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
     </div>
 
     <div id="socialAbaDesafios" style="display:none;">
+      <div class="social-card" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#6C3FA6,#C22C75);">
+        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAQDAwQDAwQEBAQFBQQFBwsHBwYGBw4KCggLEA4RERAOEA8SFBoWEhMYEw8QFh8XGBsbHR0dERYgIh8cIhocHRz/2wBDAQUFBQcGBw0HBw0cEhASHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBz/wAARCADcANwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6caR0KjCEBFH3B/dHtR5rDHCf98D/AApkxy4/3V/kKYGycelWiWyfzm9E/wC+B/hTHmbB4T/vgf4U3NJnNUQQPK/PCf8AfA/wqu0reif98D/CrciDrVV4yaAI/NfPRP8Avgf4UplfHRP++B/hShMUuwnoPegBnnNjon/fA/wpyyseyf8AfA/wrzvxT8afCfhV5IBdNqd+hwbexIYKfRpPuj9T7V454k/aD8T6tvj0qO30e3PAMS+bNj/fbgfgK6qeDq1NbWRcabkfVjTfZ4zLM0UUY6vIFVR+Jrnb/wCKfg3SiVuvEulCReCkTCVvyQGvirVNb1PXZN+qajd3rnnNxMz/AKE4qgFVB8vArsjl0ftSN44Y+wrj9ovwNbkhbq8nI/55WBx/49iqDftNeEQ3y2WqsPX7JGP/AGavk3eB3FIJUHVhn61p9Rorubxwsep9cQftM+DmOJLfVIwe5s0b+TVt2Px78B3+P+J0tsfS6s2T9dpFfF4ZT0YfnRwelRLBUnsaLBQZ9+aV4x0LXTjTNa0u7J/hhljLf989a2WeRMblUfWMf4V+dYVQQQPmHQ9663w98RvFnhsr/Z2u3iRL/wAsZn82I+21sj8sVhPBW+Fkyy5/ZZ9zCd89E/74X/Cjz3HZP++F/wAK+dPDX7S8iGOHxHpCuvRrqwOD9TGx/ka9r8N+M9C8Xwedo2pQ3WBl4gdsqf7yHkVxzozhujjq4apS+JHQfaH9E/74X/ClE755Cf8AfC/4VDS9azMCbzm9E/74X/Cjz2/up/3wv+FR0gPNAEgmc/wp/wB8L/hS+c3on/fA/wAKZmkzQA4zPngJ/wB8D/CtTTZXEDcJ97+4voPaskd81qacf3Df739BQMw55PnH+6v8hTUao5fvjn+Ff5ClU47UkrA2TAg96UsFHWos0maYh5bcfakA3cUleD/FH4/x6a8+i+EZEmvVyk+pjDRwnusXZm/2ug7ZrajQnWlyxA9E8d/E7QPh9EV1Cc3GpMuY9PtyDK3oW7IvufwBr5k8bfF7xJ4482Ca4+waW3AsbRiqkf7bdX/Hj2rhZppbq5mubmaSe4mYvJLKxZnY9yT1Nb3gzwJ4i+IerDTfDmmS3s4x5sg+WKAf3pHPCj9T2Br2qWFpYdc0t+5tCJzoxGvAAArb8LeEfEPja7+zeHdGvdTlB+Y28ZKJ/vOflX8TX1b4f/Z0+H3wr0pNc+J2t2l9OORbysY7UN/dVB88x/T/AGayfFn7Xdlo8H9k/Drw5BBZxjalzdxCKNfdIEx/48R9KzeLlUdqEb+fQ3jLpFGH4X/Yx8WaqiTa9rOn6PG3WKEG5lA98EKD+Jrr2+A/wO8BoB4s8Ym6uV+9HcaikXP/AFzi+b9a+dPFfxb8c+Nmf+2vEt/LAxz9mgfyIR7bEwD+Oa4oRrkkKMnqe5qfYV56znb0NFGb3Z9ePr/7Lvh8hbfSbW/YfxLZ3Fxn8X4pyfGf9ne24i8DqwHpocX9TXyJswOtKF5pPBR6yb+ZoqN92z66b4s/s5an8tx4MjjB7toir/6BT/7O/Ze8UKEhntNLmfjiW4tCD/wL5a+RABTtoI5qXg0vhk18y1Q7SZ9cXX7I3hDxFC914M8byMmMqsjR3kf/AH0hUj9a8q8X/sxfETwsGkg02LWrReTLpj7nx7xthvyzXkFpc3OnTCexuZ7WdeRJbyNGw/FSDXrng39pr4ieE3ijuNTTW7FesGprvfHtKMMPxzWbp14aqV/U0j7eHwu/qeSywS2s8lvcQyw3EZw8UqFHU+6nkVNZ3M9jdRXVpPLb3MRyksLFWU+xFfYFr8YvhJ8bIItM8b6RFpWqONsc15gBWPHyXK4K/wDAsD61wnxH/ZR1nQ431TwXctrulkbxaMQLlF6/KR8sox6YPsaj6x9morM6KWKg3y1Vyv8AAyvA37Qd3Z+XZeKo2uoPui/hUean++g4Ye4wfY19A6dqlnq9jDe6fcxXVpMMpNE25T/9f2PNfCLxyQTSQzRvFNExR45FKsjDqCDyDXSeDfGuseCNQ+1aZcYjc/vrWTmKYf7Q9fccisqlKL1iTicrjUXPS0Z9qBuaXdjmuS8DeP8ASvHlh59ixhvIgPtFnIfniPr/ALS+jD8cV1ntXK007M8CpTlTlyyVmO3Zpc+1NzinDmkQGM1pafnyW5/i/oKzhWlp/ELf739BQBz8v31/3V/kKM8VFJJlx/ur/IUzzc9TQOxMSe1C5PemhsjHWvn749fFWS2abwhos+2QjbqVzGeVB/5YqR3x94/h61tQoyrT5UFjM+Mvxrk1aS58OeGrgppi5ju76M4Nye6Ieydif4vp18LAVBwMACk6CvpD9nv9n2LxLCvjbxqi2/hW3Bmt7ac7FuwvJkkJ6RDH/Avp196UqeEp6f8ADmkY9WYnwP8A2c9T+Jnla1rbTaZ4TByJMbZrwDqI89F/2z+Geo9U8d/tBeFfhLpTeD/hbp1jLcW+Ue7Rd1tC/QnPWaT1JOPUnpXA/Hf9pCfxkZvC/g6VrLwrCPKkuYh5b3wHGBj7kXoOrd+OK+dwAoAAwB2rljQnXftK+3Rf5m0YN7mr4g8Sax4s1aXVdd1K51HUJOs07Z2j0UdFHsABWeBnk16J8Pfh34X8X3unRar8RNL0cz5862kglWVD2USOoiJJx/Fx71X+Kfwo1n4W6x5Nzm90S4w9lq8KfuLhD0BIyFcdxn3GRXQq1NS9mtDohFXscLnNKDiruj6JqXiC9Wy0mwub+8ZSwhtoy7YHU4HajUtG1LRLg2+qafdWNwP+WdzEY2/I1Tmr2OlQ6FQg0oHpSdsUo4ouaKIoGKcBnFIAT9KkFS2aKA4KO1LtzQKevTJrKUjaNMiMYIOR1r0j4ZfGvxX8LpUi0+7N5o2cvpl2xaL32HrGfpx6g155gHk07aDXPUUZqzNfqyqK0kfZlzpXw7/aj0mS+05xo/jOCMF8qBOnoJFHE0fbcOR6jpXyz4z8D678Pdek0bX7QwTjLRSrzFcJ/fjbuPbqO4rK0241TQrqy1WwlurG5Ri9reRAocrwdrdDjoRyOxr608FfEPw1+0R4c/4QzxvBDB4lVN0E0eEMzAf62E/wyDqU6EZ6jIHC709tjOKq4L3l71P8UfKWkate6FqEGoabcvbXkBykifqCO4PcHrX1Z8OPiJaePNMO9Ut9Yt1H2m1B4I/56J6qf0PHpXzt8Q/hvrHwx8QvpWrL5kD5e0vUGI7mP1How4yvb6YNYmj6ze6FqVtqOmzmC8tm3I46H1UjuCOCKmT5jsxWAp46ip03r0Z9uZ4oBxiuc8E+LrTxtoMWpW4Ecw/d3NvnJhk7j6HqD6V0JyMVkfGVacqU3Ca1RLnFaFgQYm/3v6CsrcTmtPTseQ3P8X9BQZnLzP8AOP8AdX+QqLd19ahkchwR02r/ACFIZkRHkldUjRSzuxwFUDJJ9gK0cOxnGd2cb8VfiCPAPhppbd1/tq9zDZIedh/ilI9FB/Mivj0s8rvJJI0krsWd2OSxPJJPqTXT/EXxhL458V3mpksLNP3FnGf4IVPH4nlj9ag8CeDtQ+IHizTPDemDFzfSYaQjIhjHLyH2UZPucDvXt4eksPTu/mdcYdz079nH4It8T9fOr6vER4S0uQedngXko5EIP90cFj6YHfjc/aS+PH/CYXUvgzwvKsPhWxYRXEsHAvXXjaMf8slIwB0YjPQCu6/aC8c6f8IfA2m/Cvwaxtrma2C3csbfPDbnrkj/AJaSnJJ9M+or46ChRhe3FZUIOvP289ui/U0hG7uPIAAx1qe0Nut3bm8EptPMXzhDjzCmfm2543YzjPGahOAPem13SZ1wge5HXvgNcaPDoP8AwjnimGKWUu+uSPEbuAnGPlUkOg/u4+gJr6C+DHws1DwvC1pZeJtP8Y/CvW7dmW3uk+aB+zKvKlTyrL8uDg4BBr4OB5r7D/YknMtl4tjbUpyIZYdmnmT90gYHMoX1JGCR6V5WMouFNyUn8ya1NxhdM5X4qeBNf/Zw8YQ+LfAk7RaFqLeWqPH5otn6mFs9UYAlT14IzwCcn4ifEbwp8bNHsNQ1bxDdeG9etIhDJppsmubSSXP+tV1+ZVwTkdRxwcc+9/tLfES88GaVZ6TJ4eXVdF8QW9xayyDd5lvKFGwrwRn5sgHB+Xg14D8LPC3g34m6Nqmha1pUmkeJNNiMovbJSsu0AAs0TH58E/MAM9+KypTvFVJ9OpdF3gqk+nU88vfhN4vtLSC+ttL/ALV0u4/1WoaU4uYHGM8svKcdnCkd64xRnmus8L+LNR+GHi2V7K4hvbS1uJIri33lrW8TlWJXIByvQ9RxXpvx3+F2ieD4tC8ZaNdCTQdfdH/s2WTEqkqHwjAcrt9eR711us4tKXXY7Yy5ZKMuux4SBT1Fe9eHfCfwO8XxzXMPiPVtAuliJNjqrqURiOCrgfOFPON2TVLTfgxpn/Cb2Okw61Br2kzWzzi70yZGMpXqCoJMZGV4ORznPpHt03bY2hWhs018jxdRgU4V7T4P/Z01bxlJe3FtqEEOmxztHFJuEjOnqMHBxkA+9cf8VvAVv8N/FI0ODUGvZFt0mlZ1ClC2cDA9hn8aiVVXsddGdOc+SL1OFHXFPUYIFAwDTgORWcpnoQonqMtlNq/wDtL77QHPh/WpIRDjJSKdQc57DfivOLWWW0uIbm3leG5gcSRyxttZGByCD2INepfCPbq+i+JvCjgs2t2N0LdfW4iSOaP8f3bV5UG3AEAjPrXM3uicHFOVSlLo/wAH/TPr/wAD+LdF/aR8EXXg3xVth8T2kfmR3CABnI4W4j/2h0ZenPoePmPxP4S1PwP4hvNC1iMJe2p+8v3ZUP3XX1Ujn9O1UfD+s33hvWbLV9MuGt9Qs5BJFIvY+hHcEZBHcGvq3xzpNj+0N8K7TxbosCp4n0lGD26/eJUZlgPrn7yfh6msW7OyOOzy2tp/Cn+DPnr4feMJvBevQ3YLNYzER3cS/wAcefvAeq9R+I719YxTRXMMc0MiyQyqHSRTkMpGQRXxTbAOqsO9e/8AwT8Um60+bw/cvma0Hm2uTy0RPzL/AMBPP0PtURnd2Zz59gFKH1iC1W/oerkYNamm48hv97+grKJya1NN/wBQ3+9/QVZ8gcRNJ844/hX+Qryz47eKTonhJdLt323essYjg8rAuC5/HhfxNenOD5g/3V/kK+U/jLr51/x5fLG+bbTQLOLnj5eXP4sT+Verh6alO/Yxwic5+hwOwfjX19+zloNh8J/hZr/xV16PE13AxtlPDfZ1OFVfeWTH4Ba+XPBvhq48ZeLNF8PW2RLqd0kG4fwKTl2/BQx/Cvpb9sHxXb6Tp/hn4c6TiKztYUuriJDwqINkCH8mb8BWuKbnKNBdd/Q9Nx2ifMPiPxFqHi7X9R13VZfN1DUZmmlPYE9FHsBgD2ArNxilGBSqM9a7FZKyOqMLDQMmlIx0pdtLjFFzWKuIBW34X8Wa54L1I6loGp3GnXpQxmWAj5kPJUgggjIB5FYwXPWngVnJJqzNeW+h6TpHxx8Y2Ohahod7qd1qGnXs5uGZ7mSK4jdjltkynIBOTtORk8Yrp9S+GWtaBZ6Z8VPAWqz6zohYXMrs+by0P/LVJv74HzKzDnuRjmvElGea9u+Dniq20fwZ4x02+1RLeyuBGDbyOQGDZDNjp2A4Ga460OVXpoJU3Bc0Pmc349s9O0nxPqjwaZE0N+BPEJM/u965OB06k17F4Ca3+IPwKm8HeIRF9p0rL6XdTnAVlBaMMewxuTPpxXiHiNbnXbi71C3jaXT7KJA06qRGFJ2rjPqeB9DT/CfxC1Dwqmo2pjS/03Ubb7LcWlwTsZR93B6qRzgj1rCaco+aN3h5VYLl3RyFzL9vnkeC32xjgJGvCgfSvQv2fvG1l8Pfibpuo3wjSwvUawnmIH7pZCMPnsAwXPtmvWfgv8LPB3jfT7q88P39xZOm03NtMQ9xaXHUFWxgx8ZH0INerXvww+H2nQ/8JR4+8PaFYahav+8uI5mFtcFfuuIuBk4zswfxrKpWi1ysVXGQs6E4tt6eZ0kXwT8OW134hlspb6xt9alS68qxnMP2O5G4PNAy8oXyNy/dO3pzivhv4kaBqOmeIb+/un1CfTr27ljsr3VGxc3qRnaZSpwduRgNgA9q+jvGf7YelWSyW3hLSJr+UDC3d6PKhHuE+8344r5b8XeLtW8da/ca3rd0bi+nAGQMKijoqr2A/wDr1jT5lqzqybBYqnNzqK0X33MUDjNPWmDg1KOlW5H08aZ2/wANNXbQ/E3h/Uo2CvZ6zbfe+7tkWSNs+2DWT4v0V/D/AIu13SpVAeyvZYjt6cMcY9sYrOtHki0zU2jOHj8mZcdQVkAz/wCPV6H8dYY/+Fl397EuI9VtbXUFPY+ZCuT+YNZSep56ShjNPtJ/hb/M86Rea9e/Z6+IDeB/HMNpczFdH1orbXAJ+WOTP7uT8Cdp9m9q8mjTnpVlI/Tr6jtWM5WNcRQjiKUqUup7H8fvh8ngrxq95ZxbNK1otcRBRhY5c/vE/Mhh/ve1efaFq8/h/WLLVLfmS1kDlR/EvRl/EZFfRuozN8Yv2eVvmAl13RRvcgfMZYRh/wDvqM5/GvmiFAwB7GuWpLlaZx5bN1sPKhV+KPus+uYZ4ruCG4gYPBMiyIw7qRkVsaaf3Df739BXl3wm1g3/AIY+xO2ZdOkMQ/3D8y/1H4V6bpznyW/3v6CuyMuZJo+HxVF0a0qb6M4XWLuPSNOvdRlxss7Zpzn/AGUz/Svhl5pLh3mmYmWVjI5Pdicn9TX198bL3+z/AIcayQ21rlIbUf8AA2XP6A18hYr28H8LkTgqdotn0b+xn4UGrfELU9flTMWi2eyM46SzEgH8EV/zryL4teKz42+JfibWt5eGa7aKAntFH8ifoufxr6Q/Z3ZfBf7O/jnxWfknma6kRv8ArlEET/x8mvj2KMgDcST3J7mij79ec300OymrzbFC55p+KccY4o6V2NnUlcb0FAGTS4z16UuVBHNK5qkBGD1pVG6lC7jntT8gVnKRtCIoHanpwQcA49RkUKAaeMDisJSO2nTOiHjjxC+kSaNJqTvpMiJGbVo02AI25ccZGCT+Z9awxyMjpTBjvT/5VyyklsehRw6jsrH1B+yULfQdF8feLbxj9lsYY0IH91FeRvx+7XgHjPxvrnj3WJtU1nULi4LuzwwO5MdupPCIvQADj3r034SXGp6t8JPiX4X0Ix3GtXxgkhsQ4EskXSYoD947QBgf4V4pPBJaTy288bRTwsUkjcYKsDggj1Brl+02TgMNF4qtUl8V1b0sMApwFNU5qQIx4FJyPd5UA61Mi5HFCR4AzViNRUSmRJ2L+kx7otSQ/wAVm5/75ZG/pXffFGZNTtPh9fqd0k3hyCKQ/wC1G7L19cYrh9IiL3EkWOZYJkH/AH7Yj9RXoviyBH+FfwwuSBvWK+tz/wABmyKxlPQ8uvpiab83+T/yPOI4jVlI/anIgz71ZjjFclSodlj3r9lfWhDrWueHpyDb38AuURuhdPlYfirD8q8r8WaH/wAI54r1nSMYFndSRp/uZyv/AI6RWz8HtRbRviX4cnU7VluPs7/7sgK/zIrq/wBobSBYfEiW5VcDULWKb6sMof8A0EVjUnzUr9meTBexzKUek43+aMb4Q3xtfElxaMfkvbcgD/aT5h+m6vftOUmBv97+gr5h8J3JsPE+j3O7AS5QMfZjtP8AOvp/T9whcf7R/pXVgqnNTt2PA4hpcuJUl1R8+ftFXpHgqxhB4mvos/8AAY2NfMTcV9B/tC3G/QNCTs10T+UX/wBevn3HevpsH/DRxYaHuH15dEaJ+xDAq8PfxKD7+Zd5/lXyGD6V9c/EL93+xn4UVejLY5x/vk/zr5GGFFTg9pPzZph43u/MceBS9aQDP0p2cV1tnWono3wH0DS/FPxY8P6PrVnHe6bc+cJbeQna+InIzgg8EA17d4x1H9n7wZ4s1Hw5qvgC6+1WLrHLPbozJyobI/eg9GHavIf2aP8Akt/hUn+9P/6Ikqv+0U4X42eLxnJ+0R8Dr/qY68+quetytu1jL2fPW5W2lY6340fBzQdG8K6d4+8AXkl34TvyqyRMxc25Y4VlY87dw2kNypx+Hop8N/CfwH8IfBfibxT4MXULnVLeCOSS3BLvK0RcscuBztNU10658FfscX9prkT211qspa2t5hh182ZWQEHodql8V12teONH8BfAL4dX+ueGbbxDbTW9tCtvcFAsbeSTvG5WGcAjp3rllOTSje9nb1M+abSim3q1o7XPB/iL4s+E+veGmsvBfg240nXGnjKXMgAUJn5lz5jdfpXqPiPw38LP2fdD0C08TeFp/Euu6pGXkuGUMpK43Y3MFUAtwAM45NeNfFX4o+GviBaabbaF4MsvDslpK8ksts0eZgVwFOxF6dea9D0X9pm40nSrXw58SPB8Wsx28aASTxqkzJt+VmjkG1jtx8wIzRNSsrX+873Rq+zjyp2u7rm1+88/+K+rfDfWBpF54D0i60u4lEhv7aXKpHjG0BckZPzHKnHFdp+zp8O/DniCw8SeKfGtrBL4d00LbR/aSwj80kFn4I6AqP8AgRqz8cvhp4TPgTQPiF4IsZbCDWJYojp5UqJPNUlCqHO1srggHBzxXrOufBfUJvgdofw+03VtO0u5Yx3GpyXRIMzcu4G3/poR+CisZS00N6uMgsJCnTk1zOzb3SW585fHnwEvwz+I89tpSSWmlXkYu7AxMR5anhkDZz8rA9+hFemfCXwl4Aj+B19418WeGk1WaxuZhLIuTK6h1UAfMAcbq7H46fD++1r4KaVc3Vzbaj4h8KRqZ7m0JKzRABZDzz0Cuc/3TVH4N3uiaT+zLq934isJNR0SK7na6tIxlpV8xBgcjvg9e1Q5XQ6mMdbAQs3zKSi7bv8A4dHmvi3xj8GdS8M6pbeH/At3Ya3LCVtbl0G2KTsx/eH+RrR+KXgfw54d+CvgTW7DSYbbV9REH2m5QsWlzAzNnJxyQDWD4/8AFnwq1nwzLb+EfB91pWtNIjJcygbQgPzD/WN1HtXpHxgZF+AvwulmXckbWjsvqBASR+VZyehveVKVHlUleT0k9Xp+RT0L4X+Bfhf4O0/xN8SYpdQ1LU1DW+mJkhMjcFCgjcwBBYscDOPro6Np/wAG/jC76HpWizeGteZGa1kVAhfAzxhir46lTzjpTP2pNOutbh8J+J9PVrjw8bQoJoxlYi5VlJ9Aw4z7YrzX4G6Df638TfD8mnxSNFYXC3NxMo+WKNc5yffoB3zWbk72M6cHWw0sZOq1PV76K3Sxh3Phi98H+Om0PU1UXNpc+S7L911YYDD2KsD+NautO8/wz8Hpzstri6Uf8Cdif5V1Xx1v7a++Ml1LbOri1a2hkZf76Y3D8M4/CsfWLUQfDrS4j96PVLhMemC/+NYTnZM741ZVFQqTWrt+TOEijq3HHRFFjnFW44+nFefUqHrWuXNElNlrOm3QODBcxSZHs4Ne6ftPWg/tbw3d4+/DNET9GUj/ANCNeFQph19iD+tfQn7Syb9N8Jv/ABbpR/46lEJ3oVPkePjPdx+HffmX4Hz9G3lyRyL1R1b8iDX1bpx3QM395s/oK+VvLwjcdq+ptHJNhET1Kr/6CK6crldSPK4lWtNrz/Q+V/jjL9p8P6Q/aK5APtmM/wCFeH8Yr2f4mTG78KSAc+VLDJ/T+teL9RX1+G0hY83DR9w+uNfT+1v2JtJlXk2aQM3tsuthr5F27jmvsD4RQ/8ACZfsn+LtBB3TWQvI1XvkATp+pr4/DhlBHQiowujnHzKw61lHzHHjvQBnrQATTuldLZ3RidP8PfGU3w98Y6Z4kgs0vJbAuVgkcor7kZeoBx97Ne5v+2HdSzNcHwFopuic+a85LZ7HOzNeA+EPC+o+NvEmnaBpMQkv7+TYu77qAcs7HsqgEn6V9s6L8EPhZ8HNBTVPFX2G8njx5uo6vhlL/wB2OI5A9gAT7muDEypprmV2c+J9hFrnV5dkfJHxJ+LniP4rX8U+tXESWttk29jbArDCT1OCSWbtk/pXpugftUXWi+FNG8PyeDdMv4NLt47dXuZyd2xdu7aUIBxXuNjq3wD+Jlwui20Hh2e7lO2KL7J9lkc+iNtUk/Q5r5P+MHhTwz4N+IE+jeFtUe+somUTo/zfZpS3zRb/AOPA/EZwckVkpQmuVxtY2oexxDVGdNq2p0nj/wCPqePPDM+iJ4M0fTHmkjk+1W5DMuxg2MbB1xjr0rqLH9q6Seygh8TeB9F1i5gUKk4wnT/ZZWx+Br0f9on4b+EvDvwj1HUdI8OaXY6hHLbBbi3t1RwDIoOCPUEipf2fvhb4O8S/CLR73WfDem3t9cmdZbiaEGRh5rgfN14GAPTFYOUOW9hqrg/q3tZU3bmtvrseFeJv2hdY8V+K/D+qahpNn/YuhTi5ttGicrE0gGFZ3xkkcYGABjpzXG/E34iXvxP8Wza/fRJbM0SQRW0bllhRR0BPXJJJ+taHxl+F938KfFsmmsZJdIugZtPuW/5aR55Qn++vQ+vB719KfBv4b+EdX+Benarf+G9MutTktLl2uZrdWkZleQAljzxgflUtpK6PXlVwWCpU8VThdPRfPU+efhR8Yb34YWut2K6XBqmnauqrNbTylFBAKkggHqpwfoKl034uT6N8K9U8AxaVD9i1CWST7W853xBnDbduMHG0DOap/B34U3/xX8QfYI5mtdOtUWW9vNuTGp4CqO7tg4+hPavrWbwp8G/g5Z21vq1rpUdxKvyvqCfabmbH8WCCcfQAVlJizCvgqNblVNzm7Oy7rY+F4kDLlTketeneKvipd+MPA3h3wtNpkNvBovlhLhJSzS7IynKkcZzmvpUeH/gv8VrC7XT49IWS3jLyTWQ+yTwKOr4wOB6kEV8haxZWNnrV/baXem+02GZkt7opsMyA8NiuapJxRvhcXSx8/fg4yhrqeg/Dv45a/wCBNLGjSW1tq2hjIW1u8gxA9Qrc/L7EEemK6jVf2lNTm0yax8NeH9P0HzuGniId191AUAH3Oav/ALNfw203xImsa5rmnwXlhERaW8VwgZC/DO2D6DaPxNbH7Q3wv0jRtD07xB4f022sYbeTybpLWMKrK/3HIHoeM/7QqG5qHMmefUngJY72Eqet9+l/Q+dS7s8k0js8rMXZ2OWZupJPc5r1fx7YLaeA/C8if8vt/e3P4EjH8zXl6W5dT6V7B8VZTD4a+H2nuAHh052YjjncFz9TtNcDqfu5s9XFL/aKCXd/keVxx5q2iYA4ojjAqwqZPtXlzqNnoEljbG5vLWFfvSzIgH1YCvd/2k5R53hm0B+4kz/+gD+leX/DvSzqnjnw/bBdym7SRh/sp8x/9Brt/wBoK/F543trUHIs7NQR7sS38sV0U58uFnLu0jxcR7+Y0oromzycR5AXH3uK+nNLGy0Vf7uB+gr5z0y3NxqNlAOTJMi4/wCBCvo2wIMT/wC+f6V3ZLrGb9DyeJZe/Tj6nyBrL/btIvrY8l4OPqACP5V5ErAgepr0oXnzg57DP5V57fW/2W9niXornb9Oo/SvtqLtoc1CFo2Ppz9i7xFHHrPinwvcEGK/t0vI0boSh2OPxV1/KvnXxh4cl8I+L9d0KYENp15LAvugb5D+KkGtn4S+MT4C+I3h/XmYrbQXAjucd4JPkf8AIHP4V7F+2J4MGm+L9L8W2q5s9agEMzryPOjHB/4EhH/fBrG/JXfaX5kJcle38x82dBS4yaAN3SpAvpXQ2elTgfR37F9hbz/EHXruRVNxa6YBFnqu+QbiPwUD8azf2vddv7z4o/2bO7fYNMsYmtoifly4LO+PUkAZ/wBmuH+CPxFX4YfEGy1e4DtpcyNaXyoMnymIO4DuVYBsdwDX178Vvg3oHx30zTdd0rV4oNQSHFtqMAE0M8R5COARkAk4IORk/SvNqy5K3NLY4arWHxaqVF7rW55xo/7HWh6ppWnX48XajHJcQRz4SGP5WZQ3B68E8VwPxo/Z9sfhJo2k6taa7e6jLd6gluyXESKACGbdkck5X9a9I+H37JereHPFOmaxrHixJbfTbhLlLayjfMrIQQrFjgLxzgGqP7W/j7SNVfQvCdhdJc39nei6uzEwZYOCqoSP4juJx2xz1rLnk5aSuh4etVniYwp1OZddD039qH/kiWq/9dbX/wBGpTv2cbh7X4D6TcIAXiS6dQ3QkSyEZpv7UWf+FJ6pj/nta/8Ao1ab+zxz8AdOH/TK7H/kSSsPsmFv+E5f4/0JriHw/wDtNfCRJFCQXki5Qty+n3ijkH2/9CU1e+Eug6h4Z+CFvo+rW5t9Rsre8imjPYiSTkHuCMEHuCK+Rvgl8T7j4W+Ko7qUyPod6BFfwLz8vaQD+8v6jIr76vb621PwzdXtrMk1pcWbyRyocq6FCQQfTFTfoXmOGq4Nqhe8G7o8T/ZAsbeH4b390ij7Rcai6ynvhUQKP1P514Bq8Vz8Q/jNdWesXMsb6hrBsml6mCMSFFVQeOABxXdfsy/E+y8J31z4b1adLfTdTdZbe4c4SKfGCrHsGAHPqPevTPid+zjB4x1ybXvD+pxade3ZD3EUqFopH/56KV5Unv1B61jK8ldHoKqsHjqrru3OtJGYv7JGjjPleKtRU4KnbFHyD1Bx2NeQfFb4XRfDfxJpujWF7caib63EqmSMK28uVCgD6D86+gPhN8Drj4c6zLrura8LudIHiSKLcsSA4yzFjz09BVGBtN+LHx0t9QsWFzo/hS1G6deUmn3sVCnuAST77KznFOKVrNmWHzGtTrSk6nPCKetra9PxN3W7U/CT4Htp1gjtqK2wt1MSli1xL99+PQlj+Ap3wxkHxF+D39i6xHIJ44X06fzlIb5R+7fn22nPqKk8e/HXTvAniNtFbS7i+mjiWSWSKVVCFuQuD3xg/jUHg34+6Z4w8R2ejf2Vc2Ul3uEcssqspYDIXA9cGk6lPn5XLyscHsMTKg6vs93zcx86WlhZabf3uk6xpU8k1i0pnnguTG6CMcgKQQckcf71fUtr8OvD3iOx0ae/tzK1pZRRrDIwZkVsvhjjqd3YDpXHfFbwBHb6tqfiC2MajWIobNoyQC0zSovA91wT/umuT8b/ABG1zQfHutQ6VebbW3ZLZY2GQuxADjBHfPHSuNyhhk/aq6PQqSq5k4vDuzSu9X5X/MxPjB4P07wf4pgtNMJFvPbiZoyRlDuI/pXDpHVvUNQu9Zvpb2+naa5lPzO38vpTESvn8TWjKbcFZH1GEpTpUYwqO7S3PVf2ftFN34uutRZf3en2xAOON7nA/QNXH+PdUGu+NNbvkbdG9wUQ/wCynyj+VeueEEHw/wDg/f6y42X2oqZY88HLfJEPy+b8a8HjjIHPJ7k10YuXscPTo9XqzzMD/tGMrYjovdXy3N3wVY/avElmf4YN0zfgOP1Ir3DTgDA3+9/QV5r8OLDZFfXzD75ECfQcn+lelacR5Df739BXvZNScMMpPrqfN5/WVXFtL7Oh8KrKdw57D+VZOv23zRXIHDDY317VphcEcdh/KrLWi31tJbNxvHyn0PY19U58ruexTpJqyOM2hlORweK+wvhhaan+0N8K9N8O67JDb6Doc6215dDD3l40eDGIyeIgEZQzkEtyAAMmvj90aN2jdSroSrD0Ir3P9l34mx+BPGz6PqU4i0bxBshLscLDcg4jY+gbJQn3X0qcSnKF47o4sZRk6fNHdaknxV/Zl1fwXFe6r4YuP7e0K1J86NMG7tABk71X74A7jBx1HevCYyJFDKQQehFfTfx3k8T/AAV+MP8AwmPhu7ktrDxCFmkjyTBNMgCyRyL0OQFYHrycHiuH+KehaH4o8O2vxN8I2q2VjfT/AGbWdMXH+gXh53AD+F/yyQe5AyhVlyrmd7mmBqyaj7TVS2fn2Z5Bs/M10nhfxz4m8FMx8P67facrnLxwyfu2PqUOVJ98VgDGKMcVM5X3PcVCM1yyVzv9X+N/xE1y1a1vPFmofZ3GGWDbDuHoSgB/WuAXhtwPzZ3Z759aQmup8B/DrXfiLqj2ukwolrbjfeahcnZb2idSzt64z8o5P05rBvsbxo0MLBzaUUTa18TvGPiXTX0zWfEl/fafIVZoJnBUlTkduxGafo3xL8XaDpcej6Z4lvrPTlDBLWGQBQGJLYGO5J/OvbPh/wCBPg9qmtzaDb2174mOn2z3Oqa9PcG3s7dV7oFIyCeB16E5OK2PEPibQ/AXgbSPEfwt0DQH0G4uHs7i8vLVpLqOYZwGLHOCATyfT1rGTPPePoNrD0qF7vqkld7fN/efL8ahSFbAPoa7HSviH4t0jSU0nT/EWoW2mIrIttHJ8iq2cgccDk/nXoMH7QMuqkQ+K/BfhzWLNuH22/lSY9idwrSj8IfCz4jIB4V1aTwtrsn3dO1IkwyN6KST/wCOsf8Adrnld7M6auLtZYujZd/iS/y+48OSIbQMcdMV2nh74leMPDFstrpXiG+gtV4WFmEiL9A4OPwqHxZ8OvE3gS42a5pckUBOEu4j5kEn0cdPocGsFea45ylHyO1KhioJ6SX3nU678Q/FfiqA2+r69eXNs3WDcEjP1VQAfxpnh3xXr3haOaPRdVubCOchpFgYAORwM8VgxrVyJMkVxVK0k73KWFoqHIoq3a2hdvL671a9mvr+4e5vJ23yyyHLOemT+VS2U89ldQ3VtK8NzA4kjlQ4ZGHQj3qKKPGKtpHmvOqVtb3L5I8vKlod74Y8Z+I9e8TaNFqmoXWp21pcC8ME5yoKA4YkKSMZ61zmr3B1PWdRvW5a5uJJc/7zE0mj3V9pPmX9lcyWrOjW4ZOsgb7y/THX8KZGgwOOB0rHEYiUoJSeu5y0MPCFaU4JJWS0/EYkeDXSeDPDMnivxHY6WgPlytumYD7sS8sfy4+prFVQoyele9+B9Ng+Gfgi88S6pGBqV6gMcR+8F/5Zxj3J5P8A9ascHS9vV5p/DHVmeZ4t4ejy09Zy0RifHDxBHJdWHhmywttYKJJlXoGxhF/BefxFeTrCTgKCWPAA7mrV1cz6le3F7dOXubmQySMe7E10Pg3Svtupi5dP3Fp8/PQv/CP6/hUupLMMWox6v7kTCMcswV5dF97O40fThpWlWtpwHRcv7seT+tb+nj9y3+9/QVmP1rR08/uW/wB7+gr76nBQioR2R+d1KjqSc5bs+J2sWBH0H8qu2Vm28HFdN/ZO4j5R0H8qt2+lbT92uytV0PpqGJtueb+MdAeFF1WJfkOEnAHQ9m/Hp+Vce671Kk8GvokaXFPC8M8QeGRSroehBrxbxZ4am8L6obdtz2kuXt5SPvL6H3HQ/nU4bE83us76c41ND6i+GniPTP2ifhfd/D/xRcbfE2nQhoLpuZHC8R3C+rLwrjuD/tVwqeAtS+EHwn+I1p4zntIJ9dENrptlFOJGuJI3J85QOQOhyeQBzjivDvD+v6j4V1ux1vSLlrbUrJ/MilHI9wR3UjgjuDX13eW3hv8Aa08ApdWrxaX430hMbScmBz1Ru7QuRkHsfcEFT9x6bM82tReFmv8An22m/JnxxHBLJGZEikaMcF1QkD6mp7Swu9QmWCztLi5nY4EcETSMT9ACa0L2y1zwPrt1pd4t1per2bbZY1cow9CCPvKeoPQitNPiJ4vWAwp4o1eOLGCsd0y5H1BzRJpn0sJTa5qVmmdBp/wkfSIo9S+IGor4Z0r7wtGw+o3Q/uxwDlc/3nwB6UvjD4nSa3o8fhbw5YDQfBtuflsYmzJdH+/O/wDGx646fXFcC7S3UzTzyvLM/LSSsWZvqTyanjjxisZSCOGc5KpXfM1sui+X6s9H+E3iDQ9NtfFnhzxFeS6bpniWxFt/aMMZc2zqSRkDnadxz9PfNaXivWPDnh34c2/gTw5rEmuvNqH9pXupeSYotwXCpGp57DJ9uvPHl8ceatqg44rCUxSwUJVvbNvdO3S62Y2OPFTCMOMEZHvTlTmpVTOAOlc8pHceg+DvjD4m8J2/9nvLFq+isNrafqQ81NvorHkfTke1dCNN+GPj9jJZXc3gvWX5Ntc/vLJ2/wBlv4fzX6V5NGmatRoO4rmnWa0eqOKeAg5e0pNwl3X6rZnf6t8EvF+lp59nZQ6zZH7tzpcomDD128H9DXMyaDqti+y60q/gYdRJbOv8xRo+qalosgk02/u7J/W3lZP5Guytvir43hQKPEd4w9XCMfzK151WpQe91+IL69DS8Zfen+pz+l+F9c1aVY7HRtQuGP8Act2x+JxgV0LeErXw8ofxHex/ahyulWMokmP/AF0kGVjH5n2qrf8AjXxNrMbR32vahPE3WPziqn8FwKyoo8dBXBOrSh8Ku/P/ACL5MTU0qSUV/d3+9/5Fy8uX1C480xxxIo2xwxDCRIOiqP6nknk09I+KYgCnFd58PPh7c+Nb0SyiSDRoW/fTjgyEfwJ7+p7VwxjVxVTkhq2XWq0sJS556JGp8KfAP9vXo1nUU26NZNuUPwJ3Hb/dHU/l61X+JPjI+Mda8q1c/wBk2RKwgdJG7yf0Ht9a6L4k+OLaG0HhPw6UisYF8q4kh+7gf8s1P8z+HrXmUUW1fQCqzDEww9P6pQd/5n3f+R52AoVMRV+u4hW/lXZdxsFnJPIkUSF5ZCFVR3Jr1DStNj0fT47VCCw+aRx/E56n+lZHhXRfs0f9oXCkSyDESkfdX+99T/KujJzX0OQZc6FP29Re9L8F/wAE8LP8y9vU9hTfux/Fja0tOUmBsf3v6Cs7jNamnnELYH8X9BX0Z82eHrpg3DA52jt7CrUWmjPSugFj86/L/Cv8hVqOyA/hqKjuelCrY54ab7Vl+IPClp4i0yWwvAQrfNHKo+aJ+zD+o7iu5a1X0qB7UHtXKrxd0dVPENO6Z8ha5oN94c1SXTr+PbMnKuB8sq9mU9wf0q54V8U6t4H1u21rQro22oW54bGVkU9Udf4lPcf1r6S8U+D9P8WaW1lfKUkXLQXCD54W9R6j1Hevm/xJ4U1PwjqJs9TiwGyYZ0/1cy+qn19R1FehCt7RanvYbE08THknv27n1fbXPgn9qzw1HDdqmj+N7CLA24MsXqVz/rYSe3Uex5PzL48+HPiD4Z6v/Z2vWm1HJ+z3kWTBcgd1b19VPIrmrG9u9Lvbe+0+5mtb23YPFPC5V42HcEV9PeBv2jtF8X6UPC/xU062mt5gE/tExZhkPYyqOUb/AG14+lQ01sZRhXy+XNRXPT7dV6HzLF2q0iEmvorxt+yyzWx1n4e6lHqOnyjzEsZpgSV/6ZTdGHoGx9TXgeo6XqGg3r2Oq2NxY3iHDQ3MZRvwz1HuOKwmz18LjqGKV6cte3Uai4qwq1DGasoM1g5HWPVanRaaowKmQVjJjTuSxIT2q2iYxUUIwKtoo4rgrSKuTwqOKuRpUES4q0hUDJIxXkVpDuTIOcVOpCgZNb3hXwH4g8XyL/Zli/2YnBupvkhX/gR6/hmvYtO8GeEPhPbR6l4ivI7/AFbrEjLnDf8ATOL/ANmP6U6WBqVlzz92Pdnm4rNKNB8kfen2RyngD4RXevhNT10PY6QvziNvllnHrz91fc8+nrW346+JlvBZ/wDCOeEgkFlEvlPcwjA2/wB2P+rfl61yvjf4o6r4yZrWINY6Tn/j3RvmlH+23f6Dj61yUAA68Cs8TjKdCDoYRb7y6s5qGBq4mosRjum0ei9Se3h29RXX+GtC+2Fby5T/AERPuKf+Wp/w/nUXh/wy14Eur1Slp1SM8GX6+g/nXb5AUKoCqBgKOABW+TZI6klicStOi/VnFnOcqCeHw716sV2LHrTM84pcUYGa+1PjW7iHp71o6fnyW/3v6Cs8jjNaOnYMLf739BTC5y5tgHH+6v8AIVKIhj3qd8Bh/ur/ACFRjjmptctMhaHP0phgAHSpzwaXORUuCNIzaKLQ+1U9X0Kw1/TpNP1O1S4tJOqt1U9mU9QR6itgke1ROMUlCzujWNZxd0z5q8a/CPU/DDSXmmiTUdIHzFlGZoR/tKOo/wBofjivP1IYAjB96+0C5X7vWuE8WfCrQ/E7PcwqdO1JuTPbqNjn/bTofqMGtU+57mEzpL3a/wB5414J+JXir4ez+ZoGqSQ25O57OX95byfVDwD7jB96+gtI/aQ8HeN7FNM+IfhmKPIwZ1i+0wZ9QMb0/DP1r5+8Q/DjxF4ZLPNZm6s1/wCXq0BdMerDqv4j8a5gEHgHpUSPRnhMLjP3kXr3W59bTfAX4c+PIjd+CfEy2zMCfKhmW4jX2KMd6/nXF6v+zD4300k2Eum6mnby5TE/5OMfrXgloWhlWaJ3imU5V42KsPoRzXoGifGHx7oYRbTxRfNGvAjuSJ1/8fBrCUY9USqGOo6UqvMu0v8AMvXXwh8e2DFZ/Cuotj+KFRKPzUmqR8EeJoWIfw7q6t6Gzk/wrutN/ad8cWyqLlNLu8dS9uUJ/wC+WA/St+L9qjxDs+fQ9LZvZ5B/WsJQp9zRYrMY6OnF/M8ytfAfiu4IEPhrV3/7dHH8xXTaZ8GPHeoEbdBkgX1upUjx+BOf0rp5P2n/ABNKMRaTpURPr5jf+zCsi9+P3jq+yqX1raKf+fe2XP5tmuSpCh9ptj+sZlPRQjE6zRv2b9WdRJrWs2lnEBllt1MjD8TgD9a30034T/DrDXVxHq+pR/wuftL59lHyL+NeC6p4p13X2zqms312D/BJMdv/AHyOP0qlEoUYA49q4p4inS/hU9e71F9RxNf/AHms7do6HtPiX4+apqEZtfD9oml2oG0SuA8uPYfdX9a8wluri/uXubueW4uZDlpZWLM34mqdpDLdTCG3hkmmbokalifyrutE+Hl5cBZNTk+yx9fKQhpD9T0H61yOGKx0ur/I2vgstjfRfi2c9ZW015MkNvE80zdEQZP/ANavRtB8GR2RS51ArNcDlYRyifX+8f0rc03TrPR4PIsoFjU/ePVm+p71cLV7GCySnRfPV96X4HzuYZ7Urp06Pux/Fg7FutNC0pOaQnBr27HgN3BmAoJ5ppGRTttMQ48qa0NN/wBQ3+9/QVnN92tHTf8AUN/vf0FAGBMTuH+6v8hUe4gVqNYRukbFny0aHqP7opP7Oiz95/zH+FAjLLZp1aZ0yHn5n/Mf4Uz+zogPvP8AmP8ACgd2ZbHJ4qN8n6VrjT4j/E/5ikbToh/E/wCY/wAKA5mYZU+tREHPWtp9OiHd/wAxUY0+I93/ADFCQXbM+JmByCax9W+H/hvxGWe/0uLz2/5bwfupPzXr+Oa6yPTosj5n/MVfTTYfV/zH+FDNKdadN3g7Hhmp/AO2Zi2lazLF6R3cYcf99Lg/pXM3Xwc8U2JPlQ2t4nrBMAT+DYr6fGnRcfM/5j/Cj+zov7z/AJiocEz0qWd4qGjd/U+TpfBHiS0/1uh32B3WPcP0zTF8PaypwdH1Af8Abu/+FfWL6dF/ef8AMUwWKED55PzrKWHT6nXHiGr1gj5et/DWtykbNIvyf+uDD+lbVp4F8R3XC6VNGPWVlQfqa+ilsI9333/Op/7NiGTuf8x/hWLwEHuwlxFW+zFHh1h8KdXlIN3dWlsvopMjfpgfrXV6f8MdItCrXUtxeMP4SdifkOf1r0cadEf4n/Mf4UDTYsn5n/Mf4VUMBQjry39TirZzi6unNb00MSysLXTYvKs7aK3j/uxqBn6+tTl6020+Ic7n/MVH/Z8R53P+YrrSSVkeZKcpO8ncoB6Utirw0+L+8/5j/ClOnxH+J/zFMkoZpQSTV8afF/ef8xUw02HH3n/Mf4UAZfGKAxzWj/Z8WPvP+Y/wp406ID7z/mP8KAMzkmtPTlHkNz/Ef5CmPYxjoz/mK09N02IwN8z/AHvUeg9qAP/Z" alt="Desafio Ginga" style="width:56px;height:56px;border-radius:50%;flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,0.3);object-fit:cover;">
+        <div><h3 style="margin:0;color:#fff;font-size:16px;">Desafio Ginga</h3><p style="margin:2px 0 0;color:rgba(255,255,255,0.85);font-size:11.5px;">Proponha, participe e dispute o ranking da rede</p></div>
+      </div>
       <div class="social-card" id="socialDesafioComposerBox">
         <div class="card-label">🏆 Propor um desafio GingaSocial</div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Crie um desafio com início e fim. Quando acabar, os pontos vão pro Mural de Desafios e entram no ranking.</p>
@@ -1350,6 +1358,17 @@
 
       <p class="section-title">🧱 Mural de desafios encerrados</p>
       <div id="gingaSocialMuralDesafios"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+    </div>
+
+    <div id="socialAbaPerfil" style="display:none;">
+      <button type="button" onclick="fecharPerfilSocial()" style="border:none;background:none;color:#C22C75;font-size:12.5px;font-weight:600;cursor:pointer;padding:0;margin-bottom:10px;">← Voltar ao GingaSocial</button>
+      <div class="social-card" id="socialPerfilCabecalho"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+      <p class="section-title">Posts (fotos e vídeos)</p>
+      <div id="socialPerfilPosts"></div>
+      <p class="section-title">Frases e pensamentos</p>
+      <div id="socialPerfilFrases"></div>
+      <p class="section-title">🏆 Desafios</p>
+      <div id="socialPerfilDesafios"></div>
     </div>
   </div>
 
@@ -13052,11 +13071,19 @@ function _primeiraPalavra(texto){
 
 // Formato: @nome + primeira palavra do nome do grupo + "gingasocial" (ex:
 // "@flechateamgingasocial"). Só a conta ADM (matriz) usa "adm" no lugar do
-// grupo, já que ela não pertence a nenhum grupo cadastrado.
-function _gerarHandleSocialUnico(nomeBase, grupo, ehAdm, handlesExistentes){
+// grupo, já que ela não pertence a nenhum grupo cadastrado. Essa é a "base"
+// esperada pra conta — sem o número de desempate (esse só entra se já
+// existir outra conta com a mesma base).
+function _baseHandleSocialEsperada(role, user, nomeFallback){
+  const ehAdm = role === 'matriz';
+  const grupo = ehAdm ? null : obterGrupoCadastradoDaConta(role, user);
   const sufixoGrupo = ehAdm ? 'adm' : _slugSocial(_primeiraPalavra(grupo ? grupo.nome : ''));
-  let base = _slugSocial(nomeBase) + sufixoGrupo + 'gingasocial';
+  let base = _slugSocial(nomeFallback) + sufixoGrupo + 'gingasocial';
   if(!base) base = 'associadogingasocial';
+  return base;
+}
+
+function _gerarHandleSocialUnico(base, handlesExistentes){
   let candidato = '@' + base;
   let i = 1;
   while(handlesExistentes.has(candidato)){
@@ -13069,16 +13096,21 @@ function _gerarHandleSocialUnico(nomeBase, grupo, ehAdm, handlesExistentes){
 
 // Lê o @handle já salvo pra essa conta, ou gera um novo na hora (e salva,
 // pra da próxima vez já vir pronto). chaveConta é do formato "papel:usuario".
+// Se o handle salvo não bate mais com a base esperada (ex: ficou de uma
+// versão antiga — "...gingapass", "...adm" indevido pra quem não é matriz,
+// ou o grupo da conta mudou), ele é recalculado sozinho aqui, na hora, sem
+// precisar esperar alguém clicar em "Recalcular @handles".
 function obterHandleSocial(chaveConta, nomeFallback){
   const mapa = JSON.parse(localStorage.getItem('gingapass_social_handles') || '{}');
-  if(mapa[chaveConta]) return mapa[chaveConta];
   const partes = chaveConta.split(':');
   const role = partes[0];
   const user = partes.slice(1).join(':');
-  const ehAdm = role === 'matriz';
-  const grupo = ehAdm ? null : obterGrupoCadastradoDaConta(role, user);
-  const handlesExistentes = new Set(Object.values(mapa));
-  const novoHandle = _gerarHandleSocialUnico(nomeFallback, grupo, ehAdm, handlesExistentes);
+  const baseEsperada = _baseHandleSocialEsperada(role, user, nomeFallback);
+  const atual = mapa[chaveConta];
+  const regexValido = new RegExp('^@' + baseEsperada.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\d*$');
+  if(atual && regexValido.test(atual)) return atual;
+  const handlesExistentes = new Set(Object.keys(mapa).filter(k => k !== chaveConta).map(k => mapa[k]));
+  const novoHandle = _gerarHandleSocialUnico(baseEsperada, handlesExistentes);
   mapa[chaveConta] = novoHandle;
   setDado('gingapass_social_handles', JSON.stringify(mapa));
   return novoHandle;
@@ -13144,13 +13176,19 @@ function alternarTipoPostSocial(tipo){
   const btnFoto = document.getElementById('socialTipoFotoBtn');
   const btnVideo = document.getElementById('socialTipoVideoBtn');
   const btnFrase = document.getElementById('socialTipoFraseBtn');
+  const btnPensamento = document.getElementById('socialTipoPensamentoBtn');
   if(btnFoto) btnFoto.classList.toggle('active', tipo === 'foto');
   if(btnVideo) btnVideo.classList.toggle('active', tipo === 'video');
   if(btnFrase) btnFrase.classList.toggle('active', tipo === 'frase');
+  if(btnPensamento) btnPensamento.classList.toggle('active', tipo === 'pensamento');
   const campoFoto = document.getElementById('socialCampoFoto');
   const campoVideo = document.getElementById('socialCampoVideo');
+  const avisoPensamento = document.getElementById('socialAvisoPensamento');
   if(campoFoto) campoFoto.style.display = tipo === 'foto' ? 'block' : 'none';
   if(campoVideo) campoVideo.style.display = tipo === 'video' ? 'block' : 'none';
+  if(avisoPensamento) avisoPensamento.style.display = tipo === 'pensamento' ? 'block' : 'none';
+  const textoInput = document.getElementById('socialTextoInput');
+  if(textoInput) textoInput.placeholder = tipo === 'pensamento' ? 'Qual é o pensamento do dia?' : 'Escreva uma legenda ou sua frase...';
 }
 
 /* ===================== Buscar pessoas por grupo + Seguir (GingaSocial) ===================== */
@@ -13262,11 +13300,14 @@ function renderBuscaSocial(){
     row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #EFE6D2;';
     const avatar = document.createElement('div');
     avatar.className = 'social-avatar';
+    avatar.style.cursor = 'pointer';
+    avatar.onclick = () => abrirPerfilSocial(p.chaveConta);
     const foto = obterFotoSocial(p.chaveConta);
     if(foto){ avatar.style.backgroundImage = 'url(' + foto + ')'; }
     else { avatar.textContent = (p.nome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join('').toUpperCase(); }
     const info = document.createElement('div');
-    info.style.cssText = 'flex:1;min-width:0;';
+    info.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+    info.onclick = () => abrirPerfilSocial(p.chaveConta);
     const handle = obterHandleSocial(p.chaveConta, p.nome);
     const totalSeguidores = contarSeguidoresSocial(p.chaveConta);
     info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + p.nome + '</b><span style="font-size:11px;color:#C22C75;">' + handle + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + p.graduacao + '</span>' : '') + '<span style="font-size:10px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
@@ -13319,6 +13360,15 @@ function publicarPostSocial(){
     return;
   }
 
+  if(_socialTipoPostAtual === 'pensamento'){
+    if(!texto){
+      alert('Escreva o pensamento do dia antes de publicar.');
+      return;
+    }
+    _finalizarPublicacaoSocial({tipo: 'pensamento', imagens: [], videoUrl: '', texto, eventoId, expiraEm: Date.now() + 24 * 60 * 60 * 1000});
+    return;
+  }
+
   if(_socialTipoPostAtual === 'foto'){
     if(window._socialFotosSelecionadas.length === 0){
       alert('Escolha ao menos uma foto.');
@@ -13340,8 +13390,9 @@ function publicarPostSocial(){
       return;
     }
     const tamanhoMB = arquivo.size / (1024 * 1024);
-    if(tamanhoMB > LIMITE_VIDEO_MB){
-      alert('Esse vídeo tem ' + tamanhoMB.toFixed(1) + 'MB. O limite é ' + LIMITE_VIDEO_MB + 'MB — grave um vídeo mais curto.');
+    const LIMITE_VIDEO_SOCIAL_MB = 80;
+    if(tamanhoMB > LIMITE_VIDEO_SOCIAL_MB){
+      alert('Esse vídeo tem ' + tamanhoMB.toFixed(1) + 'MB. O limite pro GingaSocial é ' + LIMITE_VIDEO_SOCIAL_MB + 'MB — grave um vídeo mais curto.');
       return;
     }
     if(!storageBucketRef){
@@ -13351,15 +13402,24 @@ function publicarPostSocial(){
     const id = 'social_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const nomeSeguro = (arquivo.name || 'video.mp4').replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const caminho = 'gingasocial_videos/' + id + '_' + nomeSeguro;
-    alert('Enviando vídeo... pode demorar um pouco dependendo da conexão. Você pode continuar usando o app.');
+    const btnPublicar = document.querySelector('#socialAbaFeed button[onclick="publicarPostSocial()"]');
+    if(btnPublicar){ btnPublicar.disabled = true; btnPublicar.textContent = 'Enviando vídeo... 0%'; }
     const tarefa = storageBucketRef.child(caminho).put(arquivo, {contentType: arquivo.type});
+    tarefa.on('state_changed', function(snapshot){
+      if(btnPublicar && snapshot.totalBytes){
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        btnPublicar.textContent = 'Enviando vídeo... ' + pct + '%';
+      }
+    });
     tarefa.then(function(){
       return tarefa.snapshot.ref.getDownloadURL();
     }).then(function(url){
+      if(btnPublicar){ btnPublicar.disabled = false; btnPublicar.textContent = 'Publicar no GingaSocial'; }
       _finalizarPublicacaoSocial({tipo: 'video', imagens: [], videoUrl: url, videoStoragePath: caminho, texto, eventoId, id});
     }).catch(function(e){
       console.error('Erro ao publicar vídeo no GingaSocial:', e);
-      alert('Não consegui publicar esse vídeo agora. Tenta de novo com uma internet mais estável.');
+      if(btnPublicar){ btnPublicar.disabled = false; btnPublicar.textContent = 'Publicar no GingaSocial'; }
+      alert('Não consegui publicar esse vídeo agora (' + (e && e.code ? e.code : 'erro de conexão') + '). Tenta de novo com uma internet mais estável.');
     });
   }
 }
@@ -13379,8 +13439,10 @@ function _finalizarPublicacaoSocial(dados){
     videoStoragePath: dados.videoStoragePath || '',
     texto: dados.texto || '',
     eventoId: dados.eventoId || '',
+    expiraEm: dados.expiraEm || null,
     likes: [],
     comentarios: [],
+    visualizacoes: [],
     data: Date.now()
   };
   socialPostsCollection.doc(post.id).set(post).then(function(){
@@ -13430,13 +13492,28 @@ function renderGingaSocial(){
   tentarChamar(function(){ popularSelectGrupoBuscaSocial(); });
   tentarChamar(function(){ renderBuscaSocial(); });
   tentarChamar(function(){ renderDesafiosSocial(); });
+  if(window._socialPerfilAbertoChave) tentarChamar(function(){ renderPerfilSocialAberto(); });
 
   const composer = document.getElementById('socialComposerBox');
   if(composer) composer.style.display = (currentRole === 'pai') ? 'none' : 'block';
 
+  // "Pensamento do dia" some sozinho depois de 24h — filtra da tela igual um
+  // story, sem precisar de servidor. Se for um pensamento MEU que já
+  // expirou, aproveita e já apaga do banco (autolimpeza, só dos meus).
+  const agora = Date.now();
+  const meuIdLimpeza = identificadorUsuarioAtual();
+  (window._socialPostsCache || []).forEach(p => {
+    if(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora && p.autorId === meuIdLimpeza && socialPostsCollection){
+      socialPostsCollection.doc(p.id).delete().catch(function(){});
+    }
+  });
+  const postsVisiveis = (window._socialPostsCache || []).filter(p => !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora));
+
+  tentarChamar(function(){ renderBadaladosSocial(postsVisiveis); });
+
   const feed = document.getElementById('gingaSocialFeed');
   if(!feed) return;
-  const posts = (window._socialPostsCache || []).slice().sort((a, b) => b.data - a.data);
+  const posts = postsVisiveis.slice().sort((a, b) => b.data - a.data);
   feed.innerHTML = '';
   if(posts.length === 0){
     feed.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém postou nada ainda. Seja o primeiro!</p>';
@@ -13444,6 +13521,44 @@ function renderGingaSocial(){
   }
   const meuId = identificadorUsuarioAtual();
   posts.forEach(post => feed.appendChild(criarCardPostSocial(post, meuId)));
+}
+
+// Pontuação de "badalação" de um post: curtida conta 1, comentário conta 2
+// (interação mais forte que curtida), visualização conta 0,2 — só pra
+// desempatar/dar uma força a quem tem alcance mas pouca interação ainda.
+function _pontuacaoBadalacaoPost(p){
+  const likes = (p.likes || []).length;
+  const comentarios = (p.comentarios || []).length;
+  const visualizacoes = (p.visualizacoes || []).length;
+  return likes + comentarios * 2 + visualizacoes * 0.2;
+}
+
+function renderBadaladosSocial(postsVisiveis){
+  const box = document.getElementById('gingaSocialBadalados');
+  if(!box) return;
+  const agora = Date.now();
+  const umDia = 24 * 60 * 60 * 1000;
+  const umaSemana = 7 * umDia;
+  const doDia = postsVisiveis.filter(p => (agora - p.data) <= umDia).map(p => ({p, pts: _pontuacaoBadalacaoPost(p)})).filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 3);
+  const daSemana = postsVisiveis.filter(p => (agora - p.data) <= umaSemana).map(p => ({p, pts: _pontuacaoBadalacaoPost(p)})).filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, 3);
+  if(doDia.length === 0 && daSemana.length === 0){
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  box.style.display = 'block';
+  const linha = (item) => '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;">' +
+    '<span style="font-size:11px;color:var(--ink-soft);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+    (item.p.autorHandle || item.p.autorNome || 'Alguém') + (item.p.texto ? ' — ' + item.p.texto.slice(0, 40) : (item.p.tipo === 'foto' ? ' 📷' : (item.p.tipo === 'video' ? ' 🎥' : ''))) +
+    '</span><span style="font-size:10.5px;color:#C22C75;font-weight:600;flex-shrink:0;">🔥 ' + Math.round(item.pts) + '</span></div>';
+  let html = '<div class="card-label">🔥 Mais badalados</div>';
+  if(doDia.length){
+    html += '<p style="font-size:10.5px;color:var(--ink-soft);margin:6px 0 2px;font-weight:600;">Hoje</p>' + doDia.map(linha).join('');
+  }
+  if(daSemana.length){
+    html += '<p style="font-size:10.5px;color:var(--ink-soft);margin:8px 0 2px;font-weight:600;">Essa semana</p>' + daSemana.map(linha).join('');
+  }
+  box.innerHTML = html;
 }
 
 let _socialSlideshowInterval = null;
@@ -13514,6 +13629,12 @@ function criarCardPostSocial(post, meuId){
     '<span style="font-size:11.5px;color:#C22C75;font-weight:600;">' + (post.autorHandle || '') + '</span>' +
     ' <span style="font-size:10px;color:var(--ink-soft);">👥 ' + totalSeguidoresAutor + '</span>' +
     (linhaExtra ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + linhaExtra + '</span>' : '');
+  // Clicar no autor abre o perfil dele dentro do GingaSocial (posts, frases,
+  // pensamentos e desafios dele). Só o botão de apagar (abaixo) fica de fora.
+  avatar.style.cursor = 'pointer';
+  infoAutor.style.cursor = 'pointer';
+  avatar.onclick = () => abrirPerfilSocial(post.autorId);
+  infoAutor.onclick = () => abrirPerfilSocial(post.autorId);
   cabecalho.appendChild(avatar);
   cabecalho.appendChild(infoAutor);
   if(post.autorId === meuId || currentRole === 'matriz'){
@@ -13538,7 +13659,21 @@ function criarCardPostSocial(post, meuId){
     card.appendChild(videoEl);
   }
 
-  if(post.texto){
+  if(post.tipo === 'pensamento'){
+    const faixa = document.createElement('div');
+    faixa.style.cssText = 'background:linear-gradient(135deg,#6C3FA6,#C22C75);border-radius:12px;padding:14px;margin-top:4px;';
+    faixa.innerHTML = '<p style="font-size:10.5px;color:rgba(255,255,255,0.85);margin:0 0 6px;font-weight:600;">🌤️ Pensamento do dia</p>' +
+      '<p style="font-size:15px;color:#fff;margin:0;white-space:pre-wrap;font-family:Caveat,cursive;font-weight:700;">' + (post.texto || '') + '</p>';
+    card.appendChild(faixa);
+    if(post.expiraEm){
+      const restamMs = post.expiraEm - Date.now();
+      const restamH = Math.max(0, Math.ceil(restamMs / (60 * 60 * 1000)));
+      const avisoSome = document.createElement('p');
+      avisoSome.style.cssText = 'font-size:10px;color:var(--ink-soft);margin:6px 0 0;';
+      avisoSome.textContent = restamH > 0 ? ('Some em ' + restamH + 'h') : 'Já vai sumir a qualquer momento';
+      card.appendChild(avisoSome);
+    }
+  } else if(post.texto){
     const textoEl = document.createElement('p');
     textoEl.style.cssText = 'font-size:' + (post.tipo === 'frase' ? '16px' : '12.5px') + ';color:var(--ink);margin:10px 0 0;white-space:pre-wrap;' + (post.tipo === 'frase' ? 'font-family:Caveat,cursive;font-weight:700;text-align:center;' : '');
     textoEl.textContent = post.texto;
@@ -13560,9 +13695,10 @@ function criarCardPostSocial(post, meuId){
 
   const likes = post.likes || [];
   const comentarios = post.comentarios || [];
+  const visualizacoes = post.visualizacoes || [];
   const curti = likes.includes(meuId);
   const acoes = document.createElement('div');
-  acoes.style.cssText = 'display:flex;align-items:center;gap:14px;margin-top:10px;';
+  acoes.style.cssText = 'display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap;';
   const likeBtn = document.createElement('button');
   likeBtn.type = 'button';
   likeBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:' + (curti ? '#C22C75' : 'var(--ink-soft)') + ';padding:0;';
@@ -13571,9 +13707,18 @@ function criarCardPostSocial(post, meuId){
   acoes.appendChild(likeBtn);
   const comentCount = document.createElement('span');
   comentCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
-  comentCount.textContent = comentarios.length + (comentarios.length === 1 ? ' comentário' : ' comentários');
+  comentCount.textContent = '💬 ' + comentarios.length;
   acoes.appendChild(comentCount);
+  const viewCount = document.createElement('span');
+  viewCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
+  viewCount.textContent = '👁️ ' + visualizacoes.length;
+  acoes.appendChild(viewCount);
   card.appendChild(acoes);
+
+  // Conta 1 visualização por pessoa (não conta a do próprio autor), só na
+  // primeira vez que essa conta vê esse post — igual o "curtir", mas
+  // automático em vez de precisar clicar em algo.
+  tentarChamar(function(){ registrarVisualizacaoSocial(post.id); });
 
   if(comentarios.length){
     const listaComentarios = document.createElement('div');
@@ -13640,6 +13785,28 @@ function excluirPostSocial(id, videoStoragePath){
   });
 }
 
+// Guarda, só na memória (não precisa persistir), quais posts essa aba já
+// mandou visualização — evita escrever no banco toda vez que a tela
+// re-renderiza (o que aconteceria a cada curtida/comentário de qualquer
+// post, não só o desse).
+window._socialVisualizacoesEnviadas = window._socialVisualizacoesEnviadas || new Set();
+
+function registrarVisualizacaoSocial(id){
+  if(!currentRole || !currentUser || !socialPostsCollection) return;
+  if(window._socialVisualizacoesEnviadas.has(id)) return;
+  const meuId = identificadorUsuarioAtual();
+  const post = (window._socialPostsCache || []).find(p => p.id === id);
+  if(!post || post.autorId === meuId) return;
+  window._socialVisualizacoesEnviadas.add(id);
+  const visualizacoes = post.visualizacoes || [];
+  if(visualizacoes.indexOf(meuId) !== -1) return;
+  visualizacoes.push(meuId);
+  post.visualizacoes = visualizacoes;
+  socialPostsCollection.doc(id).update({visualizacoes}).catch(function(e){
+    console.error('Erro ao registrar visualização no GingaSocial:', e);
+  });
+}
+
 function curtirPostSocial(id){
   if(!currentRole || !currentUser || !socialPostsCollection) return;
   const meuId = identificadorUsuarioAtual();
@@ -13687,11 +13854,143 @@ function alternarAbaSocial(aba){
   const btnDesafios = document.getElementById('socialAbaDesafiosBtn');
   const abaFeed = document.getElementById('socialAbaFeed');
   const abaDesafios = document.getElementById('socialAbaDesafios');
+  const abaPerfil = document.getElementById('socialAbaPerfil');
+  window._socialPerfilAbertoChave = null;
   if(btnFeed) btnFeed.classList.toggle('active', aba === 'feed');
   if(btnDesafios) btnDesafios.classList.toggle('active', aba === 'desafios');
   if(abaFeed) abaFeed.style.display = aba === 'feed' ? 'block' : 'none';
   if(abaDesafios) abaDesafios.style.display = aba === 'desafios' ? 'block' : 'none';
+  if(abaPerfil) abaPerfil.style.display = 'none';
   if(aba === 'desafios') tentarChamar(function(){ renderDesafiosSocial(); });
+}
+
+// Abre, dentro do próprio GingaSocial, o perfil de alguém (posts, frases,
+// pensamentos e desafios) — chamado ao clicar no nome/foto de qualquer
+// pessoa (post, busca por grupo, participante de desafio).
+function abrirPerfilSocial(chaveConta){
+  if(!chaveConta || !currentRole) return;
+  const btnFeed = document.getElementById('socialAbaFeedBtn');
+  const btnDesafios = document.getElementById('socialAbaDesafiosBtn');
+  const abaFeed = document.getElementById('socialAbaFeed');
+  const abaDesafios = document.getElementById('socialAbaDesafios');
+  const abaPerfil = document.getElementById('socialAbaPerfil');
+  if(btnFeed) btnFeed.classList.remove('active');
+  if(btnDesafios) btnDesafios.classList.remove('active');
+  if(abaFeed) abaFeed.style.display = 'none';
+  if(abaDesafios) abaDesafios.style.display = 'none';
+  if(abaPerfil) abaPerfil.style.display = 'block';
+  window._socialPerfilAbertoChave = chaveConta;
+  renderPerfilSocialAberto();
+}
+
+function fecharPerfilSocial(){
+  alternarAbaSocial('feed');
+}
+
+function _resolverNomeDeChaveConta(chaveConta){
+  const partes = chaveConta.split(':');
+  const role = partes[0];
+  const user = partes.slice(1).join(':');
+  if(role === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const c = contas.find(x => x.user === user);
+    return (c && c.nome) || user;
+  }
+  if(role === 'academia'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    const c = contas.find(x => x.user === user);
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const minhaAcademia = c ? rede.find(a => a.nome === c.nome) : null;
+    return (minhaAcademia && minhaAcademia.professor) || (c && c.nome) || user;
+  }
+  if(role === 'matriz'){
+    const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
+    const masterDados = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
+    return (meuProf && meuProf.nome) || (masterDados && masterDados.nome) || 'Matriz';
+  }
+  return user;
+}
+
+function renderPerfilSocialAberto(){
+  const chaveConta = window._socialPerfilAbertoChave;
+  if(!chaveConta) return;
+  const cabecalho = document.getElementById('socialPerfilCabecalho');
+  const boxPosts = document.getElementById('socialPerfilPosts');
+  const boxFrases = document.getElementById('socialPerfilFrases');
+  const boxDesafios = document.getElementById('socialPerfilDesafios');
+  if(!cabecalho) return;
+
+  const nome = _resolverNomeDeChaveConta(chaveConta);
+  const handle = obterHandleSocial(chaveConta, nome);
+  const foto = obterFotoSocial(chaveConta);
+  const totalSeguidores = contarSeguidoresSocial(chaveConta);
+  const partes = chaveConta.split(':');
+  const role = partes[0];
+  const user = partes.slice(1).join(':');
+  const grupo = obterGrupoCadastradoDaConta(role, user);
+  const meuId = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
+  const souEu = chaveConta === meuId;
+
+  let html = '<div style="display:flex;align-items:center;gap:12px;">';
+  html += '<div class="social-avatar" style="width:64px;height:64px;font-size:20px;' + (foto ? 'background-image:url(' + foto + ');' : '') + '">' + (foto ? '' : (nome || '?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join('').toUpperCase()) + '</div>';
+  html += '<div style="flex:1;min-width:0;"><b style="font-size:16px;color:var(--navy-900);display:block;">' + nome + '</b>';
+  html += '<span style="font-size:12px;color:#C22C75;font-weight:600;">' + handle + '</span>';
+  if(grupo && grupo.nome) html += '<span style="font-size:11px;color:var(--ink-soft);display:block;">' + grupo.nome + '</span>';
+  html += '<span style="font-size:11px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
+  html += '</div></div>';
+  cabecalho.innerHTML = html;
+
+  if(!souEu && meuId){
+    const seguindo = estouSeguindoSocial(chaveConta);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = seguindo ? 'Seguindo ✓' : '+ Seguir';
+    btn.style.cssText = 'border:1.5px solid #C22C75;background:' + (seguindo ? '#C22C75' : 'var(--white)') + ';color:' + (seguindo ? '#fff' : '#C22C75') + ';font-size:12px;font-weight:600;padding:7px 16px;border-radius:100px;cursor:pointer;margin-top:10px;';
+    btn.onclick = () => { alternarSeguirSocial(chaveConta); renderPerfilSocialAberto(); };
+    cabecalho.appendChild(btn);
+  }
+
+  const agora = Date.now();
+  const meusPosts = (window._socialPostsCache || [])
+    .filter(p => p.autorId === chaveConta && !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora))
+    .sort((a, b) => b.data - a.data);
+  const postsFotoVideo = meusPosts.filter(p => p.tipo === 'foto' || p.tipo === 'video');
+  const postsFraseTexto = meusPosts.filter(p => p.tipo === 'frase' || p.tipo === 'pensamento');
+
+  if(boxPosts){
+    boxPosts.innerHTML = '';
+    if(postsFotoVideo.length === 0){
+      boxPosts.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum post ainda.</p>';
+    } else {
+      postsFotoVideo.forEach(p => boxPosts.appendChild(criarCardPostSocial(p, meuId)));
+    }
+  }
+  if(boxFrases){
+    boxFrases.innerHTML = '';
+    if(postsFraseTexto.length === 0){
+      boxFrases.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nada por aqui ainda.</p>';
+    } else {
+      postsFraseTexto.forEach(p => boxFrases.appendChild(criarCardPostSocial(p, meuId)));
+    }
+  }
+
+  if(boxDesafios){
+    const desafiosDele = (window._socialDesafiosCache || []).filter(d => d.criadorChave === chaveConta || (d.participantes || []).some(p => p.chaveConta === chaveConta));
+    boxDesafios.innerHTML = '';
+    if(desafiosDele.length === 0){
+      boxDesafios.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum desafio ainda.</p>';
+    } else {
+      desafiosDele.forEach(d => {
+        const linha = document.createElement('div');
+        linha.className = 'social-card';
+        const meuParticipante = (d.participantes || []).find(p => p.chaveConta === chaveConta);
+        const pts = meuParticipante ? calcularPontosParticipanteDesafio(meuParticipante) : 0;
+        const papel = d.criadorChave === chaveConta ? 'Criou' : 'Participou';
+        linha.innerHTML = '<b style="font-size:12.5px;color:var(--navy-900);">' + d.titulo + '</b><p style="font-size:11px;color:var(--ink-soft);margin:4px 0 0;">' + papel + (meuParticipante ? ' · ' + pts + ' pts' : '') + (desafioEncerrado(d) ? ' · encerrado' : ' · em andamento') + '</p>';
+        boxDesafios.appendChild(linha);
+      });
+    }
+  }
 }
 
 function alternarPublicoDesafio(){
@@ -13953,11 +14252,13 @@ function _criarCardDesafioAtivo(d){
 
   const publicoLabel = d.publico === 'todos' ? 'Todo mundo' : (d.publico === 'grupo' ? ('Grupo: ' + (d.grupoNome || '')) : 'Convidados');
   let html = '<div class="card-label">🏆 ' + d.titulo + '</div>';
-  html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 6px;">Por ' + (d.criadorHandle || d.criadorNome) + ' · ' + publicoLabel + '</p>';
+  html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 6px;cursor:pointer;" id="_criadorDesafio_' + d.id + '">Por ' + (d.criadorHandle || d.criadorNome) + ' · ' + publicoLabel + '</p>';
   if(d.descricao) html += '<p style="font-size:12.5px;color:var(--ink);margin:0 0 8px;white-space:pre-wrap;">' + d.descricao + '</p>';
   html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">📅 ' + d.dataInicio + ' até ' + d.dataFim + (aindaNaoComecou ? ' · ainda não começou' : '') + '</p>';
   html += '<p style="font-size:12px;color:var(--navy-900);margin:0 0 8px;"><b>' + participantes.length + '</b> ' + (participantes.length === 1 ? 'participante' : 'participantes') + '</p>';
   card.innerHTML = html;
+  const linhaCriador = card.querySelector('#_criadorDesafio_' + d.id);
+  if(linhaCriador) linhaCriador.onclick = () => abrirPerfilSocial(d.criadorChave);
 
   const acoesRow = document.createElement('div');
   acoesRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;';
