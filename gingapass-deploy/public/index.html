@@ -1261,6 +1261,7 @@
           <h2 style="margin:0 0 2px;">GingaSocial <span style="font-size:14px;">🥋🤸🪘🎶</span></h2>
           <p style="margin:0;">Conecte-se com todo mundo da rede — de qualquer grupo, não só o seu</p>
           <span class="social-handle-chip" id="socialMeuHandleChip">@...</span>
+          <span class="social-handle-chip" id="socialMeuSeguidoresChip" style="margin-left:6px;">👥 0 seguidores</span>
           <button type="button" id="socialRecalcularHandlesBtn" onclick="recalcularTodosHandlesSocial()" style="display:none;margin-left:8px;border:none;background:none;color:rgba(255,255,255,0.85);font-size:10.5px;text-decoration:underline;cursor:pointer;padding:0;">Recalcular @handles</button>
         </div>
       </div>
@@ -1273,40 +1274,83 @@
       </svg>
     </div>
 
-    <div class="social-card" id="socialComposerBox">
-      <div class="card-label">Publicar</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-        <button type="button" class="role-btn active" id="socialTipoFotoBtn" onclick="alternarTipoPostSocial('foto')" style="flex:1;">📷 Foto</button>
-        <button type="button" class="role-btn" id="socialTipoVideoBtn" onclick="alternarTipoPostSocial('video')" style="flex:1;">🎥 Vídeo</button>
-        <button type="button" class="role-btn" id="socialTipoFraseBtn" onclick="alternarTipoPostSocial('frase')" style="flex:1;">💬 Frase</button>
-      </div>
-      <div id="socialCampoFoto">
-        <input type="file" id="socialFotoInput" accept="image/*" multiple style="font-size:12px;margin-bottom:8px;">
-        <div class="gallery-grid" id="socialFotoPreview"></div>
-      </div>
-      <div id="socialCampoVideo" style="display:none;">
-        <input type="file" id="socialVideoInput" accept="video/*" style="font-size:12px;margin-bottom:8px;">
-      </div>
-      <textarea class="admin-input" id="socialTextoInput" placeholder="Escreva uma legenda ou sua frase..." style="min-height:64px;resize:vertical;"></textarea>
-      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Convidar pra um evento (opcional)</label>
-      <select class="admin-input" id="socialEventoSelect"><option value="">Nenhum evento</option></select>
-      <button class="btn" type="button" onclick="publicarPostSocial()" style="background:linear-gradient(135deg,#6C3FA6,#C22C75);">Publicar no GingaSocial</button>
+    <div style="display:flex;gap:6px;margin:10px 0;">
+      <button type="button" class="role-btn active" id="socialAbaFeedBtn" onclick="alternarAbaSocial('feed')" style="flex:1;">📰 Feed</button>
+      <button type="button" class="role-btn" id="socialAbaDesafiosBtn" onclick="alternarAbaSocial('desafios')" style="flex:1;">🏆 Desafios</button>
     </div>
 
-    <div class="social-card">
-      <div class="card-label">🔍 Buscar pessoas por grupo</div>
-      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Escolha um grupo e veja quem são as pessoas dele — dá pra filtrar por papel e seguir quem quiser.</p>
-      <select class="admin-input" id="socialBuscaGrupoSelect" onchange="renderBuscaSocial()"><option value="">Selecione um grupo...</option></select>
-      <select class="admin-input" id="socialBuscaPapelSelect" onchange="renderBuscaSocial()">
-        <option value="todos">Todos</option>
-        <option value="mestre">Mestre</option>
-        <option value="professor">Professor</option>
-        <option value="aluno">Aluno</option>
-      </select>
-      <div id="socialBuscaResultado"></div>
+    <div id="socialAbaFeed">
+      <div class="social-card" id="socialComposerBox">
+        <div class="card-label">Publicar</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+          <button type="button" class="role-btn active" id="socialTipoFotoBtn" onclick="alternarTipoPostSocial('foto')" style="flex:1;">📷 Foto</button>
+          <button type="button" class="role-btn" id="socialTipoVideoBtn" onclick="alternarTipoPostSocial('video')" style="flex:1;">🎥 Vídeo</button>
+          <button type="button" class="role-btn" id="socialTipoFraseBtn" onclick="alternarTipoPostSocial('frase')" style="flex:1;">💬 Frase</button>
+        </div>
+        <div id="socialCampoFoto">
+          <input type="file" id="socialFotoInput" accept="image/*" multiple style="font-size:12px;margin-bottom:8px;">
+          <div class="gallery-grid" id="socialFotoPreview"></div>
+        </div>
+        <div id="socialCampoVideo" style="display:none;">
+          <input type="file" id="socialVideoInput" accept="video/*" style="font-size:12px;margin-bottom:8px;">
+        </div>
+        <textarea class="admin-input" id="socialTextoInput" placeholder="Escreva uma legenda ou sua frase..." style="min-height:64px;resize:vertical;"></textarea>
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Convidar pra um evento (opcional)</label>
+        <select class="admin-input" id="socialEventoSelect"><option value="">Nenhum evento</option></select>
+        <button class="btn" type="button" onclick="publicarPostSocial()" style="background:linear-gradient(135deg,#6C3FA6,#C22C75);">Publicar no GingaSocial</button>
+      </div>
+
+      <div class="social-card">
+        <div class="card-label">🔍 Buscar pessoas por grupo</div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Escolha um grupo e veja quem são as pessoas dele — dá pra filtrar por papel e seguir quem quiser.</p>
+        <select class="admin-input" id="socialBuscaGrupoSelect" onchange="renderBuscaSocial()"><option value="">Selecione um grupo...</option></select>
+        <select class="admin-input" id="socialBuscaPapelSelect" onchange="renderBuscaSocial()">
+          <option value="todos">Todos</option>
+          <option value="mestre">Mestre</option>
+          <option value="professor">Professor</option>
+          <option value="aluno">Aluno</option>
+        </select>
+        <div id="socialBuscaResultado"></div>
+      </div>
+
+      <div id="gingaSocialFeed"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
     </div>
 
-    <div id="gingaSocialFeed"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+    <div id="socialAbaDesafios" style="display:none;">
+      <div class="social-card" id="socialDesafioComposerBox">
+        <div class="card-label">🏆 Propor um desafio GingaSocial</div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Crie um desafio com início e fim. Quando acabar, os pontos vão pro Mural de Desafios e entram no ranking.</p>
+        <input class="admin-input" id="desafioTitulo" placeholder="Título do desafio (ex: 100 aús em 7 dias)">
+        <textarea class="admin-input" id="desafioDescricao" placeholder="Explique as regras do desafio..." style="min-height:56px;resize:vertical;"></textarea>
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Início</label>
+        <input class="admin-input" id="desafioDataInicio" type="date">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Fim</label>
+        <input class="admin-input" id="desafioDataFim" type="date">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Quem pode participar?</label>
+        <select class="admin-input" id="desafioPublicoSelect" onchange="alternarPublicoDesafio()">
+          <option value="todos">Todo mundo do GingaSocial</option>
+          <option value="grupo">Só o meu grupo</option>
+          <option value="pessoas">Só pessoas que eu escolher</option>
+        </select>
+        <div id="desafioGrupoBox" style="display:none;">
+          <select class="admin-input" id="desafioGrupoSelect"><option value="">Selecione o grupo...</option></select>
+        </div>
+        <div id="desafioPessoasBox" style="display:none;">
+          <select class="admin-input" id="desafioPessoasGrupoFiltro" onchange="popularListaPessoasDesafio()"><option value="">Filtrar por grupo (opcional)...</option></select>
+          <div id="desafioPessoasLista" style="max-height:180px;overflow-y:auto;border:1px solid #EFE6D2;border-radius:10px;padding:8px;margin-bottom:10px;"></div>
+        </div>
+        <button class="btn" type="button" onclick="publicarDesafioSocial()" style="background:linear-gradient(135deg,#6C3FA6,#C22C75);">Publicar desafio</button>
+      </div>
+
+      <p class="section-title">Desafios em andamento</p>
+      <div id="gingaSocialDesafiosAtivos"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+
+      <p class="section-title">🏅 Ranking de desafios</p>
+      <div class="social-card" id="gingaSocialRankingDesafios"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+
+      <p class="section-title">🧱 Mural de desafios encerrados</p>
+      <div id="gingaSocialMuralDesafios"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+    </div>
   </div>
 
   <!-- ADMIN -->
@@ -2194,6 +2238,14 @@
     <button class="btn" type="button" onclick="sincronizarVinculosMestre()" style="margin-top:0;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Sincronizar professores que já têm mestre cadastrado</button>
     <p style="font-size:11px;color:var(--ink-soft);margin:-10px 0 14px;">O primeiro botão junta o Pix, os alunos e as estatísticas quando o mesmo professor aparece com nomes diferentes (ex: "Borracha" e "Mestrando Borracha"). O segundo transforma em aluno pagante qualquer professor que já tenha "Quem é o mestre dele" preenchido, mas ainda não apareça na lista de alunos. Pra vincular ou trocar isso professor por professor, use "Editar vínculo" em cada um, na lista acima.</p>
 
+    <p class="section-title">Vincular vários professores a um grupo de uma vez</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Marque os professores e escolha o grupo — útil pra corrigir de uma vez quem foi cadastrado antes do grupo ser obrigatório. Já vem marcado quem ainda não tem nenhum grupo vinculado.</p>
+      <select class="admin-input" id="vincularGrupoEmMassaSelect"><option value="">Selecione o grupo...</option></select>
+      <div id="vincularGrupoEmMassaLista" style="margin-bottom:10px;"></div>
+      <button class="btn" type="button" onclick="vincularGrupoEmMassa()">Vincular selecionados a esse grupo</button>
+    </div>
+
     <p class="section-title">Mensalidades dos professores</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
@@ -2545,6 +2597,7 @@ let presencaCollection = null;
 let videosNuvemCollection = null;
 let lojaProdutosCollection = null;
 let socialPostsCollection = null;
+let socialDesafiosCollection = null;
 let storageBucketRef = null;
 const DIAS_EXPIRACAO_VIDEO = 3; // vídeo do mural fica visível pra todo mundo por 3 dias, depois some sozinho
 let firebaseSynced = false;
@@ -3704,6 +3757,7 @@ function iniciarFirebase(tentativas){
     videosNuvemCollection = db.collection('gingapass_videos_nuvem');
     lojaProdutosCollection = db.collection('gingapass_loja_produtos_itens');
     socialPostsCollection = db.collection('gingapass_social_posts');
+    socialDesafiosCollection = db.collection('gingapass_social_desafios');
     try{
       if(typeof firebase.storage === 'function'){
         storageBucketRef = firebase.storage(app).ref();
@@ -3893,6 +3947,17 @@ function iniciarFirebase(tentativas){
       }
     }, function(e){
       console.error('Erro ao sincronizar posts do GingaSocial:', e);
+    });
+
+    socialDesafiosCollection.orderBy('criadoEm', 'desc').limit(200).onSnapshot(function(snapshot){
+      const desafios = [];
+      snapshot.forEach(function(doc){ desafios.push(doc.data()); });
+      window._socialDesafiosCache = desafios;
+      if(typeof currentRole !== 'undefined' && currentRole){
+        if(typeof renderDesafiosSocial === 'function') renderDesafiosSocial();
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar desafios do GingaSocial:', e);
     });
 
     videosNuvemCollection.orderBy('data', 'desc').limit(150).onSnapshot(function(snapshot){
@@ -5549,6 +5614,7 @@ function aplicarPermissoes(){
   }
   tentarChamar(function(){ renderAcademiasContas(); });
   tentarChamar(function(){ renderLiberacaoEmMassa(); });
+  tentarChamar(function(){ renderVinculacaoGrupoEmMassa(); });
   tentarChamar(function(){ renderAlunosContas(); });
   tentarChamar(function(){ renderEnderecos(); });
   tentarChamar(function(){ renderCheckin(); });
@@ -7688,6 +7754,81 @@ function alternarOcultarAcademiaConta(user){
 // existente — necessário pra contas antigas/criadas em massa, que nunca
 // passaram pela tela que hoje já exige grupo. Sem isso, o @handle do
 // GingaSocial dessa pessoa fica sem o nome do time.
+// Vincula MUITOS professores de uma vez a um grupo cadastrado — útil pra
+// corrigir contas antigas/criadas em massa que nunca passaram pela tela que
+// hoje já exige grupo. Reaproveita o mesmo campo grupoCadastroId usado na
+// vinculação individual (botão 🏷️ Grupo).
+function renderVinculacaoGrupoEmMassa(){
+  const selectGrupo = document.getElementById('vincularGrupoEmMassaSelect');
+  const lista = document.getElementById('vincularGrupoEmMassaLista');
+  if(!selectGrupo || !lista || currentRole !== 'matriz') return;
+
+  const grupos = listarTodosGruposParceirosCadastrados();
+  const atual = selectGrupo.value;
+  selectGrupo.innerHTML = '<option value="">Selecione o grupo...</option>' +
+    grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+  if(atual && selectGrupo.querySelector('option[value="' + atual + '"]')) selectGrupo.value = atual;
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]')
+    .filter(c => c.grupo !== 'independente' && !c.oculto);
+  lista.innerHTML = '';
+  if(contas.length === 0){
+    lista.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p>';
+    return;
+  }
+  contas.forEach(c => {
+    const temGrupo = !!(c.grupoCadastroId || c.grupoParceiroId);
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:12.5px;color:var(--ink);cursor:pointer;';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.dataset.user = c.user;
+    chk.checked = !temGrupo;
+    chk.style.cssText = 'width:16px;height:16px;flex-shrink:0;';
+    row.appendChild(chk);
+    const span = document.createElement('span');
+    span.textContent = c.nome + (temGrupo ? ' (já tem grupo)' : '');
+    if(temGrupo) span.style.color = 'var(--ink-soft)';
+    row.appendChild(span);
+    lista.appendChild(row);
+  });
+  const ultima = lista.lastElementChild;
+  if(ultima) ultima.style.borderBottom = 'none';
+}
+
+function vincularGrupoEmMassa(){
+  if(currentRole !== 'matriz') return;
+  const selectGrupo = document.getElementById('vincularGrupoEmMassaSelect');
+  const lista = document.getElementById('vincularGrupoEmMassaLista');
+  if(!selectGrupo || !lista) return;
+  const grupoId = selectGrupo.value;
+  if(!grupoId){
+    alert('Escolha o grupo antes de vincular.');
+    return;
+  }
+  const usersSelecionados = Array.from(lista.querySelectorAll('input[type="checkbox"]:checked')).map(chk => chk.dataset.user);
+  if(usersSelecionados.length === 0){
+    alert('Marque pelo menos um professor.');
+    return;
+  }
+  const grupo = listarTodosGruposParceirosCadastrados().find(g => g.id === grupoId);
+  if(!confirm('Vincular ' + usersSelecionados.length + ' professor(es) ao grupo "' + (grupo ? grupo.nome : '') + '"?')) return;
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  contas.forEach(c => {
+    if(usersSelecionados.indexOf(c.user) !== -1) c.grupoCadastroId = grupoId;
+  });
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    renderAcademiasContas();
+    renderVinculacaoGrupoEmMassa();
+    alert('Pronto! ' + usersSelecionados.length + ' professor(es) vinculado(s) ao grupo "' + (grupo ? grupo.nome : '') + '". Use "Recalcular @handles" no GingaSocial pra atualizar os apelidos.');
+  });
+}
+
 function editarGrupoAcademiaConta(user){
   if(currentRole !== 'matriz') return;
   const grupos = listarTodosGruposParceirosCadastrados();
@@ -13063,6 +13204,17 @@ function popularSelectGrupoBuscaSocial(){
   if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
 }
 
+// Quantas contas seguem chaveAlvo — visível pra todo mundo (não só o dono
+// do perfil), pra dar a ideia do tamanho da rede de cada um.
+function contarSeguidoresSocial(chaveAlvo){
+  const mapa = JSON.parse(localStorage.getItem('gingapass_social_seguindo') || '{}');
+  let total = 0;
+  Object.keys(mapa).forEach(chave => {
+    if((mapa[chave] || []).indexOf(chaveAlvo) !== -1) total++;
+  });
+  return total;
+}
+
 function estouSeguindoSocial(chaveAlvo){
   if(!currentRole || !currentUser) return false;
   const mapa = JSON.parse(localStorage.getItem('gingapass_social_seguindo') || '{}');
@@ -13116,7 +13268,8 @@ function renderBuscaSocial(){
     const info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
     const handle = obterHandleSocial(p.chaveConta, p.nome);
-    info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + p.nome + '</b><span style="font-size:11px;color:#C22C75;">' + handle + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + p.graduacao + '</span>' : '');
+    const totalSeguidores = contarSeguidoresSocial(p.chaveConta);
+    info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + p.nome + '</b><span style="font-size:11px;color:#C22C75;">' + handle + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + p.graduacao + '</span>' : '') + '<span style="font-size:10px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
     row.appendChild(avatar);
     row.appendChild(info);
     if(meuId && p.chaveConta !== meuId){
@@ -13255,6 +13408,11 @@ function renderGingaSocial(){
   const meuHandle = obterMeuHandleSocial();
   const chip = document.getElementById('socialMeuHandleChip');
   if(chip) chip.textContent = meuHandle || '@...';
+  const chipSeguidores = document.getElementById('socialMeuSeguidoresChip');
+  if(chipSeguidores){
+    const totalSeguidores = contarSeguidoresSocial(identificadorUsuarioAtual());
+    chipSeguidores.textContent = '👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores');
+  }
   const textoHandlePerfil = document.getElementById('perfilMeuHandleTexto');
   if(textoHandlePerfil) textoHandlePerfil.textContent = meuHandle || '@...';
   const btnRecalcular = document.getElementById('socialRecalcularHandlesBtn');
@@ -13271,6 +13429,7 @@ function renderGingaSocial(){
   tentarChamar(function(){ popularSelectEventoSocial(); });
   tentarChamar(function(){ popularSelectGrupoBuscaSocial(); });
   tentarChamar(function(){ renderBuscaSocial(); });
+  tentarChamar(function(){ renderDesafiosSocial(); });
 
   const composer = document.getElementById('socialComposerBox');
   if(composer) composer.style.display = (currentRole === 'pai') ? 'none' : 'block';
@@ -13350,8 +13509,10 @@ function criarCardPostSocial(post, meuId){
   const infoAutor = document.createElement('div');
   infoAutor.style.cssText = 'flex:1;min-width:0;';
   const linhaExtra = [post.autorGrupoNome, post.autorGraduacao].filter(Boolean).join(' · ');
+  const totalSeguidoresAutor = contarSeguidoresSocial(post.autorId);
   infoAutor.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + (post.autorNome || 'Associado') + '</b>' +
     '<span style="font-size:11.5px;color:#C22C75;font-weight:600;">' + (post.autorHandle || '') + '</span>' +
+    ' <span style="font-size:10px;color:var(--ink-soft);">👥 ' + totalSeguidoresAutor + '</span>' +
     (linhaExtra ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + linhaExtra + '</span>' : '');
   cabecalho.appendChild(avatar);
   cabecalho.appendChild(infoAutor);
@@ -13511,6 +13672,429 @@ function comentarPostSocial(id, inputId){
   input.value = '';
   renderGingaSocial();
 }
+/* ===================== Desafios GingaSocial (mural + ranking) =====================
+   Qualquer um propõe um desafio (aberto pra rede toda, só pro grupo, ou só
+   pras pessoas escolhidas), com início/fim. Enquanto está no ar dá pra
+   "participar". Quando o prazo acaba (comparando com a data de hoje — não
+   precisa de nenhum job/servidor, é calculado igual eventoJaPassou), os
+   pontos de quem participou vão pro Mural de Desafios e entram no ranking:
+   participou até o fim = 1 ponto, cumpriu tudo = +1, foi além = +1,
+   terminou primeiro = +1. */
+window._socialDesafiosCache = window._socialDesafiosCache || [];
+
+function alternarAbaSocial(aba){
+  const btnFeed = document.getElementById('socialAbaFeedBtn');
+  const btnDesafios = document.getElementById('socialAbaDesafiosBtn');
+  const abaFeed = document.getElementById('socialAbaFeed');
+  const abaDesafios = document.getElementById('socialAbaDesafios');
+  if(btnFeed) btnFeed.classList.toggle('active', aba === 'feed');
+  if(btnDesafios) btnDesafios.classList.toggle('active', aba === 'desafios');
+  if(abaFeed) abaFeed.style.display = aba === 'feed' ? 'block' : 'none';
+  if(abaDesafios) abaDesafios.style.display = aba === 'desafios' ? 'block' : 'none';
+  if(aba === 'desafios') tentarChamar(function(){ renderDesafiosSocial(); });
+}
+
+function alternarPublicoDesafio(){
+  const select = document.getElementById('desafioPublicoSelect');
+  const grupoBox = document.getElementById('desafioGrupoBox');
+  const pessoasBox = document.getElementById('desafioPessoasBox');
+  if(!select) return;
+  const valor = select.value;
+  if(grupoBox) grupoBox.style.display = valor === 'grupo' ? 'block' : 'none';
+  if(pessoasBox) pessoasBox.style.display = valor === 'pessoas' ? 'block' : 'none';
+  if(valor === 'grupo'){
+    const selGrupo = document.getElementById('desafioGrupoSelect');
+    if(selGrupo && selGrupo.options.length <= 1){
+      const grupos = listarTodosGruposParceirosCadastrados();
+      selGrupo.innerHTML = '<option value="">Selecione o grupo...</option>' +
+        grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+    }
+  }
+  if(valor === 'pessoas') tentarChamar(function(){ popularListaPessoasDesafio(); });
+}
+
+// Todo mundo já cadastrado no app (professores/mestres + alunos), pra
+// escolher quem participa de um desafio "só pessoas selecionadas".
+function listarTodasPessoasSocial(){
+  const resultado = [];
+  const contasAcademia = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const contasAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  contasAcademia.filter(c => !c.oculto).forEach(c => {
+    const minhaAcademia = rede.find(a => a.nome === c.nome);
+    const nomeReal = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : c.nome;
+    resultado.push({chaveConta: 'academia:' + c.user, nome: nomeReal});
+  });
+  contasAlunos.forEach(al => {
+    resultado.push({chaveConta: 'aluno:' + al.user, nome: al.nome});
+  });
+  return resultado;
+}
+
+function popularListaPessoasDesafio(){
+  const filtroSel = document.getElementById('desafioPessoasGrupoFiltro');
+  const lista = document.getElementById('desafioPessoasLista');
+  if(!lista) return;
+  if(filtroSel && filtroSel.options.length <= 1){
+    const grupos = listarTodosGruposParceirosCadastrados();
+    filtroSel.innerHTML = '<option value="">Filtrar por grupo (opcional)...</option>' +
+      grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+  }
+  const grupoFiltro = filtroSel ? filtroSel.value : '';
+  const minhaChave = identificadorUsuarioAtual();
+  const pessoas = (grupoFiltro ? listarPessoasDoGrupoSocial(grupoFiltro, 'todos') : listarTodasPessoasSocial())
+    .filter(p => p.chaveConta !== minhaChave);
+  const marcadas = new Set(Array.from(lista.querySelectorAll('input[type="checkbox"]:checked')).map(chk => chk.dataset.chave));
+  lista.innerHTML = '';
+  if(pessoas.length === 0){
+    lista.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Ninguém encontrado.</p>';
+    return;
+  }
+  pessoas.forEach(p => {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ink);cursor:pointer;';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.dataset.chave = p.chaveConta;
+    chk.checked = marcadas.has(p.chaveConta);
+    chk.style.cssText = 'width:16px;height:16px;flex-shrink:0;';
+    row.appendChild(chk);
+    row.appendChild(document.createTextNode(p.nome));
+    lista.appendChild(row);
+  });
+}
+
+function publicarDesafioSocial(){
+  if(!currentRole || !currentUser){
+    alert('Entre com sua conta primeiro.');
+    return;
+  }
+  if(!socialDesafiosCollection){
+    alert('Sem conexão com a nuvem agora — tente de novo em instantes.');
+    return;
+  }
+  const tituloEl = document.getElementById('desafioTitulo');
+  const descricaoEl = document.getElementById('desafioDescricao');
+  const titulo = tituloEl ? tituloEl.value.trim() : '';
+  const descricao = descricaoEl ? descricaoEl.value.trim() : '';
+  const dataInicio = (document.getElementById('desafioDataInicio') || {}).value || '';
+  const dataFim = (document.getElementById('desafioDataFim') || {}).value || '';
+  const publico = (document.getElementById('desafioPublicoSelect') || {}).value || 'todos';
+  if(!titulo){ alert('Dê um título pro desafio.'); return; }
+  if(!dataInicio || !dataFim){ alert('Preencha a data de início e de fim do desafio.'); return; }
+  if(dataFim < dataInicio){ alert('A data de fim não pode ser antes da data de início.'); return; }
+
+  let grupoId = '';
+  let participantesConvidados = [];
+  if(publico === 'grupo'){
+    grupoId = (document.getElementById('desafioGrupoSelect') || {}).value || '';
+    if(!grupoId){ alert('Escolha o grupo do desafio.'); return; }
+  } else if(publico === 'pessoas'){
+    const lista = document.getElementById('desafioPessoasLista');
+    participantesConvidados = lista ? Array.from(lista.querySelectorAll('input[type="checkbox"]:checked')).map(chk => chk.dataset.chave) : [];
+    if(participantesConvidados.length === 0){ alert('Marque pelo menos uma pessoa.'); return; }
+  }
+
+  const desafio = {
+    id: 'desafio_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    criadorChave: identificadorUsuarioAtual(),
+    criadorNome: _obterNomeCompletoParaHandle(),
+    criadorHandle: obterMeuHandleSocial(),
+    titulo,
+    descricao,
+    dataInicio,
+    dataFim,
+    publico,
+    grupoId,
+    grupoNome: grupoId ? ((listarTodosGruposParceirosCadastrados().find(g => g.id === grupoId) || {}).nome || '') : '',
+    participantesConvidados,
+    participantes: [],
+    criadoEm: Date.now()
+  };
+
+  socialDesafiosCollection.doc(desafio.id).set(desafio).then(function(){
+    ['desafioTitulo', 'desafioDescricao', 'desafioDataInicio', 'desafioDataFim'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    const selPublico = document.getElementById('desafioPublicoSelect');
+    if(selPublico) selPublico.value = 'todos';
+    alternarPublicoDesafio();
+    alert('Desafio publicado! Ele aparece pra quem pode participar até ' + dataFim + '.');
+  }).catch(function(e){
+    console.error('Erro ao publicar desafio no GingaSocial:', e);
+    alert('Não consegui publicar agora. Verifique a conexão e tente de novo.');
+  });
+}
+
+function desafioJaComecou(d){ return !!(d && d.dataInicio && d.dataInicio <= hojeStr()); }
+function desafioEncerrado(d){ return !!(d && d.dataFim && d.dataFim < hojeStr()); }
+
+// Quem pode VER um desafio: todo mundo (publico=todos), só quem é do mesmo
+// grupo cadastrado (publico=grupo), ou só quem foi convidado (publico=pessoas).
+// Quem criou e a matriz sempre veem, pra poder acompanhar/pontuar.
+function podeVerDesafio(d){
+  if(!currentRole || !currentUser) return false;
+  const minhaChave = identificadorUsuarioAtual();
+  if(d.criadorChave === minhaChave || currentRole === 'matriz') return true;
+  if(d.publico === 'todos') return true;
+  if(d.publico === 'grupo'){
+    const meuGrupo = obterGrupoCadastradoDaConta(currentRole, currentUser);
+    return !!(meuGrupo && meuGrupo.id === d.grupoId);
+  }
+  if(d.publico === 'pessoas'){
+    return (d.participantesConvidados || []).indexOf(minhaChave) !== -1;
+  }
+  return false;
+}
+
+function calcularPontosParticipanteDesafio(p){
+  let pontos = 1; // participou até o fim
+  if(p.concluiu) pontos++;
+  if(p.fezAlem) pontos++;
+  if(p.terminouPrimeiro) pontos++;
+  return pontos;
+}
+
+function participarDesafioSocial(id){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === id);
+  if(!desafio) return;
+  if(desafioEncerrado(desafio)){ alert('Esse desafio já encerrou.'); return; }
+  const minhaChave = identificadorUsuarioAtual();
+  const participantes = desafio.participantes || [];
+  if(participantes.some(p => p.chaveConta === minhaChave)){ return; }
+  participantes.push({
+    chaveConta: minhaChave,
+    nome: _obterNomeCompletoParaHandle(),
+    handle: obterMeuHandleSocial(),
+    entrouEm: Date.now(),
+    concluiu: false,
+    fezAlem: false,
+    terminouPrimeiro: false
+  });
+  socialDesafiosCollection.doc(id).update({participantes}).catch(function(e){
+    console.error('Erro ao entrar no desafio:', e);
+  });
+  desafio.participantes = participantes;
+  renderDesafiosSocial();
+}
+
+function sairDesafioSocial(id){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === id);
+  if(!desafio) return;
+  if(desafioEncerrado(desafio)){ alert('Esse desafio já encerrou.'); return; }
+  if(!confirm('Sair desse desafio?')) return;
+  const minhaChave = identificadorUsuarioAtual();
+  const participantes = (desafio.participantes || []).filter(p => p.chaveConta !== minhaChave);
+  socialDesafiosCollection.doc(id).update({participantes}).catch(function(e){
+    console.error('Erro ao sair do desafio:', e);
+  });
+  desafio.participantes = participantes;
+  renderDesafiosSocial();
+}
+
+// Só quem criou o desafio (ou a matriz) marca "cumpriu tudo / foi além /
+// terminou primeiro" de cada participante.
+function marcarPontoDesafio(id, chaveParticipante, campo){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === id);
+  if(!desafio) return;
+  const minhaChave = identificadorUsuarioAtual();
+  if(desafio.criadorChave !== minhaChave && currentRole !== 'matriz'){
+    alert('Só quem criou o desafio (ou a matriz) pode marcar isso.');
+    return;
+  }
+  const participantes = desafio.participantes || [];
+  if(campo === 'terminouPrimeiro'){
+    const jaTemOutro = participantes.some(p => p.chaveConta !== chaveParticipante && p.terminouPrimeiro);
+    if(jaTemOutro && !confirm('Já tem outra pessoa marcada como "terminou primeiro" nesse desafio. Trocar pra essa aqui?')) return;
+    participantes.forEach(p => { if(p.chaveConta !== chaveParticipante) p.terminouPrimeiro = false; });
+  }
+  participantes.forEach(p => {
+    if(p.chaveConta === chaveParticipante) p[campo] = !p[campo];
+  });
+  socialDesafiosCollection.doc(id).update({participantes}).catch(function(e){
+    console.error('Erro ao marcar pontuação do desafio:', e);
+  });
+  desafio.participantes = participantes;
+  renderDesafiosSocial();
+}
+
+function excluirDesafioSocial(id){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === id);
+  if(!desafio) return;
+  const minhaChave = identificadorUsuarioAtual();
+  if(desafio.criadorChave !== minhaChave && currentRole !== 'matriz'){
+    alert('Só quem criou o desafio (ou a matriz) pode apagar.');
+    return;
+  }
+  if(!confirm('Apagar o desafio "' + desafio.titulo + '"? Os pontos dele saem do ranking.')) return;
+  socialDesafiosCollection.doc(id).delete().then(function(){
+    window._socialDesafiosCache = (window._socialDesafiosCache || []).filter(d => d.id !== id);
+    renderDesafiosSocial();
+  }).catch(function(e){
+    console.error('Erro ao apagar desafio:', e);
+    alert('Não consegui apagar agora. Verifique a conexão e tente de novo.');
+  });
+}
+
+function _criarCardDesafioAtivo(d){
+  const card = document.createElement('div');
+  card.className = 'social-card';
+  const minhaChave = identificadorUsuarioAtual();
+  const participantes = d.participantes || [];
+  const jaEntrei = participantes.some(p => p.chaveConta === minhaChave);
+  const souCriador = d.criadorChave === minhaChave;
+  const encerrado = desafioEncerrado(d);
+  const aindaNaoComecou = !desafioJaComecou(d);
+
+  const publicoLabel = d.publico === 'todos' ? 'Todo mundo' : (d.publico === 'grupo' ? ('Grupo: ' + (d.grupoNome || '')) : 'Convidados');
+  let html = '<div class="card-label">🏆 ' + d.titulo + '</div>';
+  html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 6px;">Por ' + (d.criadorHandle || d.criadorNome) + ' · ' + publicoLabel + '</p>';
+  if(d.descricao) html += '<p style="font-size:12.5px;color:var(--ink);margin:0 0 8px;white-space:pre-wrap;">' + d.descricao + '</p>';
+  html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">📅 ' + d.dataInicio + ' até ' + d.dataFim + (aindaNaoComecou ? ' · ainda não começou' : '') + '</p>';
+  html += '<p style="font-size:12px;color:var(--navy-900);margin:0 0 8px;"><b>' + participantes.length + '</b> ' + (participantes.length === 1 ? 'participante' : 'participantes') + '</p>';
+  card.innerHTML = html;
+
+  const acoesRow = document.createElement('div');
+  acoesRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;';
+  if(!jaEntrei && !encerrado){
+    const btnEntrar = document.createElement('button');
+    btnEntrar.className = 'btn';
+    btnEntrar.type = 'button';
+    btnEntrar.style.cssText = 'width:auto;margin-top:0;padding:8px 16px;background:linear-gradient(135deg,#6C3FA6,#C22C75);';
+    btnEntrar.textContent = 'Participar';
+    btnEntrar.onclick = () => participarDesafioSocial(d.id);
+    acoesRow.appendChild(btnEntrar);
+  } else if(jaEntrei && !encerrado){
+    const btnSair = document.createElement('button');
+    btnSair.type = 'button';
+    btnSair.style.cssText = 'border:1.5px solid #C22C75;background:var(--white);color:#C22C75;font-size:12px;font-weight:600;padding:7px 14px;border-radius:100px;cursor:pointer;';
+    btnSair.textContent = 'Você está participando ✓ (sair)';
+    btnSair.onclick = () => sairDesafioSocial(d.id);
+    acoesRow.appendChild(btnSair);
+  }
+  if(souCriador || currentRole === 'matriz'){
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.textContent = '🗑️ Apagar';
+    btnDel.style.cssText = 'border:none;background:none;color:var(--ink-soft);font-size:12px;cursor:pointer;padding:7px 4px;';
+    btnDel.onclick = () => excluirDesafioSocial(d.id);
+    acoesRow.appendChild(btnDel);
+  }
+  card.appendChild(acoesRow);
+
+  if((souCriador || currentRole === 'matriz') && participantes.length > 0){
+    const painel = document.createElement('div');
+    painel.style.cssText = 'border-top:1px solid #EFE6D2;padding-top:8px;margin-top:4px;';
+    const titulo = document.createElement('p');
+    titulo.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 6px;';
+    titulo.textContent = 'Marcar pontuação de cada participante:';
+    painel.appendChild(titulo);
+    participantes.forEach(p => {
+      const linha = document.createElement('div');
+      linha.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #F5EEDD;';
+      const nome = document.createElement('span');
+      nome.style.cssText = 'font-size:12px;color:var(--ink);flex:1;min-width:90px;';
+      nome.textContent = p.nome;
+      linha.appendChild(nome);
+      [['concluiu', 'Cumpriu tudo'], ['fezAlem', 'Foi além'], ['terminouPrimeiro', 'Terminou 1º']].forEach(par => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const marcado = !!p[par[0]];
+        btn.textContent = (marcado ? '✓ ' : '') + par[1];
+        btn.style.cssText = 'border:1px solid ' + (marcado ? '#C22C75' : '#D9CBB0') + ';background:' + (marcado ? '#C22C75' : 'var(--white)') + ';color:' + (marcado ? '#fff' : 'var(--ink-soft)') + ';font-size:10.5px;font-weight:600;padding:4px 8px;border-radius:100px;cursor:pointer;';
+        btn.onclick = () => marcarPontoDesafio(d.id, p.chaveConta, par[0]);
+        linha.appendChild(btn);
+      });
+      painel.appendChild(linha);
+    });
+    card.appendChild(painel);
+  }
+
+  return card;
+}
+
+function _linhaRankingDesafio(pos, nome, handle, pontos, vitorias){
+  const linha = document.createElement('div');
+  linha.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #EFE6D2;';
+  const medalha = pos === 1 ? '🥇' : (pos === 2 ? '🥈' : (pos === 3 ? '🥉' : ('#' + pos)));
+  linha.innerHTML = '<span style="font-size:14px;width:26px;flex-shrink:0;text-align:center;">' + medalha + '</span>' +
+    '<div style="flex:1;min-width:0;"><b style="font-size:12.5px;color:var(--navy-900);display:block;">' + nome + '</b>' +
+    '<span style="font-size:10.5px;color:#C22C75;">' + handle + '</span></div>' +
+    '<div style="text-align:right;flex-shrink:0;"><b style="font-size:14px;color:var(--navy-900);">' + pontos + ' pts</b>' +
+    '<span style="font-size:10px;color:var(--ink-soft);display:block;">' + vitorias + (vitorias === 1 ? ' desafio' : ' desafios') + '</span></div>';
+  return linha;
+}
+
+function renderDesafiosSocial(){
+  if(!currentRole) return;
+  const composer = document.getElementById('socialDesafioComposerBox');
+  if(composer) composer.style.display = (currentRole === 'pai') ? 'none' : 'block';
+
+  const todosDesafios = (window._socialDesafiosCache || []).filter(podeVerDesafio);
+  const ativos = todosDesafios.filter(d => !desafioEncerrado(d)).sort((a, b) => (a.dataFim || '').localeCompare(b.dataFim || ''));
+  const encerrados = todosDesafios.filter(d => desafioEncerrado(d)).sort((a, b) => (b.dataFim || '').localeCompare(a.dataFim || ''));
+
+  const boxAtivos = document.getElementById('gingaSocialDesafiosAtivos');
+  if(boxAtivos){
+    boxAtivos.innerHTML = '';
+    if(ativos.length === 0){
+      boxAtivos.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum desafio em andamento agora. Que tal propor um?</p>';
+    } else {
+      ativos.forEach(d => boxAtivos.appendChild(_criarCardDesafioAtivo(d)));
+    }
+  }
+
+  // Ranking: soma os pontos de cada pessoa em todos os desafios já encerrados.
+  const boxRanking = document.getElementById('gingaSocialRankingDesafios');
+  if(boxRanking){
+    const pontosPorPessoa = {};
+    encerrados.forEach(d => {
+      (d.participantes || []).forEach(p => {
+        const pontos = calcularPontosParticipanteDesafio(p);
+        if(!pontosPorPessoa[p.chaveConta]) pontosPorPessoa[p.chaveConta] = {nome: p.nome, handle: p.handle, pontos: 0, desafios: 0};
+        pontosPorPessoa[p.chaveConta].pontos += pontos;
+        pontosPorPessoa[p.chaveConta].desafios += 1;
+      });
+    });
+    const ranking = Object.values(pontosPorPessoa).sort((a, b) => b.pontos - a.pontos).slice(0, 20);
+    boxRanking.innerHTML = '';
+    if(ranking.length === 0){
+      boxRanking.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ainda não tem nenhum desafio encerrado pra formar o ranking.</p>';
+    } else {
+      ranking.forEach((r, i) => boxRanking.appendChild(_linhaRankingDesafio(i + 1, r.nome, r.handle, r.pontos, r.desafios)));
+    }
+  }
+
+  const boxMural = document.getElementById('gingaSocialMuralDesafios');
+  if(boxMural){
+    boxMural.innerHTML = '';
+    if(encerrados.length === 0){
+      boxMural.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum desafio encerrado ainda.</p>';
+    } else {
+      encerrados.forEach(d => {
+        const participantes = (d.participantes || []).slice().sort((a, b) => calcularPontosParticipanteDesafio(b) - calcularPontosParticipanteDesafio(a));
+        const card = document.createElement('div');
+        card.className = 'social-card';
+        let html = '<div class="card-label">🏁 ' + d.titulo + '</div>';
+        html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Encerrado em ' + d.dataFim + ' · ' + participantes.length + (participantes.length === 1 ? ' participante' : ' participantes') + '</p>';
+        if(participantes.length === 0){
+          html += '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Ninguém participou desse desafio.</p>';
+        } else {
+          html += participantes.map(p => '<p style="font-size:12px;color:var(--ink);margin:2px 0;">' + p.nome + ' — <b>' + calcularPontosParticipanteDesafio(p) + ' pts</b></p>').join('');
+        }
+        card.innerHTML = html;
+        boxMural.appendChild(card);
+      });
+    }
+  }
+}
+/* =================== fim: Desafios GingaSocial =================== */
+
 /* =================== fim: GINGASOCIAL =================== */
 
 function abrirPagamento(tipo){
@@ -13718,6 +14302,7 @@ function reiniciarCadastrosProfessoresEAlunos(){
     tentarChamar(function(){ renderAlunos(); });
     tentarChamar(function(){ renderListaProfessoresPublica(); });
     tentarChamar(function(){ renderLiberacaoEmMassa(); });
+    tentarChamar(function(){ renderVinculacaoGrupoEmMassa(); });
     tentarChamar(function(){ renderAvisoSemGrupo(); });
     tentarChamar(function(){ renderGruposOficiaisList(); });
     tentarChamar(function(){ renderGruposOficiaisTela(); });
