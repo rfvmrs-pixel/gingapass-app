@@ -18012,6 +18012,19 @@ function obterNomeProfessorParaAgendaHome(){
   return null;
 }
 
+// Nome do MESTRE de quem essa conta de professor é aluna (campo meuMestre,
+// preenchido em "vincular como aluno de alguém"/cadastro com mestre) — só
+// existe pra quem é "professor vinculado" (paga mensalidade como aluno de
+// outro, mesmo dando aula própria). Usado pra priorizar a aula DELE na tela
+// Início: quem já é professor sabe o próprio horário de cor, mas pode
+// esquecer o horário do mestre — que é o que mais importa não perder.
+function obterNomeMestreParaAgendaHome(){
+  if(currentRole !== 'academia') return null;
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = contas.find(c => c.user === currentUser);
+  return (minhaConta && minhaConta.meuMestre) || null;
+}
+
 // Acha a próxima aula que vai acontecer a partir de agora, pra mostrar na
 // tela Início — SÓ entre as aulas do professor de quem está vendo (nunca de
 // outro professor da rede, mesmo que ambos estejam no mesmo grupo/matriz).
@@ -18098,7 +18111,11 @@ function renderConfigGeral(){
   const aulaHora = document.getElementById('proximaAulaHora');
   const aulaLabel = document.getElementById('proximaAulaLabel');
 
-  const nomeProfessorFiltroHome = obterNomeProfessorParaAgendaHome();
+  // Professor vinculado (paga mensalidade como aluno de um mestre): a aula
+  // que mais importa não perder aqui é a do MESTRE, não a própria — só cai
+  // pra própria agenda se o mestre não tiver nenhuma aula cadastrada ainda.
+  const nomeMestreFiltroHome = obterNomeMestreParaAgendaHome();
+  const nomeProfessorFiltroHome = nomeMestreFiltroHome || obterNomeProfessorParaAgendaHome();
   // O "cfg" (config geral) é compartilhado por todo o grupo/matriz — só usa
   // ele como fallback quando bate com o PRÓPRIO professor de quem está vendo
   // (ou quando não dá pra saber qual é o professor ainda). Sem essa checagem,
@@ -18106,7 +18123,8 @@ function renderConfigGeral(){
   // professor (ex: sempre a do Borracha, por ser o primeiro cadastrado).
   const cfgBateComMeuProfessor = !nomeProfessorFiltroHome || !cfg || !cfg.professor || mesmoProfessor(cfg.professor, nomeProfessorFiltroHome);
 
-  const proximaDaAgenda = calcularProximaAulaDaAgenda(meuGrupo, nomeProfessorFiltroHome);
+  let proximaDaAgenda = nomeMestreFiltroHome ? calcularProximaAulaDaAgenda(meuGrupo, nomeMestreFiltroHome) : null;
+  if(!proximaDaAgenda) proximaDaAgenda = calcularProximaAulaDaAgenda(meuGrupo, obterNomeProfessorParaAgendaHome());
   if(proximaDaAgenda){
     if(aulaInfo) aulaInfo.textContent = 'Prof. ' + proximaDaAgenda.professor + ' · Núcleo ' + proximaDaAgenda.nucleo;
     if(aulaTitulo) aulaTitulo.textContent = proximaDaAgenda.turma;
