@@ -7078,7 +7078,7 @@ function _formatarTempoPratica(inicioTreinos){
 // histórico, professor atual + anteriores, grupo atual + anteriores, e uma
 // linha do tempo unificada de todas as mudanças. Usado tanto na Ficha do
 // aluno (visão do professor/matriz) quanto na Estatísticas do próprio aluno.
-function renderHistoricoCompletoAluno(user, containerId){
+function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
   const container = document.getElementById(containerId);
   if(!container || !user) return;
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
@@ -7113,7 +7113,19 @@ function renderHistoricoCompletoAluno(user, containerId){
   html += '<div class="stat-grid" style="margin-top:8px;">';
   html += '<div class="stat"><b>' + (aluno.professor || '—') + '</b><span>👨‍🏫 Professor atual</span></div>';
   html += '<div class="stat"><b>' + (grupoAtual ? grupoAtual.nome : '—') + '</b><span>🏷️ Grupo atual</span></div>';
-  html += '</div></div>';
+  html += '</div>';
+  // Graduação, professor e grupo são registro oficial (só professor/matriz
+  // mexe, pra não dar pra ninguém adulterar o próprio histórico). A única
+  // coisa que o próprio aluno pode corrigir aqui é a data que começou a
+  // treinar — um dado pessoal que só ele sabe direito.
+  if(permitirEdicao){
+    html += '<div style="border-top:1px solid #EFE6D2;margin-top:10px;padding-top:10px;">' +
+      '<label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Data que comecei a treinar (você pode corrigir)</label>' +
+      '<input class="admin-input" id="meuInicioTreinosInput" type="date" value="' + (aluno.inicioTreinos || '') + '" style="margin-bottom:6px;">' +
+      '<button class="btn" type="button" onclick="salvarMeuInicioTreinos()" style="margin-top:0;width:auto;padding:8px 16px;">Salvar</button>' +
+      '</div>';
+  }
+  html += '</div>';
 
   html += '<div class="card" style="margin-bottom:10px;">';
   html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">🎉 Eventos que participou (' + eventosParticipados.length + ')</p>';
@@ -7151,6 +7163,28 @@ function renderHistoricoCompletoAluno(user, containerId){
   html += '</div>';
 
   container.innerHTML = html;
+}
+
+// Único campo do histórico que o próprio aluno pode corrigir — a data que
+// ele começou a treinar é um dado pessoal que só ele sabe direito, sem
+// afetar graduação/professor/grupo (esses continuam só com o professor).
+function salvarMeuInicioTreinos(){
+  if(currentRole !== 'aluno' || !currentUser) return;
+  const input = document.getElementById('meuInicioTreinosInput');
+  const novaData = input ? input.value : '';
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === currentUser);
+  if(idx < 0) return;
+  contas[idx].inicioTreinos = novaData;
+  if(novaData) contas[idx].desde = new Date(novaData + 'T00:00:00').getFullYear().toString();
+  setDado('gingapass_alunos_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+    } else {
+      alert('Data atualizada!');
+    }
+    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox', true); });
+  });
 }
 
 function abrirFichaAluno(user){
@@ -17901,7 +17935,7 @@ function renderEstatisticasAluno(){
   if(!frequenciaEl || !faltasEl || !listaEl) return;
   const acessosEl = document.getElementById('estatAlunoAcessos');
   if(acessosEl && currentRole && currentUser) acessosEl.textContent = String(obterContagemAcessos(currentRole + ':' + currentUser));
-  if(currentUser) tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox'); });
+  if(currentUser) tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox', true); });
   if(!currentUser){
     frequenciaEl.textContent = '0%';
     faltasEl.textContent = '0';
