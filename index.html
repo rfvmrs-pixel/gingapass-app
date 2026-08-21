@@ -996,6 +996,13 @@
       <button class="btn" type="button" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="adicionarNucleoAProfessorExistente(currentUser)">+ Cadastrar outra academia</button>
     </div>
 
+    <div class="card" id="perfilCardVincularAlunoGrupo" style="display:none;margin-top:14px;">
+      <p class="card-label" id="perfilVincularAlunoGrupoTitulo" style="margin:0 0 8px;">Vincular alunos do grupo</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;" id="perfilVincularAlunoGrupoTexto">Escolha quem do grupo passa a pagar mensalidade como seu aluno.</p>
+      <select class="admin-input" id="vincularAlunoGrupoSelect"><option value="">Selecione quem vincular...</option></select>
+      <button class="btn" type="button" onclick="vincularAlunoAoGrupo()">Vincular como meu aluno</button>
+    </div>
+
     <div id="perfilSecaoPlanoAula" style="display:none;">
       <p class="section-title">Plano de aula</p>
       <div class="card">
@@ -7863,6 +7870,107 @@ function desvincularProfessorDoMestre(nomeProfessor, nomeMestre){
   tentarChamar(function(){ renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz'); });
 }
 
+// ===================== Vincular aluno direto do grupo (self-service) =====================
+// Antes só a matriz conseguia vincular um professor como aluno de um mestre
+// (editarVinculoMestre, na lista "Academias com acesso"). Agora quem é
+// mestre/fundador do grupo (está em grupo.mestres) faz isso sozinho, do
+// próprio Perfil — escolhendo qualquer um do grupo. Quem NÃO é fundador
+// também pode vincular gente como seu próprio aluno, só não pode escolher
+// um fundador como alvo (um fundador nunca fica subordinado a quem não é).
+function renderVincularAlunoGrupoPerfil(){
+  const card = document.getElementById('perfilCardVincularAlunoGrupo');
+  const select = document.getElementById('vincularAlunoGrupoSelect');
+  const titulo = document.getElementById('perfilVincularAlunoGrupoTitulo');
+  const texto = document.getElementById('perfilVincularAlunoGrupoTexto');
+  if(!card || !select) return;
+  if(currentRole !== 'academia' || !currentUser){
+    card.style.display = 'none';
+    return;
+  }
+  const meuGrupo = obterGrupoCadastradoDaConta('academia', currentUser);
+  if(!meuGrupo){
+    card.style.display = 'none';
+    return;
+  }
+  const meuNome = (obterMeuNomeProfessor() || '').trim();
+  const meuNomeL = meuNome.toLowerCase();
+  const nomesFundadores = new Set((meuGrupo.mestres || []).map(m => (m || '').trim().toLowerCase()));
+  const souFundador = meuNomeL && nomesFundadores.has(meuNomeL);
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const candidatos = contas.filter(c => {
+    if(c.user === currentUser || c.oculto) return false;
+    const g = obterGrupoCadastradoDaConta('academia', c.user);
+    if(!g || g.id !== meuGrupo.id) return false;
+    if(!souFundador){
+      const academiaEntry = rede.find(a => a.nome === c.nome);
+      const nomeReal = ((academiaEntry && academiaEntry.professor) ? academiaEntry.professor : c.nome).trim().toLowerCase();
+      if(nomesFundadores.has(nomeReal)) return false;
+    }
+    return true;
+  }).map(c => {
+    const academiaEntry = rede.find(a => a.nome === c.nome);
+    const nomeReal = (academiaEntry && academiaEntry.professor) ? academiaEntry.professor : c.nome;
+    return {user: c.user, nome: nomeReal};
+  });
+
+  if(candidatos.length === 0){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  if(titulo) titulo.textContent = souFundador ? '👑 Vincular alunos ao grupo' : 'Vincular aluno';
+  if(texto) texto.textContent = souFundador
+    ? 'Como mestre/fundador de "' + meuGrupo.nome + '", você pode vincular qualquer pessoa do grupo como seu aluno (paga mensalidade como aluno seu).'
+    : 'Escolha quem do grupo passa a pagar mensalidade como seu aluno (fundadores do grupo não aparecem aqui).';
+  const atual = select.value;
+  select.innerHTML = '<option value="">Selecione quem vincular...</option>' +
+    candidatos.map(c => '<option value="' + c.user + '">' + c.nome + '</option>').join('');
+  if(atual && select.querySelector('option[value="' + atual + '"]')) select.value = atual;
+}
+
+function vincularAlunoAoGrupo(){
+  if(currentRole !== 'academia' || !currentUser) return;
+  const select = document.getElementById('vincularAlunoGrupoSelect');
+  const alvoUser = select ? select.value : '';
+  if(!alvoUser){
+    alert('Escolha quem você quer vincular.');
+    return;
+  }
+  const meuNome = obterMeuNomeProfessor();
+  if(!meuNome){
+    alert('Defina seu nome de professor em "Configurações gerais" antes de vincular alguém.');
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const alvoIdx = contas.findIndex(c => c.user === alvoUser);
+  if(alvoIdx < 0) return;
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const alvoAcademia = rede.find(a => a.nome === contas[alvoIdx].nome);
+  const nomeProfessorAlvo = (alvoAcademia && alvoAcademia.professor) ? alvoAcademia.professor : contas[alvoIdx].nome;
+  const graduacaoAlvo = alvoAcademia ? (alvoAcademia.graduacao || '') : '';
+
+  if(!confirm('Vincular "' + nomeProfessorAlvo + '" como seu aluno? Ele passa a pagar mensalidade como aluno de "' + meuNome + '".')) return;
+
+  const mestreAnterior = contas[alvoIdx].meuMestre;
+  contas[alvoIdx].meuMestre = meuNome;
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    if(mestreAnterior && !mesmoProfessor(mestreAnterior, meuNome)){
+      desvincularProfessorDoMestre(nomeProfessorAlvo, mestreAnterior);
+    }
+    garantirProfessorComoAlunoDoMestre(nomeProfessorAlvo, meuNome, graduacaoAlvo);
+    alert('Pronto! "' + nomeProfessorAlvo + '" agora é vinculado como seu aluno.');
+    renderAcademiasContas();
+    tentarChamar(function(){ renderVincularAlunoGrupoPerfil(); });
+  });
+}
+
 function sincronizarVinculosMestre(){
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
@@ -8890,6 +8998,7 @@ function renderPerfil(){
           listaNucleos.innerHTML = meusNucleos.map(n => '<div style="font-size:13px;color:var(--navy-900);padding:5px 0;border-bottom:1px solid #EFE6D2;">📍 ' + n + '</div>').join('') || '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum núcleo definido ainda.</p>';
         }
       }
+      tentarChamar(function(){ renderVincularAlunoGrupoPerfil(); });
     } else {
       const cardNucleosOculto = document.getElementById('perfilCardMeusNucleos');
       if(cardNucleosOculto) cardNucleosOculto.style.display = 'none';
