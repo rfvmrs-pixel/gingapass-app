@@ -818,7 +818,7 @@
     <div id="anuncioGraduacaoBanner" class="anuncio-graduacao-banner" style="display:none;">
       <div class="anuncio-graduacao-confete">🎉🥋🎊</div>
       <p id="anuncioGraduacaoTexto" style="margin:0 0 10px;font-size:14.5px;font-weight:700;line-height:1.4;"></p>
-      <button type="button" class="btn" style="background:var(--white);color:#C22C75;margin:0;width:auto;padding:9px 20px;" onclick="confirmarAnuncioGraduacao()">Show, obrigado! 🙌</button>
+      <button type="button" id="anuncioGraduacaoConfirmarBtn" class="btn" style="background:var(--white);color:#C22C75;margin:0;width:auto;padding:9px 20px;" onclick="confirmarAnuncioGraduacao()">Show, obrigado! 🙌</button>
     </div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
       <div>
@@ -1674,9 +1674,11 @@
 
     <p class="section-title">🎉 Anunciar indicação de graduação</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Publica um aviso animado na tela Início do aluno, dando os parabéns. Diferente de "Registrar graduação" acima (que é o histórico oficial) — isso é só o anúncio/comunicado.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Publica um aviso animado na tela Início do aluno, dando os parabéns. Diferente de "Registrar graduação" acima (que é o histórico oficial) — isso é só o anúncio/comunicado. Fica em destaque na tela dele até 23:59 do dia do evento — não some antes disso, mesmo que ele já tenha visto.</p>
       <input class="admin-input" id="fichaAlunoAnuncioGraduacao" placeholder="Nova graduação (ex: Corda Verde e Amarela)">
       <input class="admin-input" id="fichaAlunoAnuncioEvento" placeholder="Evento (ex: Batizado 2026)">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Data do evento (o aviso fica até 23:59 desse dia)</label>
+      <input class="admin-input" id="fichaAlunoAnuncioEventoData" type="date">
       <button class="btn" type="button" style="background:linear-gradient(135deg,#EF9F27,#C22C75);" onclick="publicarAnuncioGraduacao()">Publicar parabéns pro aluno</button>
     </div>
 
@@ -7420,17 +7422,23 @@ function publicarAnuncioGraduacao(){
   if(!_fichaAlunoUserAtual) return;
   const graduacaoInput = document.getElementById('fichaAlunoAnuncioGraduacao');
   const eventoInput = document.getElementById('fichaAlunoAnuncioEvento');
+  const eventoDataInput = document.getElementById('fichaAlunoAnuncioEventoData');
   const graduacao = graduacaoInput ? graduacaoInput.value.trim() : '';
   const evento = eventoInput ? eventoInput.value.trim() : '';
+  const eventoData = eventoDataInput ? eventoDataInput.value : '';
   if(!graduacao){
     alert('Preencha a nova graduação antes de publicar.');
+    return;
+  }
+  if(!eventoData){
+    alert('Preencha a data do evento — é até ela (23:59 desse dia) que o aviso fica em destaque na tela do aluno.');
     return;
   }
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const aluno = contas.find(c => c.user === _fichaAlunoUserAtual);
   const anuncio = {
     nomeAluno: aluno ? aluno.nome : '',
-    graduacao, evento,
+    graduacao, evento, eventoData,
     de: obterMeuNomeProfessor() || obterNomeExibicaoAtual() || 'Seu professor',
     data: Date.now(),
     lido: false
@@ -7442,8 +7450,18 @@ function publicarAnuncioGraduacao(){
     }
     if(graduacaoInput) graduacaoInput.value = '';
     if(eventoInput) eventoInput.value = '';
-    alert('Publicado! Na próxima vez que ' + (aluno ? aluno.nome : 'o aluno') + ' abrir o app, vai ver o aviso animado na tela Início.');
+    if(eventoDataInput) eventoDataInput.value = '';
+    alert('Publicado! Vai ficar em destaque na tela Início de ' + (aluno ? aluno.nome : 'o aluno') + ' até 23:59 do dia ' + eventoData.split('-').reverse().join('/') + '.');
   });
+}
+
+// O aviso fica em destaque até 23:59:59 do dia do evento — não some quando
+// o aluno confirma/abre o app de novo, e não depende de "lido". Só some
+// sozinho depois que o dia do evento passar.
+function _anuncioGraduacaoExpirado(anuncio){
+  if(!anuncio.eventoData) return false;
+  const fimDoDia = new Date(anuncio.eventoData + 'T23:59:59');
+  return Date.now() > fimDoDia.getTime();
 }
 
 function renderAnuncioGraduacaoHome(){
@@ -7455,24 +7473,29 @@ function renderAnuncioGraduacaoHome(){
     return;
   }
   const anuncio = JSON.parse(localStorage.getItem(chaveAnuncioGraduacao(currentUser)) || 'null');
-  if(!anuncio || anuncio.lido){
+  if(!anuncio || _anuncioGraduacaoExpirado(anuncio)){
     banner.style.display = 'none';
     return;
   }
   const primeiroNome = (anuncio.nomeAluno || obterNomeExibicaoAtual() || '').split(' ')[0];
   textoEl.textContent = '🎉 Parabéns' + (primeiroNome ? ', ' + primeiroNome : '') + '! Você foi indicado(a) para a graduação ' +
     anuncio.graduacao + (anuncio.evento ? (' no evento ' + anuncio.evento) : '') + '!';
+  const confirmarBtn = document.getElementById('anuncioGraduacaoConfirmarBtn');
+  if(confirmarBtn) confirmarBtn.textContent = anuncio.lido ? 'Confirmado ✓' : 'Show, obrigado! 🙌';
   banner.style.display = 'block';
 }
 
+// Só marca que o aluno já viu (o professor consegue ver isso na ficha dele,
+// se quiser) — NÃO esconde o aviso. Ele continua em destaque até passar o
+// dia do evento, mesmo depois de confirmado.
 function confirmarAnuncioGraduacao(){
   if(!currentUser) return;
   const anuncio = JSON.parse(localStorage.getItem(chaveAnuncioGraduacao(currentUser)) || 'null');
   if(!anuncio) return;
   anuncio.lido = true;
   setDado(chaveAnuncioGraduacao(currentUser), JSON.stringify(anuncio));
-  const banner = document.getElementById('anuncioGraduacaoBanner');
-  if(banner) banner.style.display = 'none';
+  const confirmarBtn = document.getElementById('anuncioGraduacaoConfirmarBtn');
+  if(confirmarBtn) confirmarBtn.textContent = 'Confirmado ✓';
 }
 
 function adicionarGraduacaoFicha(){
