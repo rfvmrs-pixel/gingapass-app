@@ -1672,6 +1672,9 @@
       <button class="btn" type="button" onclick="adicionarGraduacaoFicha()">Registrar graduação</button>
     </div>
 
+    <p class="section-title">📜 Histórico completo do aluno</p>
+    <div id="fichaAlunoHistoricoCompletoBox"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+
     <p class="section-title">🎉 Anunciar indicação de graduação</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Publica um aviso animado na tela Início do aluno, dando os parabéns. Diferente de "Registrar graduação" acima (que é o histórico oficial) — isso é só o anúncio/comunicado. Fica em destaque na tela dele até 23:59 do dia do evento — não some antes disso, mesmo que ele já tenha visto.</p>
@@ -2407,6 +2410,9 @@
       <p class="section-title">Minhas faltas</p>
       <div class="card" id="estatAlunoFaltasLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma falta registrada.</p></div>
       <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que seu professor confirmou aula (QR code ou validação semanal).</p>
+
+      <p class="section-title">📜 Minha trajetória na capoeira</p>
+      <div id="meuHistoricoCompletoBox"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
     </div>
 
     <div id="estatisticasProfessorSecoes">
@@ -7014,6 +7020,139 @@ function obterFichaAluno(user){
   return f || {graduacoes: [], observacoes: [], pagamentos: []};
 }
 
+// Registra no histórico da ficha do aluno (aba "Histórico completo") quando
+// o professor dele, o grupo oficial (derivado do professor — Capoeira Team
+// etc.) ou a graduação mudam. Chame com os valores de ANTES e DEPOIS da
+// edição. Também joga a graduação nova no histórico oficial de graduações,
+// se ainda não tiver uma entrada igual salva hoje.
+function registrarMudancasHistoricoAluno(alunoUser, antes, depois){
+  const eventos = [];
+  const profAntigo = (antes.professor || '').trim();
+  const profNovo = (depois.professor || '').trim();
+  if(profNovo && profNovo !== profAntigo){
+    eventos.push({tipo: 'professor', de: profAntigo || '(sem professor)', para: profNovo, data: Date.now()});
+    const contaProfAntigo = profAntigo ? obterAcademiaContaPorNucleoOuProfessor(profAntigo) : null;
+    const contaProfNovo = obterAcademiaContaPorNucleoOuProfessor(profNovo);
+    const grupoAntigo = contaProfAntigo ? obterGrupoCadastradoDaConta('academia', contaProfAntigo.user) : null;
+    const grupoNovo = contaProfNovo ? obterGrupoCadastradoDaConta('academia', contaProfNovo.user) : null;
+    if((grupoAntigo ? grupoAntigo.id : null) !== (grupoNovo ? grupoNovo.id : null)){
+      eventos.push({tipo: 'grupo', de: grupoAntigo ? grupoAntigo.nome : '(sem grupo)', para: grupoNovo ? grupoNovo.nome : '(sem grupo)', data: Date.now()});
+    }
+  }
+  const cordaAntiga = (antes.corda || '').trim();
+  const cordaNova = (depois.corda || '').trim();
+  if(cordaNova && cordaNova !== cordaAntiga){
+    eventos.push({tipo: 'graduacao', de: cordaAntiga || '(sem graduação)', para: cordaNova, data: Date.now()});
+  }
+  if(eventos.length === 0) return;
+  const ficha = obterFichaAluno(alunoUser);
+  ficha.historicoMudancas = ficha.historicoMudancas || [];
+  ficha.historicoMudancas.push(...eventos);
+  if(eventos.some(e => e.tipo === 'graduacao')){
+    ficha.graduacoes = ficha.graduacoes || [];
+    const hoje = hojeStr();
+    if(!ficha.graduacoes.some(g => g.corda === cordaNova && g.data === hoje)){
+      ficha.graduacoes.push({corda: cordaNova, data: hoje});
+    }
+  }
+  setDado(chaveFichaAluno(alunoUser), JSON.stringify(ficha));
+}
+
+function _formatarTempoPratica(inicioTreinos){
+  if(!inicioTreinos) return null;
+  const inicio = new Date(inicioTreinos + 'T00:00:00');
+  if(isNaN(inicio.getTime())) return null;
+  const agora = new Date();
+  let anos = agora.getFullYear() - inicio.getFullYear();
+  let meses = agora.getMonth() - inicio.getMonth();
+  if(agora.getDate() < inicio.getDate()) meses--;
+  if(meses < 0){ anos--; meses += 12; }
+  if(anos < 0) return null;
+  const partes = [];
+  if(anos > 0) partes.push(anos + (anos === 1 ? ' ano' : ' anos'));
+  if(meses > 0 || anos === 0) partes.push(meses + (meses === 1 ? ' mês' : ' meses'));
+  return partes.join(' e ');
+}
+
+// Trajetória completa do aluno: eventos, tempo de prática, graduação atual +
+// histórico, professor atual + anteriores, grupo atual + anteriores, e uma
+// linha do tempo unificada de todas as mudanças. Usado tanto na Ficha do
+// aluno (visão do professor/matriz) quanto na Estatísticas do próprio aluno.
+function renderHistoricoCompletoAluno(user, containerId){
+  const container = document.getElementById(containerId);
+  if(!container || !user) return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const aluno = contas.find(c => c.user === user);
+  if(!aluno){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Aluno não encontrado.</p>';
+    return;
+  }
+  const ficha = obterFichaAluno(user);
+  const nomeAluno = aluno.nome || user;
+
+  const checkins = obterMeusCheckinsEventos(user, nomeAluno);
+  const eventosTodos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const eventosParticipados = checkins
+    .map(c => eventosTodos.find(e => e.codigoCheckin === c.eventoId))
+    .filter(Boolean)
+    .sort((a, b) => (b.dataISO || b.data || '').localeCompare(a.dataISO || a.data || ''));
+
+  const tempoPratica = _formatarTempoPratica(aluno.inicioTreinos);
+  const graduacoesOrdenadas = (ficha.graduacoes || []).slice().sort((a, b) => b.data.localeCompare(a.data));
+  const mudancas = (ficha.historicoMudancas || []).slice().sort((a, b) => b.data - a.data);
+  const professoresAnteriores = [...new Set(mudancas.filter(m => m.tipo === 'professor').map(m => m.de).filter(d => d && d !== '(sem professor)'))];
+  const gruposAnteriores = [...new Set(mudancas.filter(m => m.tipo === 'grupo').map(m => m.de).filter(d => d && d !== '(sem grupo)'))];
+  const grupoAtual = obterGrupoCadastradoDaConta('academia', (obterAcademiaContaPorNucleoOuProfessor(aluno.professor || '') || {}).user);
+
+  let html = '';
+  html += '<div class="card" style="margin-bottom:10px;">';
+  html += '<div class="stat-grid">';
+  html += '<div class="stat"><b>' + (aluno.corda || '—') + '</b><span>🎓 Graduação atual</span></div>';
+  html += '<div class="stat"><b>' + (tempoPratica || '—') + '</b><span>⏳ Tempo de prática</span></div>';
+  html += '</div>';
+  html += '<div class="stat-grid" style="margin-top:8px;">';
+  html += '<div class="stat"><b>' + (aluno.professor || '—') + '</b><span>👨‍🏫 Professor atual</span></div>';
+  html += '<div class="stat"><b>' + (grupoAtual ? grupoAtual.nome : '—') + '</b><span>🏷️ Grupo atual</span></div>';
+  html += '</div></div>';
+
+  html += '<div class="card" style="margin-bottom:10px;">';
+  html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">🎉 Eventos que participou (' + eventosParticipados.length + ')</p>';
+  html += eventosParticipados.length === 0
+    ? '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum evento com presença confirmada ainda.</p>'
+    : eventosParticipados.map(ev => '<p style="font-size:12.5px;color:var(--ink);margin:3px 0;">• ' + ev.titulo + ' — ' + (ev.data || '') + (ev.local ? ' · ' + ev.local : '') + '</p>').join('');
+  html += '</div>';
+
+  html += '<div class="card" style="margin-bottom:10px;">';
+  html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">🎓 Histórico de graduações</p>';
+  html += graduacoesOrdenadas.length === 0
+    ? '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma graduação registrada ainda.</p>'
+    : graduacoesOrdenadas.map(g => '<p style="font-size:12.5px;color:var(--ink);margin:3px 0;">• ' + g.corda + ' — ' + new Date(g.data + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>').join('');
+  html += '</div>';
+
+  if(professoresAnteriores.length > 0 || gruposAnteriores.length > 0){
+    html += '<div class="card" style="margin-bottom:10px;">';
+    if(professoresAnteriores.length > 0){
+      html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 4px;">👨‍🏫 Professores anteriores</p><p style="font-size:12.5px;color:var(--ink);margin:0 0 10px;">' + professoresAnteriores.join(', ') + '</p>';
+    }
+    if(gruposAnteriores.length > 0){
+      html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 4px;">🏷️ Grupos anteriores</p><p style="font-size:12.5px;color:var(--ink);margin:0;">' + gruposAnteriores.join(', ') + '</p>';
+    }
+    html += '</div>';
+  }
+
+  html += '<div class="card">';
+  html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">📜 Linha do tempo (professor, grupo e graduação)</p>';
+  if(mudancas.length === 0){
+    html += '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma mudança registrada ainda.</p>';
+  } else {
+    const icone = {professor: '👨‍🏫', grupo: '🏷️', graduacao: '🎓'};
+    html += mudancas.map(m => '<p style="font-size:12px;color:var(--ink);margin:4px 0;">' + (icone[m.tipo] || '•') + ' ' + m.de + ' → <b>' + m.para + '</b> <span style="color:var(--ink-soft);font-size:10.5px;">(' + new Date(m.data).toLocaleDateString('pt-BR') + ')</span></p>').join('');
+  }
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
 function abrirFichaAluno(user){
   _fichaAlunoUserAtual = user;
   showScreen('fichaAluno', null);
@@ -7023,6 +7162,7 @@ function abrirFichaAluno(user){
 function renderFichaAluno(){
   const user = _fichaAlunoUserAtual;
   if(!user) return;
+  tentarChamar(function(){ renderHistoricoCompletoAluno(user, 'fichaAlunoHistoricoCompletoBox'); });
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const aluno = contas.find(c => c.user === user);
   if(!aluno){
@@ -7506,8 +7646,13 @@ function adicionarGraduacaoFicha(){
     return;
   }
   const ficha = obterFichaAluno(_fichaAlunoUserAtual);
+  const cordaAnterior = ficha.graduacoes && ficha.graduacoes.length
+    ? ficha.graduacoes.slice().sort((a, b) => a.data.localeCompare(b.data))[ficha.graduacoes.length - 1].corda
+    : '';
   ficha.graduacoes = ficha.graduacoes || [];
   ficha.graduacoes.push({corda, data});
+  ficha.historicoMudancas = ficha.historicoMudancas || [];
+  ficha.historicoMudancas.push({tipo: 'graduacao', de: cordaAnterior || '(sem graduação)', para: corda, data: Date.now()});
   salvarFichaAluno(ficha);
 
   // Também atualiza a corda "atual" do cadastro do aluno, se essa for a mais recente.
@@ -14263,6 +14408,102 @@ function excluirDesafioSocial(id){
   });
 }
 
+function _gerarIdOpcaoEnquete(){
+  return 'op_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function adicionarOpcaoEnqueteDesafio(desafioId){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === desafioId);
+  if(!desafio) return;
+  const minhaChave = identificadorUsuarioAtual();
+  if(desafio.criadorChave !== minhaChave && currentRole !== 'matriz'){
+    alert('Só quem criou o desafio (ou a matriz) pode mexer na enquete.');
+    return;
+  }
+  const input = document.getElementById('_enqueteNovaOpcao_' + desafioId);
+  const texto = input ? input.value.trim() : '';
+  if(!texto){ alert('Escreva o nome da opção antes de adicionar.'); return; }
+  const enquete = desafio.enquete || {opcoes: []};
+  enquete.opcoes = enquete.opcoes || [];
+  enquete.opcoes.push({id: _gerarIdOpcaoEnquete(), texto, votos: []});
+  socialDesafiosCollection.doc(desafioId).update({enquete}).catch(function(e){ console.error('Erro ao adicionar opção da enquete:', e); });
+  desafio.enquete = enquete;
+  if(input) input.value = '';
+  renderDesafiosSocial();
+}
+
+function removerOpcaoEnqueteDesafio(desafioId, opcaoId){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === desafioId);
+  if(!desafio || !desafio.enquete) return;
+  const minhaChave = identificadorUsuarioAtual();
+  if(desafio.criadorChave !== minhaChave && currentRole !== 'matriz') return;
+  desafio.enquete.opcoes = (desafio.enquete.opcoes || []).filter(o => o.id !== opcaoId);
+  socialDesafiosCollection.doc(desafioId).update({enquete: desafio.enquete}).catch(function(e){ console.error('Erro ao remover opção da enquete:', e); });
+  renderDesafiosSocial();
+}
+
+// Atalho: monta a enquete com uma opção pra cada participante já inscrito,
+// sem precisar digitar nome por nome — útil pro caso comum de "vote em quem
+// mandou melhor".
+function usarParticipantesComoOpcoesEnquete(desafioId){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === desafioId);
+  if(!desafio) return;
+  const minhaChave = identificadorUsuarioAtual();
+  if(desafio.criadorChave !== minhaChave && currentRole !== 'matriz'){
+    alert('Só quem criou o desafio (ou a matriz) pode montar a enquete.');
+    return;
+  }
+  const participantes = desafio.participantes || [];
+  if(participantes.length === 0){ alert('Ainda não tem nenhum participante nesse desafio.'); return; }
+  const enquete = desafio.enquete || {opcoes: []};
+  enquete.opcoes = enquete.opcoes || [];
+  participantes.forEach(p => {
+    if(!enquete.opcoes.some(o => o.chaveConta === p.chaveConta)){
+      enquete.opcoes.push({id: _gerarIdOpcaoEnquete(), texto: p.nome, chaveConta: p.chaveConta, votos: []});
+    }
+  });
+  socialDesafiosCollection.doc(desafioId).update({enquete}).catch(function(e){ console.error('Erro ao montar enquete com participantes:', e); });
+  desafio.enquete = enquete;
+  renderDesafiosSocial();
+}
+
+// Um voto por pessoa, numa opção só — clicar de novo na mesma opção retira
+// o voto. Qualquer um que enxerga o desafio pode votar (mesmo sem
+// participar dele).
+function votarEnqueteDesafio(desafioId, opcaoId){
+  if(!currentRole || !currentUser || !socialDesafiosCollection) return;
+  const desafio = (window._socialDesafiosCache || []).find(d => d.id === desafioId);
+  if(!desafio || !desafio.enquete || !podeVerDesafio(desafio)) return;
+  const minhaChave = identificadorUsuarioAtual();
+  const opcoes = desafio.enquete.opcoes || [];
+  opcoes.forEach(o => {
+    o.votos = o.votos || [];
+    const idx = o.votos.indexOf(minhaChave);
+    if(o.id === opcaoId){
+      if(idx === -1) o.votos.push(minhaChave);
+      else o.votos.splice(idx, 1);
+    } else if(idx !== -1){
+      o.votos.splice(idx, 1);
+    }
+  });
+  socialDesafiosCollection.doc(desafioId).update({enquete: desafio.enquete}).catch(function(e){ console.error('Erro ao votar na enquete:', e); });
+  renderDesafiosSocial();
+}
+
+// A opção com mais votos vence — em empate, não define ninguém (evita
+// declarar vencedor errado por sorte de quem votou primeiro).
+function _vencedorEnqueteDesafio(desafio){
+  const opcoes = (desafio.enquete && desafio.enquete.opcoes) || [];
+  const comVotos = opcoes.filter(o => (o.votos || []).length > 0);
+  if(comVotos.length === 0) return null;
+  const maxVotos = Math.max(...comVotos.map(o => (o.votos || []).length));
+  const vencedores = comVotos.filter(o => (o.votos || []).length === maxVotos);
+  return vencedores.length === 1 ? vencedores[0] : null;
+}
+
 function _criarCardDesafioAtivo(d){
   const card = document.createElement('div');
   card.className = 'social-card';
@@ -14339,7 +14580,89 @@ function _criarCardDesafioAtivo(d){
     card.appendChild(painel);
   }
 
+  card.appendChild(_criarPainelEnqueteDesafio(d, minhaChave, souCriador));
+
   return card;
+}
+
+// Enquete opcional dentro do desafio: qualquer um que puder ver o desafio
+// vota (uma opção por vez, clicar de novo retira o voto); o resultado
+// aparece em barras pra todo mundo. Só o criador (ou a matriz) pode
+// adicionar/remover opções. A opção mais votada vira o "vencedor por
+// votação" — some pro Mural quando o desafio encerra.
+function _criarPainelEnqueteDesafio(d, minhaChave, souCriador){
+  const painel = document.createElement('div');
+  painel.style.cssText = 'border-top:1px solid #EFE6D2;padding-top:8px;margin-top:8px;';
+  const opcoes = (d.enquete && d.enquete.opcoes) || [];
+  const totalVotos = opcoes.reduce((soma, o) => soma + (o.votos || []).length, 0);
+
+  const titulo = document.createElement('p');
+  titulo.style.cssText = 'font-size:11px;color:var(--ink-soft);margin:0 0 6px;font-weight:600;';
+  titulo.textContent = '🗳️ Enquete' + (totalVotos > 0 ? (' — ' + totalVotos + (totalVotos === 1 ? ' voto' : ' votos')) : '');
+  painel.appendChild(titulo);
+
+  if(opcoes.length === 0 && !souCriador && currentRole !== 'matriz'){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Sem enquete nesse desafio.';
+    painel.appendChild(vazio);
+    return painel;
+  }
+
+  opcoes.forEach(o => {
+    const votos = (o.votos || []).length;
+    const pct = totalVotos > 0 ? Math.round((votos / totalVotos) * 100) : 0;
+    const votei = (o.votos || []).indexOf(minhaChave) !== -1;
+    const linha = document.createElement('div');
+    linha.style.cssText = 'position:relative;margin-bottom:6px;cursor:pointer;border:1.5px solid ' + (votei ? '#C22C75' : '#EFE6D2') + ';border-radius:10px;overflow:hidden;';
+    const barra = document.createElement('div');
+    barra.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:' + pct + '%;background:' + (votei ? 'rgba(194,44,117,0.18)' : 'rgba(108,63,166,0.10)') + ';transition:width 0.3s;';
+    linha.appendChild(barra);
+    const conteudo = document.createElement('div');
+    conteudo.style.cssText = 'position:relative;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;font-size:12px;color:var(--ink);';
+    conteudo.innerHTML = '<span>' + (votei ? '✓ ' : '') + o.texto + '</span><span style="font-weight:700;color:var(--navy-900);flex-shrink:0;margin-left:8px;">' + votos + ' (' + pct + '%)</span>';
+    linha.appendChild(conteudo);
+    linha.onclick = () => votarEnqueteDesafio(d.id, o.id);
+    if(souCriador || currentRole === 'matriz'){
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '×';
+      delBtn.title = 'Remover opção';
+      delBtn.style.cssText = 'position:relative;float:right;border:none;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;padding:0 6px;';
+      delBtn.onclick = (ev) => { ev.stopPropagation(); removerOpcaoEnqueteDesafio(d.id, o.id); };
+      conteudo.appendChild(delBtn);
+    }
+    painel.appendChild(linha);
+  });
+
+  if(souCriador || currentRole === 'matriz'){
+    const addRow = document.createElement('div');
+    addRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
+    const addInput = document.createElement('input');
+    addInput.className = 'admin-input';
+    addInput.id = '_enqueteNovaOpcao_' + d.id;
+    addInput.placeholder = 'Nova opção da enquete...';
+    addInput.style.cssText = 'margin-bottom:0;font-size:12px;';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.textContent = '+';
+    addBtn.style.cssText = 'border:1.5px solid #C22C75;background:var(--white);color:#C22C75;font-weight:700;width:36px;border-radius:10px;cursor:pointer;flex-shrink:0;';
+    addBtn.onclick = () => adicionarOpcaoEnqueteDesafio(d.id);
+    addRow.appendChild(addInput);
+    addRow.appendChild(addBtn);
+    painel.appendChild(addRow);
+
+    if((d.participantes || []).length > 0){
+      const atalhoBtn = document.createElement('button');
+      atalhoBtn.type = 'button';
+      atalhoBtn.textContent = 'Usar participantes como opções';
+      atalhoBtn.style.cssText = 'border:none;background:none;color:#C22C75;font-size:11px;text-decoration:underline;cursor:pointer;padding:6px 0 0;';
+      atalhoBtn.onclick = () => usarParticipantesComoOpcoesEnquete(d.id);
+      painel.appendChild(atalhoBtn);
+    }
+  }
+
+  return painel;
 }
 
 function _linhaRankingDesafio(pos, nome, handle, pontos, vitorias){
@@ -14406,6 +14729,13 @@ function renderDesafiosSocial(){
         card.className = 'social-card';
         let html = '<div class="card-label">🏁 ' + d.titulo + '</div>';
         html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Encerrado em ' + d.dataFim + ' · ' + participantes.length + (participantes.length === 1 ? ' participante' : ' participantes') + '</p>';
+        const vencedorEnquete = _vencedorEnqueteDesafio(d);
+        if(vencedorEnquete){
+          const totalVotosMural = (d.enquete.opcoes || []).reduce((s, o) => s + (o.votos || []).length, 0);
+          html += '<div style="background:linear-gradient(135deg,#6C3FA6,#C22C75);border-radius:10px;padding:8px 12px;margin-bottom:10px;">' +
+            '<p style="font-size:10.5px;color:rgba(255,255,255,0.85);margin:0;">🗳️ Vencedor por votação (' + totalVotosMural + (totalVotosMural === 1 ? ' voto' : ' votos') + ')</p>' +
+            '<p style="font-size:14px;color:#fff;font-weight:700;margin:2px 0 0;">🏆 ' + vencedorEnquete.texto + '</p></div>';
+        }
         if(participantes.length === 0){
           html += '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Ninguém participou desse desafio.</p>';
         } else {
@@ -15169,6 +15499,7 @@ function renderAlunos(){
 function editarAluno(i){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const conta = contas[i];
+  const antesHistorico = {professor: conta.professor || '', corda: conta.corda || ''};
   const novoNome = prompt('Nome do aluno:', conta.nome);
   if(novoNome === null) return;
   const novaCorda = prompt('Graduação/corda:', conta.corda || '');
@@ -15229,6 +15560,7 @@ function editarAluno(i){
   conta.user = novoUser;
   conta.senha = novaSenha;
   contas[i] = conta;
+  registrarMudancasHistoricoAluno(conta.user, antesHistorico, {professor: conta.professor, corda: conta.corda});
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderAlunos();
   renderAlunosContas();
@@ -17526,6 +17858,7 @@ function renderEstatisticasAluno(){
   if(!frequenciaEl || !faltasEl || !listaEl) return;
   const acessosEl = document.getElementById('estatAlunoAcessos');
   if(acessosEl && currentRole && currentUser) acessosEl.textContent = String(obterContagemAcessos(currentRole + ':' + currentUser));
+  if(currentUser) tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox'); });
   if(!currentUser){
     frequenciaEl.textContent = '0%';
     faltasEl.textContent = '0';
@@ -18688,7 +19021,9 @@ function escolherProfessorChat(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idx = contas.findIndex(c => c.user === currentUser);
   if(idx >= 0){
+    const profAntigo = contas[idx].professor || '';
     contas[idx].professor = escolhido;
+    registrarMudancasHistoricoAluno(currentUser, {professor: profAntigo}, {professor: escolhido});
     setDado('gingapass_alunos_contas', JSON.stringify(contas));
   }
   renderChat();
@@ -18861,13 +19196,18 @@ function renderChat(){
     const profOnline = algumOnline(idsProf);
     label.textContent = meuProfessor ? ((profOnline ? '🟢 ' : '⚪ ') + 'Conversando com Prof. ' + meuProfessor) : 'Escolha o professor acima para começar a conversa.';
   }
-  if(!meuProfessor){
-    container.innerHTML = '';
-    return;
-  }
+  // IMPORTANTE: antes, se o aluno não tivesse escolhido/tivesse um professor
+  // definido, a tela ficava em branco e escondia QUALQUER mensagem já
+  // recebida — mesmo mensagens de um professor que ele já trocou antes. Só
+  // precisa de "meuProfessor" definido pra ENVIAR mensagem nova; pra LER o
+  // que já chegou, sempre mostra.
   const todas = JSON.parse(localStorage.getItem('gingapass_chat') || '[]');
   const minhas = todas.filter(m => m.aluno === currentUser);
   container.innerHTML = '';
+  if(!meuProfessor && minhas.length === 0){
+    container.innerHTML = '';
+    return;
+  }
   if(minhas.length === 0){
     container.innerHTML = '<div class="chat-bubble bot">Envie uma mensagem pro seu professor por aqui. Ele recebe na caixa de mensagens dele e responde direto nesta conversa.</div>';
     return;
@@ -19362,12 +19702,44 @@ function mudarModoChatProfessor(modo){
   }
 }
 
+// O Grupo OFICIAL (cadastrado em "Grupos", ex: "Capoeira Team") de quem
+// está usando o chat agora — igual ao usado no GingaSocial. Prioriza esse
+// grupo específico (não o balde genérico "matriz" que junta a rede toda)
+// pra decidir quem aparece no chat; só cai pro balde antigo se essa conta
+// ainda não tiver sido vinculada a nenhum grupo (evita cortar o chat de quem
+// foi cadastrado antes do grupo virar obrigatório).
+function obterMeuGrupoCadastradoIdParaChat(){
+  if(currentRole === 'academia'){
+    const g = obterGrupoCadastradoDaConta('academia', currentUser);
+    return g ? g.id : null;
+  }
+  if(currentRole === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const minhaConta = contas.find(c => c.user === currentUser);
+    if(!minhaConta || !minhaConta.professor) return null;
+    const contaProf = obterAcademiaContaPorNucleoOuProfessor(minhaConta.professor);
+    if(!contaProf) return null;
+    const g = obterGrupoCadastradoDaConta('academia', contaProf.user);
+    return g ? g.id : null;
+  }
+  return null;
+}
+
 function outrosProfessoresParaChat(){
   const meuNome = (obterMeuNomeProfessor() || '').trim().toLowerCase();
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const meuGrupoOutros = obterMeuGrupoId();
+  const meuGrupoCadastradoChat = obterMeuGrupoCadastradoIdParaChat();
   const nomes = [...new Set(academiasContas.filter(conta => {
+    // Se eu já tenho um Grupo oficial vinculado, o chat fica restrito a quem
+    // é desse MESMO grupo oficial (ex: só "Capoeira Team"), não a rede
+    // inteira. Sem grupo vinculado ainda, cai no balde antigo (rede toda)
+    // pra não cortar ninguém.
+    if(meuGrupoCadastradoChat){
+      const grupoDaConta = obterGrupoCadastradoDaConta('academia', conta.user);
+      return grupoDaConta && grupoDaConta.id === meuGrupoCadastradoChat;
+    }
     // Antes essa comparação era refeita "na mão" aqui dentro e não reconhecia
     // contas vinculadas a um Grupo oficial (grupoParceiroId) quando o campo
     // "grupo" não era literalmente "independente" — por isso o professor
@@ -19508,11 +19880,22 @@ function meusAlunosParaChat(){
   // (obterMeusNucleos), então um professor só via os próprios alunos no chat.
   // A lógica do chat é a mesma usada pra professores em outrosProfessoresParaChat():
   // todo mundo do MESMO GRUPO pode conversar entre si, não só quem é "meu aluno"
-  // direto. Por isso agora filtra só pelo grupo (obterGrupoIdPorNomeProfessor),
-  // igual professores, trazendo todos os alunos do grupo (de qualquer núcleo/professor).
+  // direto. Prioriza o Grupo OFICIAL (Capoeira Team etc.) quando a conta já
+  // tem um vinculado — senão cai no balde antigo (rede toda/"matriz") pra
+  // não cortar o chat de quem ainda não foi vinculado a nenhum grupo.
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const meuGrupoChat = obterMeuGrupoId();
+  const meuGrupoCadastradoChat = obterMeuGrupoCadastradoIdParaChat();
   if(currentRole === 'academia' || currentRole === 'matriz'){
+    if(meuGrupoCadastradoChat){
+      return contas.filter(c => {
+        if(!c.professor) return false;
+        const contaProf = obterAcademiaContaPorNucleoOuProfessor(c.professor);
+        if(!contaProf) return false;
+        const g = obterGrupoCadastradoDaConta('academia', contaProf.user);
+        return g && g.id === meuGrupoCadastradoChat;
+      });
+    }
     return contas.filter(c => obterGrupoIdPorNomeProfessor(c.professor) === meuGrupoChat);
   }
   return [];
