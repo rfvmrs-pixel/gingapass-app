@@ -12604,11 +12604,20 @@ function renderLimiteFotoSemanal(){
 function _categoriaDoProfessor(nome){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const entrada = rede.find(a => mesmoProfessor(a.professor, nome));
-  // O título às vezes vem separado (campo graduação: "Mestrando") e às vezes
-  // vem junto do próprio nome cadastrado (ex: "Instrutor Cavaca", sem nada
-  // no campo graduação) — olha os dois lugares pra não perder ninguém.
+  // O título de verdade (a GRADUAÇÃO) pode estar em três lugares diferentes,
+  // dependendo de como foi cadastrado — nunca só um: no campo graduação da
+  // rede ("Mestrando"), no nome já resolvido ("Instrutor Cavaca") ou só no
+  // usuário de login da conta de academia (ex: conta.user = "Instrutor
+  // Flecha", mesmo com o núcleo resolvendo o nome de exibição pra só
+  // "Flecha" e a graduação da rede vazia). Sem olhar o "user" também, quem
+  // dá aula mas tem título de instrutor/mestre acabava caindo em Professores
+  // só por ADMINISTRAR um núcleo — o que é o cargo dele, não o que ele dá aula.
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const conta = academiasContas.find(c => mesmoProfessor(c.nome, nome) || mesmoProfessor(c.user, nome))
+    || (entrada ? academiasContas.find(c => c.nome === entrada.nome) : null);
   const grad = ((entrada && entrada.graduacao) || '').toLowerCase();
-  const texto = grad + ' ' + (nome || '').toLowerCase();
+  const userConta = ((conta && conta.user) || '').toLowerCase();
+  const texto = grad + ' ' + userConta + ' ' + (nome || '').toLowerCase();
   if(texto.indexOf('mestr') !== -1) return 'mestre';
   if(texto.indexOf('instrutor') !== -1) return 'instrutor';
   return 'professor';
