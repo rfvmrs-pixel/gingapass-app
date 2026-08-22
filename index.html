@@ -10596,116 +10596,103 @@ function abrirCertificado(eventoId){
   renderizarCertificadoCanvas(ev);
 }
 
+// Acha o grupo oficial (cadastrado pelo admin em "Cadastrar grupos") de
+// quem criou o evento — nome e logo, pro cabeçalho do certificado.
+function _obterGrupoDoEvento(ev){
+  if(!ev || !ev.criadoPor) return {nome: '', foto: ''};
+  const partes = ev.criadoPor.split(':');
+  const role = partes[0], user = partes.slice(1).join(':');
+  if(role !== 'academia') return {nome: '', foto: ''};
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const conta = academiasContas.find(c => c.user === user);
+  if(!conta || !conta.grupoParceiroId) return {nome: '', foto: ''};
+  const grupo = listarTodosGruposParceirosCadastrados().find(g => g.id === conta.grupoParceiroId);
+  return grupo ? {nome: grupo.nome || '', foto: grupo.foto || ''} : {nome: '', foto: ''};
+}
+
+// Nome e foto do professor/mestre que criou o evento — é o retrato que
+// aparece do lado esquerdo do certificado (igual ao modelo com o Mestre
+// Pelezinho), bem mais pessoal que usar o cartaz do evento como antes.
+function _obterProfessorDoEvento(ev){
+  if(ev && ev.criadoPor){
+    const partes = ev.criadoPor.split(':');
+    const role = partes[0], user = partes.slice(1).join(':');
+    if(role === 'academia'){
+      const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+      const conta = academiasContas.find(c => c.user === user);
+      if(conta){
+        // conta.nome é o nome do NÚCLEO (ex: "Capoeira Team Itaguaí"), não da
+        // pessoa — o nome de quem assina fica em gingapass_rede_academias,
+        // no campo "professor" da entrada com esse mesmo núcleo (mesma lógica
+        // de obterMeuNomeProfessor).
+        const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+        const academiaRede = rede.find(a => a.nome === conta.nome);
+        const nomePessoa = (academiaRede && academiaRede.professor) ? academiaRede.professor : conta.nome;
+        return {nome: nomePessoa, foto: obterFotoAcademia(user, conta)};
+      }
+    }
+  }
+  // Evento criado pela matriz: usa o professor/mestre padrão da rede como
+  // assinatura, e a foto do grupo da matriz (se tiver) como retrato.
+  const cfg = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+  const grupoMatriz = JSON.parse(localStorage.getItem('gingapass_grupo_matriz') || 'null');
+  return {nome: (cfg && cfg.professor) || '', foto: (grupoMatriz && grupoMatriz.foto) || ''};
+}
+
+function _quebrarTextoCanvas(ctx, texto, maxLargura){
+  const palavras = (texto || '').split(' ');
+  const linhas = [];
+  let linhaAtual = '';
+  palavras.forEach(palavra => {
+    const testeLinha = linhaAtual ? (linhaAtual + ' ' + palavra) : palavra;
+    if(ctx.measureText(testeLinha).width > maxLargura && linhaAtual){
+      linhas.push(linhaAtual);
+      linhaAtual = palavra;
+    } else {
+      linhaAtual = testeLinha;
+    }
+  });
+  if(linhaAtual) linhas.push(linhaAtual);
+  return linhas;
+}
+
+function _desenharEstrelaCanvas(ctx, cx, cy, raioExterno, cor){
+  const raioInterno = raioExterno * 0.45;
+  ctx.beginPath();
+  for(let i = 0; i < 10; i++){
+    const raio = (i % 2 === 0) ? raioExterno : raioInterno;
+    const angulo = (Math.PI / 5) * i - Math.PI / 2;
+    const x = cx + raio * Math.cos(angulo);
+    const y = cy + raio * Math.sin(angulo);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = cor;
+  ctx.fill();
+}
+
+// Modelo novo, inspirado no certificado físico que a rede já usa pros
+// workshops (fundo escuro dourado, retrato do mestre sangrando na lateral,
+// título grande "CERTIFICADO DE PARTICIPAÇÃO", nome do aluno em caligrafia
+// e assinatura no rodapé) — em vez de simplesmente reaproveitar o cartaz do
+// evento como antes.
 function renderizarCertificadoCanvas(ev){
   const canvas = document.getElementById('certificadoCanvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  const LARGURA = 1200, ALTURA = 950;
+  const LARGURA = 1200, ALTURA = 800;
   canvas.width = LARGURA;
   canvas.height = ALTURA;
 
   const nomeAluno = obterMeuNomeCompletoParaCertificado();
-  const posterSrc = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem || '';
-  const logoGrupoSrc = obterLogoGrupoDoEvento(ev);
+  const grupo = _obterGrupoDoEvento(ev);
+  const professor = _obterProfessorDoEvento(ev);
+  const nomeGrupo = grupo.nome || 'GingaPass';
 
-  // Layout em 2 áreas: em cima o cartaz do evento INTEIRO, sem cortar nada
-  // (object-fit:contain, com fundo desfocado/atrás preenchendo as sobras);
-  // embaixo, uma faixa fina só com o texto do certificado (e a logo do
-  // grupo, quando tem). A faixa era grande demais e roubava espaço do
-  // cartaz — agora é bem mais fina, sobrando bem mais área pra imagem.
-  const areaTextoAltura = 190;
-  const areaImagemAltura = ALTURA - areaTextoAltura;
-  const areaTextoY = areaImagemAltura;
-
-  const desenharMoldura = () => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(14, 14, LARGURA - 28, ALTURA - 28);
-  };
-
-  const desenharFaixaTexto = (logoImg) => {
-    ctx.fillStyle = '#042C53';
-    ctx.fillRect(0, areaTextoY, LARGURA, areaTextoAltura);
-    // linha dourada separando a imagem do texto
-    ctx.fillStyle = '#EF9F27';
-    ctx.fillRect(0, areaTextoY - 4, LARGURA, 4);
-
-    if(logoImg){
-      // Logo do grupo, discreta, no canto esquerdo da faixa — não empurra o
-      // texto (que continua centralizado no meio da faixa toda).
-      const logoRaio = 34;
-      const logoCx = 70, logoCy = areaTextoY + areaTextoAltura / 2;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(logoCx, logoCy, logoRaio, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      const escalaLogo = Math.max((logoRaio * 2) / logoImg.width, (logoRaio * 2) / logoImg.height);
-      const wLogo = logoImg.width * escalaLogo, hLogo = logoImg.height * escalaLogo;
-      ctx.drawImage(logoImg, logoCx - wLogo / 2, logoCy - hLogo / 2, wLogo, hLogo);
-      ctx.restore();
-      ctx.strokeStyle = 'rgba(239,159,39,0.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(logoCx, logoCy, logoRaio, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    const meioY = areaTextoY + areaTextoAltura / 2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#EF9F27';
-    ctx.font = '600 15px Arial';
-    ctx.fillText('CERTIFICADO DE PARTICIPAÇÃO', LARGURA / 2, meioY - 52);
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '700 32px Arial';
-    ctx.fillText(nomeAluno, LARGURA / 2, meioY - 12);
-
-    ctx.font = '400 16px Arial';
-    ctx.fillStyle = '#E7EEF6';
-    const linhaEvento = 'participou de "' + (ev.titulo || 'Evento') + '"' + (ev.local ? (' em ' + ev.local) : '');
-    ctx.fillText(linhaEvento, LARGURA / 2, meioY + 18);
-
-    ctx.font = '400 14px Arial';
-    ctx.fillStyle = '#C7D6E5';
-    ctx.fillText((ev.data || '') + '   ·   GingaPass', LARGURA / 2, meioY + 44);
-
-    desenharMoldura();
-  };
-
-  const desenharAreaImagem = (img, logoImg) => {
-    if(!img){
-      // Sem cartaz: fundo degradê com marca d'água, ocupando a área da imagem.
-      const grad = ctx.createLinearGradient(0, 0, LARGURA, areaImagemAltura);
-      grad.addColorStop(0, '#042C53');
-      grad.addColorStop(1, '#0B4A7F');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, LARGURA, areaImagemAltura);
-      ctx.textAlign = 'center';
-      ctx.font = '700 34px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.14)';
-      ctx.fillText('GINGAPASS', LARGURA / 2, areaImagemAltura / 2 + 12);
-      desenharFaixaTexto(logoImg);
-      return;
-    }
-    // Fundo da área da imagem: a própria foto desfocada/escurecida, cobrindo
-    // tudo, só pra não sobrar borda vazia feia quando a proporção não bate.
-    const escalaCover = Math.max(LARGURA / img.width, areaImagemAltura / img.height);
-    const wCover = img.width * escalaCover, hCover = img.height * escalaCover;
-    ctx.save();
-    ctx.filter = 'blur(18px) brightness(0.55)';
-    ctx.drawImage(img, (LARGURA - wCover) / 2, (areaImagemAltura - hCover) / 2, wCover, hCover);
-    ctx.restore();
-
-    // Imagem completa, sem cortar nada (object-fit:contain), centralizada.
-    const escalaContain = Math.min(LARGURA / img.width, areaImagemAltura / img.height) * 0.96;
-    const w = img.width * escalaContain, h = img.height * escalaContain;
-    const x = (LARGURA - w) / 2, y = (areaImagemAltura - h) / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
-    ctx.drawImage(img, x, y, w, h);
-
-    desenharFaixaTexto(logoImg);
+  const CORES = {
+    bg1: '#0A2620', bg2: '#123A30', bg3: '#08201A',
+    gold: '#E3B24B', goldLight: '#F3D48A',
+    creme: '#F4EFE2', cinza: '#B9C7C0', cinzaClaro: '#D8E2DC'
   };
 
   const carregarImagemOpcional = (src) => new Promise((resolve) => {
@@ -10716,24 +10703,181 @@ function renderizarCertificadoCanvas(ev){
     img.src = src;
   });
 
-  Promise.all([carregarImagemOpcional(posterSrc), carregarImagemOpcional(logoGrupoSrc)]).then(([posterImg, logoImg]) => {
-    desenharAreaImagem(posterImg, logoImg);
-  });
-}
+  const carregarFontes = (typeof document !== 'undefined' && document.fonts && document.fonts.ready)
+    ? Promise.all([
+        document.fonts.load('800 70px Poppins'),
+        document.fonts.load('700 52px Caveat'),
+        document.fonts.load('600 26px Poppins'),
+        document.fonts.load('400 17px Inter'),
+        document.fonts.ready
+      ]).catch(() => null)
+    : Promise.resolve(null);
 
-// Acha a logo do grupo oficial (cadastrada pelo admin em "Cadastrar
-// grupos") de quem criou o evento, pra mostrar no certificado. Se não
-// achar nada, simplesmente não desenha logo nenhuma (sem quebrar o layout).
-function obterLogoGrupoDoEvento(ev){
-  if(!ev || !ev.criadoPor) return '';
-  const partes = ev.criadoPor.split(':');
-  const role = partes[0], user = partes.slice(1).join(':');
-  if(role !== 'academia') return '';
-  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  const conta = academiasContas.find(c => c.user === user);
-  if(!conta || !conta.grupoParceiroId) return '';
-  const grupo = listarTodosGruposParceirosCadastrados().find(g => g.id === conta.grupoParceiroId);
-  return (grupo && grupo.foto) || '';
+  Promise.all([carregarImagemOpcional(professor.foto), carregarImagemOpcional(grupo.foto), carregarFontes])
+    .then(([fotoProfessorImg, logoGrupoImg]) => {
+      // ---------- fundo ----------
+      const gradBg = ctx.createLinearGradient(0, 0, LARGURA, ALTURA);
+      gradBg.addColorStop(0, CORES.bg3);
+      gradBg.addColorStop(0.55, CORES.bg1);
+      gradBg.addColorStop(1, CORES.bg2);
+      ctx.fillStyle = gradBg;
+      ctx.fillRect(0, 0, LARGURA, ALTURA);
+
+      // rodas douradas bem discretas ao fundo, remetendo à roda de capoeira
+      ctx.save();
+      ctx.globalAlpha = 0.07;
+      ctx.strokeStyle = CORES.gold;
+      ctx.lineWidth = 2;
+      [[LARGURA - 60, 90, 150], [LARGURA - 160, 620, 230], [960, 720, 90]].forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      // ---------- retrato do professor/mestre, sangrando na lateral esquerda ----------
+      let inicioTexto = 90;
+      if(fotoProfessorImg){
+        const painelW = 430;
+        const escalaCover = Math.max(painelW / fotoProfessorImg.width, ALTURA / fotoProfessorImg.height);
+        const wCover = fotoProfessorImg.width * escalaCover, hCover = fotoProfessorImg.height * escalaCover;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, painelW, ALTURA);
+        ctx.clip();
+        ctx.drawImage(fotoProfessorImg, (painelW - wCover) / 2, (ALTURA - hCover) / 2, wCover, hCover);
+        ctx.fillStyle = 'rgba(8,32,26,0.18)';
+        ctx.fillRect(0, 0, painelW, ALTURA);
+        ctx.restore();
+
+        // esmaecido suave até virar o fundo escuro — sem borda dura
+        const gradBlend = ctx.createLinearGradient(painelW - 170, 0, painelW + 50, 0);
+        gradBlend.addColorStop(0, 'rgba(10,38,32,0)');
+        gradBlend.addColorStop(1, CORES.bg1);
+        ctx.fillStyle = gradBlend;
+        ctx.fillRect(painelW - 170, 0, 220, ALTURA);
+
+        inicioTexto = 470;
+      }
+
+      // ---------- moldura dourada ----------
+      ctx.strokeStyle = 'rgba(227,178,75,0.55)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(16, 16, LARGURA - 32, ALTURA - 32);
+      ctx.strokeStyle = 'rgba(227,178,75,0.28)';
+      ctx.strokeRect(24, 24, LARGURA - 48, ALTURA - 48);
+
+      const larguraTexto = LARGURA - inicioTexto - 80;
+
+      // ---------- cabeçalho: logo/nome do grupo ----------
+      let cabecalhoY = 78;
+      if(logoGrupoImg){
+        const r = 26;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(inicioTexto + r, cabecalhoY, r, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        const escalaLogo = Math.max((r * 2) / logoGrupoImg.width, (r * 2) / logoGrupoImg.height);
+        const wLogo = logoGrupoImg.width * escalaLogo, hLogo = logoGrupoImg.height * escalaLogo;
+        ctx.drawImage(logoGrupoImg, inicioTexto + r - wLogo / 2, cabecalhoY - hLogo / 2, wLogo, hLogo);
+        ctx.restore();
+        ctx.strokeStyle = CORES.gold;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(inicioTexto + r, cabecalhoY, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = CORES.gold;
+      ctx.font = '800 25px Poppins, Arial';
+      ctx.fillText(nomeGrupo.toUpperCase(), inicioTexto + (logoGrupoImg ? 66 : 0), cabecalhoY);
+      ctx.textBaseline = 'alphabetic';
+
+      // ---------- título ----------
+      let y = 235;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = CORES.gold;
+      ctx.font = '800 66px Poppins, Arial';
+      ctx.fillText('CERTIFICADO', inicioTexto, y);
+
+      y += 42;
+      ctx.fillStyle = CORES.creme;
+      ctx.font = '600 25px Poppins, Arial';
+      ctx.fillText('DE PARTICIPAÇÃO', inicioTexto, y);
+
+      y += 34;
+      [0, 22, 44].forEach(dx => _desenharEstrelaCanvas(ctx, inicioTexto + 9 + dx, y, 6, CORES.gold));
+
+      y += 48;
+      ctx.fillStyle = CORES.cinza;
+      ctx.font = 'italic 400 17px Inter, Arial';
+      ctx.fillText('Certificamos que', inicioTexto, y);
+
+      y += 56;
+      ctx.fillStyle = CORES.creme;
+      ctx.font = '700 52px Caveat, cursive';
+      ctx.fillText(nomeAluno, inicioTexto, y);
+      // rabisco fino sob o nome, como um traço de caneta
+      const larguraNome = Math.min(ctx.measureText(nomeAluno).width, larguraTexto);
+      ctx.strokeStyle = 'rgba(227,178,75,0.65)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(inicioTexto, y + 12);
+      ctx.quadraticCurveTo(inicioTexto + larguraNome / 2, y + 20, inicioTexto + larguraNome, y + 10);
+      ctx.stroke();
+
+      y += 48;
+      ctx.fillStyle = CORES.cinzaClaro;
+      ctx.font = '400 17px Inter, Arial';
+      // O nome de quem assina (professor.nome) já aparece na assinatura lá
+      // embaixo — não repete aqui no meio do parágrafo pra não soar
+      // estranho quando o próprio título do evento já cita a pessoa (ex:
+      // título "Workshop com Mestre Pelezinho" + ", com Borracha" no meio
+      // do texto ficaria confuso, como se fossem duas pessoas diferentes).
+      const linhaEvento = 'participou de "' + (ev.titulo || 'evento') + '"' +
+        (ev.local ? (', em ' + ev.local) : '') +
+        (ev.data ? (', realizado em ' + ev.data) : '') + '.';
+      const linhasEvento = _quebrarTextoCanvas(ctx, linhaEvento, larguraTexto);
+      linhasEvento.slice(0, 3).forEach(linha => { ctx.fillText(linha, inicioTexto, y); y += 25; });
+
+      y += 14;
+      ctx.fillStyle = CORES.cinza;
+      ctx.font = 'italic 400 15px Inter, Arial';
+      const linhasParabens = _quebrarTextoCanvas(ctx, 'Parabéns pela dedicação e por fazer parte dessa roda de aprendizado e transformação!', larguraTexto);
+      linhasParabens.slice(0, 2).forEach(linha => { ctx.fillText(linha, inicioTexto, y); y += 22; });
+
+      // ---------- rodapé: data/local à esquerda, assinatura à direita ----------
+      const rodapeY = ALTURA - 56;
+      ctx.textAlign = 'left';
+      ctx.font = '400 15px Inter, Arial';
+      ctx.fillStyle = CORES.cinzaClaro;
+      let infoRodape = [];
+      if(ev.data) infoRodape.push('📅 ' + ev.data);
+      if(ev.local) infoRodape.push('📍 ' + ev.local);
+      ctx.fillText(infoRodape.join('     '), inicioTexto, rodapeY);
+      ctx.font = '400 12px Inter, Arial';
+      ctx.fillStyle = CORES.cinza;
+      ctx.fillText('Certificado gerado pelo GingaPass', inicioTexto, rodapeY + 22);
+
+      if(professor.nome){
+        ctx.textAlign = 'right';
+        ctx.fillStyle = CORES.creme;
+        ctx.font = '700 30px Caveat, cursive';
+        ctx.fillText(professor.nome, LARGURA - 90, rodapeY - 22);
+        ctx.strokeStyle = 'rgba(227,178,75,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(LARGURA - 90 - 200, rodapeY - 4);
+        ctx.lineTo(LARGURA - 90, rodapeY - 4);
+        ctx.stroke();
+        ctx.font = '600 12px Poppins, Arial';
+        ctx.fillStyle = CORES.gold;
+        ctx.fillText(professor.nome.toUpperCase(), LARGURA - 90, rodapeY + 14);
+        ctx.textAlign = 'left';
+      }
+    });
 }
 
 // Baixar imagem gerada por canvas é surpreendentemente inconsistente no
