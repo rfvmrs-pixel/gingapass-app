@@ -5162,6 +5162,7 @@ function estouNoMesmoGrupoQueAutor(autorId, autorRole){
 // só local, nunca grava vazio na nuvem, para essas 2 chaves.
 function seedContas(nuvemConfirmada){
   verificarModoCheckinRapido();
+  verificarModoConviteEvento();
   verificarModoDemo();
   if(!localStorage.getItem('gingapass_academias_contas')){
     _setLocal('gingapass_academias_contas', JSON.stringify([]));
@@ -5381,6 +5382,154 @@ function confirmarCheckinRapido(){
       }
     });
   });
+}
+
+// ===================== Convite de evento por link (sem precisar de conta) =====================
+// Mesma ideia do check-in rápido por QR acima: um link (gerado em
+// linkConviteEvento()) abre uma telinha isolada, fora do app inteiro, sem
+// login nenhum. Quem JÁ tem conta clica em "Entrar" e usa o app normal;
+// quem NÃO tem só digita nome (e grupo, opcional) e confirma — vira um
+// convite já "aceito" (visitante:true), aparecendo em "Presença confirmada"
+// igual qualquer outro convidado. De propósito NÃO dá acesso a mais nada do
+// app pra quem não tem conta — só essa confirmação.
+function verificarModoConviteEvento(){
+  if(window._conviteEventoJaVerificado) return;
+  window._conviteEventoJaVerificado = true;
+  try{
+    executarModoConviteEvento();
+  } catch(erro){
+    document.body.innerHTML = '<div style="max-width:420px;margin:0 auto;padding:28px 20px;font-family:sans-serif;"><h2 style="color:#C0392B;">Erro ao carregar</h2><p style="color:#5B6B7A;font-size:13px;word-break:break-word;">' + (erro && erro.message ? erro.message : String(erro)) + '</p></div>';
+  }
+}
+
+function executarModoConviteEvento(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('convite') !== '1') return;
+  const codigoCheckin = params.get('ev') || '';
+
+  document.body.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;min-height:100vh;background:var(--cream, #FBF3E4);padding:28px 20px;font-family:'Poppins','Inter',sans-serif;">
+      <h2 style="color:#042C53;font-size:20px;margin:0 0 4px;">🎟️ Convite pra evento</h2>
+      <p id="conviteEventoLinkSub" style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">Carregando...</p>
+      <div id="conviteEventoLinkForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);display:none;">
+        <button style="width:100%;padding:14px;border:1.5px solid #042C53;border-radius:100px;background:#fff;color:#042C53;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:16px;" onclick="location.href = location.pathname;">Já tenho conta — Entrar com login e senha</button>
+        <p style="text-align:center;font-size:11.5px;color:#8FA3B8;margin:0 0 16px;">— ou confirme sem conta —</p>
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu nome completo</label>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkNome" placeholder="Nome completo">
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu grupo/academia (opcional)</label>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkGrupo" placeholder="Ex: Capoeira Team">
+        <p id="conviteEventoLinkErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
+        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="conviteEventoLinkBtn" onclick="confirmarPresencaVisitanteLink()">✅ Confirmar minha presença</button>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">Isso só confirma sua presença nesse evento — não cria uma conta no app.</p>
+      </div>
+      <div id="conviteEventoLinkMsg" style="display:none;text-align:center;padding:40px 10px;">
+        <div id="conviteEventoLinkMsgIcon" style="font-size:48px;margin-bottom:14px;">✅</div>
+        <h2 id="conviteEventoLinkMsgTitulo" style="color:#042C53;margin:0 0 8px;">Presença confirmada!</h2>
+        <p id="conviteEventoLinkMsgTexto" style="color:#5B6B7A;font-size:14px;word-break:break-word;">Bom treino 🥋</p>
+      </div>
+    </div>
+  `;
+
+  if(!codigoCheckin){
+    mostrarMsgConviteEventoLink(false, 'Link inválido', 'Esse link de convite está incompleto. Peça pra quem te convidou mandar de novo.');
+    return;
+  }
+
+  buscarValorFresco('gingapass_eventos').then(function(valorFresco){
+    const eventos = JSON.parse(valorFresco || localStorage.getItem('gingapass_eventos') || '[]');
+    const ev = eventos.find(e => e.codigoCheckin === codigoCheckin);
+    if(!ev){
+      mostrarMsgConviteEventoLink(false, 'Evento não encontrado', 'Esse evento não existe mais, ou o link está errado.');
+      return;
+    }
+    window._conviteEventoLinkEvento = ev;
+    const sub = document.getElementById('conviteEventoLinkSub');
+    if(sub) sub.textContent = ev.titulo + ' — ' + (ev.data || '') + (ev.local ? (' · ' + ev.local) : '');
+    const form = document.getElementById('conviteEventoLinkForm');
+    if(form) form.style.display = 'block';
+  });
+}
+
+function mostrarMsgConviteEventoLink(sucesso, titulo, texto){
+  const form = document.getElementById('conviteEventoLinkForm');
+  const msg = document.getElementById('conviteEventoLinkMsg');
+  if(form) form.style.display = 'none';
+  if(msg) msg.style.display = 'block';
+  const icon = document.getElementById('conviteEventoLinkMsgIcon');
+  const tit = document.getElementById('conviteEventoLinkMsgTitulo');
+  const txt = document.getElementById('conviteEventoLinkMsgTexto');
+  if(icon) icon.textContent = sucesso ? '✅' : '⚠️';
+  if(tit) tit.textContent = titulo;
+  if(txt) txt.textContent = texto;
+}
+
+function confirmarPresencaVisitanteLink(){
+  const nomeInput = document.getElementById('conviteEventoLinkNome');
+  const grupoInput = document.getElementById('conviteEventoLinkGrupo');
+  const erroEl = document.getElementById('conviteEventoLinkErro');
+  const btn = document.getElementById('conviteEventoLinkBtn');
+  const ev = window._conviteEventoLinkEvento;
+  const nome = nomeInput ? nomeInput.value.trim() : '';
+  const grupo = grupoInput ? grupoInput.value.trim() : '';
+  if(!nome){
+    erroEl.textContent = 'Digite seu nome completo.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  if(!ev) return;
+  erroEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  buscarValorFresco('gingapass_convites_evento').then(function(valorFresco){
+    const convites = JSON.parse(valorFresco || localStorage.getItem('gingapass_convites_evento') || '[]');
+    convites.push({
+      id: 'convite_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      eventoId: ev.codigoCheckin,
+      eventoTitulo: ev.titulo,
+      convidadoId: 'visitante:' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      convidadoNome: nome + (grupo ? (' (' + grupo + ')') : ''),
+      convidadoPorId: null,
+      convidadoPorNome: null,
+      status: 'aceito',
+      data: Date.now(),
+      respondidoEm: Date.now(),
+      visitante: true
+    });
+    setDado('gingapass_convites_evento', JSON.stringify(convites)).then(function(ok){
+      if(ok){
+        mostrarMsgConviteEventoLink(true, 'Presença confirmada!', 'Valeu, ' + nome.split(' ')[0] + '! Te esperamos no evento 🥋');
+      } else {
+        btn.disabled = false;
+        btn.textContent = '✅ Confirmar minha presença';
+        erroEl.textContent = 'Não conseguimos registrar agora. Verifique sua internet e tente de novo.';
+        erroEl.style.display = 'block';
+      }
+    });
+  });
+}
+
+// Gera (e copia/compartilha) o link público desse evento — dá pra mandar por
+// WhatsApp direto pra quem não tem o app.
+function linkConviteEvento(codigoCheckin){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos.find(e => e.codigoCheckin === codigoCheckin);
+  if(!ev) return;
+  const url = location.origin + location.pathname + '?convite=1&ev=' + encodeURIComponent(codigoCheckin);
+  const texto = 'Você foi convidado(a) pro evento "' + ev.titulo + '"' + (ev.data ? (' — ' + ev.data) : '') + (ev.local ? (', em ' + ev.local) : '') + '!\nConfirme sua presença aqui: ' + url;
+  if(navigator.share){
+    navigator.share({title: ev.titulo, text: texto, url}).catch(function(){});
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(function(){
+      alert('Link copiado! Agora é só colar e mandar pra quem você quiser convidar (por WhatsApp, por exemplo).');
+    }).catch(function(){
+      prompt('Copie o link abaixo:', url);
+    });
+    return;
+  }
+  prompt('Copie o link abaixo:', url);
 }
 
 function setRole(role){
@@ -10322,6 +10471,14 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
       convidarBtn.style.cssText = 'display:inline-block;margin:6px 0 0 10px;font-size:12px;font-weight:600;color:var(--navy-700);background:none;border:none;cursor:pointer;padding:0;';
       convidarBtn.onclick = () => abrirConvidarEvento(indiceReal);
       div.appendChild(convidarBtn);
+
+      const linkBtn = document.createElement('button');
+      linkBtn.type = 'button';
+      linkBtn.textContent = '🔗 Link pra convidar';
+      linkBtn.title = 'Gera um link pra mandar por WhatsApp — quem não tem o app confirma presença só com nome, sem precisar de conta';
+      linkBtn.style.cssText = 'display:inline-block;margin:6px 0 0 10px;font-size:12px;font-weight:600;color:var(--navy-700);background:none;border:none;cursor:pointer;padding:0;';
+      linkBtn.onclick = () => linkConviteEvento(ev.codigoCheckin);
+      div.appendChild(linkBtn);
     }
 
     // Quem aceitou o convite aparece aqui pra todo mundo ver — recusar ou
