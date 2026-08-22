@@ -1665,7 +1665,9 @@
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por grupo</label>
       <select class="admin-input" id="alunosDirFiltroGrupo" onchange="renderListaAlunosPublica()"></select>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por professor</label>
-      <select class="admin-input" id="alunosDirFiltroProfessor" onchange="renderListaAlunosPublica()" style="margin-bottom:0;"></select>
+      <select class="admin-input" id="alunosDirFiltroProfessor" onchange="renderListaAlunosPublica()"></select>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por graduação</label>
+      <select class="admin-input" id="alunosDirFiltroGraduacao" onchange="renderListaAlunosPublica()" style="margin-bottom:0;"></select>
     </div>
     <div class="card" id="listaAlunosPublica"></div>
   </div>
@@ -4396,8 +4398,25 @@ function obterAcademiaContaPorNucleoOuProfessor(nomeNucleoOuProfessor){
 // geral da rede principal (matriz).
 function calcularGrupoIdDeConta(conta){
   if(!conta) return 'matriz';
-  if(conta.grupoParceiroId) return 'grp:' + conta.grupoParceiroId;
-  if(conta.grupo === 'independente') return 'ind:' + conta.user;
+  // Só quem é REALMENTE independente (academia que não faz parte da rede
+  // principal, marcada explicitamente com grupo:'independente') forma um
+  // "bucket" separado, usando o grupo cadastrado que ela escolheu
+  // (grupoParceiroId ou grupoCadastroId — o mesmo tipo de registro, só que
+  // preenchido por fluxos diferentes). Quem é da rede principal (o campo
+  // "grupo" vem vazio) SEMPRE cai em 'matriz', mesmo que tenha escolhido um
+  // grupo cadastrado em "Editar perfil" pra aparecer com a logo certa (ex:
+  // Capoeira Team) — escolher isso é só identidade visual (logo/nome do
+  // grupo), não "sair" da rede principal. Sem essa distinção, duas pessoas
+  // do mesmíssimo grupo (ex: Capoeira Team) podiam cair em buckets
+  // diferentes — uma em 'matriz', outra em 'grp:xxx' — só porque uma delas
+  // editou o perfil e escolheu o grupo e a outra não, quebrando filtro de
+  // grupo, silenciar por grupo e as abas de pessoas (Professores/Instrutores
+  // /Alunos/Mestrandos e Mestres) que deveriam mostrar todo mundo junto.
+  if(conta.grupo === 'independente'){
+    const grupoId = conta.grupoParceiroId || conta.grupoCadastroId;
+    if(grupoId) return 'grp:' + grupoId;
+    return 'ind:' + conta.user;
+  }
   return 'matriz';
 }
 
@@ -12820,6 +12839,7 @@ function renderListaAlunosPublica(){
   const buscaEl = document.getElementById('alunosDirBuscaInput');
   const grupoEl = document.getElementById('alunosDirFiltroGrupo');
   const profEl = document.getElementById('alunosDirFiltroProfessor');
+  const graduacaoEl = document.getElementById('alunosDirFiltroGraduacao');
   const termo = buscaEl ? _normalizarTextoBusca(buscaEl.value) : '';
   const grupoFiltro = grupoEl ? grupoEl.value : '';
   const profFiltro = profEl ? profEl.value : '';
@@ -12827,12 +12847,12 @@ function renderListaAlunosPublica(){
   let contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   if(grupoFiltro) contas = contas.filter(c => obterGrupoIdPorNomeProfessor(c.professor || c.nucleo || '') === grupoFiltro);
   if(profFiltro) contas = contas.filter(c => mesmoProfessor(c.professor, profFiltro));
-  if(termo) contas = contas.filter(c => _normalizarTextoBusca(c.nome || '').indexOf(termo) !== -1);
-  contas = contas.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
 
   // "Graduado/Graduada" é graduação de aluno mesmo pra quem administra um
   // núcleo (dá aula) — ver _categoriaDoProfessor. Essas pessoas entram aqui
-  // também, reaproveitando o mesmo card usado nas outras 3 abas.
+  // também, reaproveitando o mesmo card usado nas outras 3 abas. A corda de
+  // cada um vem da própria conta-sombra dele como aluno (mesmo lugar onde
+  // fica o histórico oficial de graduação).
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   let graduados = obterProfessoresReais().filter(nome => _categoriaDoProfessor(nome) === 'aluno');
@@ -12844,16 +12864,36 @@ function renderListaAlunosPublica(){
       return !!(conta && conta.meuMestre && mesmoProfessor(conta.meuMestre, profFiltro));
     });
   }
-  if(termo) graduados = graduados.filter(nome => _normalizarTextoBusca(nome).indexOf(termo) !== -1);
-  graduados = graduados.slice().sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const graduadosComCorda = graduados.map(nome => ({nome, corda: ((_obterContaSombraPorNomeProfessor(nome) || {}).corda || '').trim()}));
+
+  // Filtro de graduação: só oferece as cordas que realmente existem no
+  // grupo/professor já filtrado, pra nunca oferecer uma opção vazia.
+  if(graduacaoEl){
+    const valorGraduacaoAtual = graduacaoEl.value;
+    const cordasDisponiveis = [...new Set(contas.map(c => (c.corda || '').trim()).concat(graduadosComCorda.map(g => g.corda)).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    graduacaoEl.innerHTML = '<option value="">Todas as graduações</option>' +
+      cordasDisponiveis.map(c => '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>').join('');
+    if(valorGraduacaoAtual && cordasDisponiveis.indexOf(valorGraduacaoAtual) !== -1) graduacaoEl.value = valorGraduacaoAtual;
+  }
+  const graduacaoFiltro = graduacaoEl ? graduacaoEl.value : '';
+
+  if(graduacaoFiltro) contas = contas.filter(c => (c.corda || '').trim() === graduacaoFiltro);
+  if(termo) contas = contas.filter(c => _normalizarTextoBusca(c.nome || '').indexOf(termo) !== -1);
+  contas = contas.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+
+  let graduadosFiltrados = graduadosComCorda;
+  if(graduacaoFiltro) graduadosFiltrados = graduadosFiltrados.filter(g => g.corda === graduacaoFiltro);
+  if(termo) graduadosFiltrados = graduadosFiltrados.filter(g => _normalizarTextoBusca(g.nome).indexOf(termo) !== -1);
+  graduadosFiltrados = graduadosFiltrados.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
   container.innerHTML = '';
-  if(contas.length === 0 && graduados.length === 0){
+  if(contas.length === 0 && graduadosFiltrados.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém encontrado com esse filtro.</p>';
     return;
   }
   contas.forEach(c => { container.appendChild(_criarLinhaAlunoPublica(c)); });
-  graduados.forEach(nome => { container.appendChild(_criarLinhaProfessorPublica(nome, rede, academiasContas)); });
+  graduadosFiltrados.forEach(g => { container.appendChild(_criarLinhaProfessorPublica(g.nome, rede, academiasContas)); });
 }
 
 function renderGruposParceiros(){
