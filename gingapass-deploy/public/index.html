@@ -5941,6 +5941,16 @@ function showScreen(id, btn){
     renderPagamentoAluno();
     renderComprovantesAluno();
   }
+  if(id === 'academias'){
+    // O mapa (Leaflet) só mede o próprio tamanho direito se a tela já
+    // estiver visível quando ele nasce — antes disso, o container tem
+    // altura errada e o mapa fica cortado/quebrado pra sempre, mesmo depois
+    // da tela aparecer. Recalcula toda vez que entra nessa tela.
+    tentarChamar(function(){ renderAcademiasScreen(); });
+    setTimeout(function(){
+      if(_academiasMapaInstancia) _academiasMapaInstancia.invalidateSize();
+    }, 150);
+  }
   if(id === 'buscaTela'){
     const buscaInput = document.getElementById('buscaInput');
     if(buscaInput) buscaInput.value = '';
@@ -19832,7 +19842,7 @@ function renderAcademiasScreen(){
   container.innerHTML = '';
   if(rede.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">' + (termoBusca ? 'Nenhuma academia encontrada com essa busca.' : 'Nenhuma academia cadastrada na rede ainda.') + '</p>';
-    tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
+    tentarChamar(function(){ renderMapaAcademias(rede); });
     return;
   }
   const temDistanciasCalculadas = Object.keys(_distanciasCalculadas).length > 0;
@@ -19892,9 +19902,10 @@ function renderAcademiasScreen(){
     container.appendChild(card);
   });
 
-  // Sempre plota o mapa com TODAS as academias do grupo (não só as que
-  // batem na busca), pra ele não ficar vazio quando alguém está filtrando.
-  tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
+  // O mapa mostra só as academias que estão na lista acima (respeitando a
+  // busca) — assim, ao filtrar por cidade/estado, o mapa dá zoom só nelas
+  // em vez de ficar com o Brasil inteiro (ou o mundo) pra enxergar.
+  tentarChamar(function(){ renderMapaAcademias(rede); });
 }
 
 function _normalizarTextoBusca(texto){
@@ -19948,17 +19959,16 @@ function _obterOuIniciarMapaAcademias(){
 // coordenada guardada é geocodificado sozinho aqui, devagar (1 por vez,
 // respeitando o limite do serviço gratuito), e o mapa se atualiza
 // automaticamente conforme cada endereço novo é localizado.
-function renderMapaAcademias(redeCompleta){
+// redeFiltrada já vem pronta (grupo + ocultos + busca de texto aplicados)
+// de quem chama — o mapa mostra exatamente quem está na lista de cards
+// acima, então filtrar de novo por conta própria (e ignorar a busca) fazia
+// o mapa nunca "acompanhar" o que a pessoa estava filtrando.
+function renderMapaAcademias(redeFiltrada){
   const mapa = _obterOuIniciarMapaAcademias();
   const vazioEl = document.getElementById('academiasMapaVazio');
   if(!mapa || !_academiasMapaMarkers) return;
 
-  let rede = redeCompleta.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
-  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  rede = rede.filter(a => {
-    const conta = academiasContas.find(c => (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) || c.nome === a.professor || c.nome === a.nome);
-    return !(conta && conta.oculto);
-  }).filter(a => a.endereco);
+  const rede = (redeFiltrada || []).filter(a => a.endereco);
 
   _academiasMapaMarkers.clearLayers();
   const pontos = [];
@@ -19991,7 +20001,11 @@ function renderMapaAcademias(redeCompleta){
           await new Promise(function(r){ setTimeout(r, 1100); });
         }
         _academiasMapaGeocodificando = false;
-        tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
+        // Volta pra renderAcademiasScreen() (não direto renderMapaAcademias)
+        // pra recalcular a busca de texto atual — endereços que acabaram de
+        // ganhar cidade/estado/país agora podem passar a bater com o termo
+        // digitado, ou o oposto.
+        tentarChamar(function(){ renderAcademiasScreen(); });
       })();
     }
   }
