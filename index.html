@@ -737,6 +737,17 @@
     margin-bottom:6px;
     animation:anuncioGraduacaoPulso 1.2s ease-in-out infinite;
   }
+  .convite-evento-banner{
+    position:relative;
+    text-align:center;
+    color:#fff;
+    border-radius:var(--radius-lg);
+    padding:18px 16px;
+    margin-bottom:16px;
+    background:linear-gradient(120deg,#042C53,#0C447C,#2E8B9E,#0C447C,#042C53);
+    background-size:250% 250%;
+    animation:anuncioGraduacaoBrilho 6s linear infinite;
+  }
 </style>
 <script>
 // Aplica a "cor de abertura" (padrão da rede, configurada pela matriz) o mais
@@ -830,6 +841,16 @@
       <div class="anuncio-graduacao-confete">🎉🥋🎊</div>
       <p id="anuncioGraduacaoTexto" style="margin:0 0 10px;font-size:14.5px;font-weight:700;line-height:1.4;"></p>
       <button type="button" id="anuncioGraduacaoConfirmarBtn" class="btn" style="background:var(--white);color:#C22C75;margin:0;width:auto;padding:9px 20px;" onclick="confirmarAnuncioGraduacao()">Show, obrigado! 🙌</button>
+    </div>
+
+    <div id="conviteEventoBanner" class="convite-evento-banner" style="display:none;">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;">🎟️ Convite pra evento</p>
+      <p id="conviteEventoTexto" style="margin:0 0 12px;font-size:14.5px;font-weight:700;line-height:1.4;"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <button type="button" class="btn" style="width:auto;padding:9px 16px;margin:0;background:var(--white);color:#0C447C;" onclick="responderConviteEvento('aceito')">✅ Aceitar</button>
+        <button type="button" class="btn" style="width:auto;padding:9px 16px;margin:0;background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.6);" onclick="responderConviteEvento('pensando')">🤔 Vou pensar</button>
+        <button type="button" class="btn" style="width:auto;padding:9px 16px;margin:0;background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.6);" onclick="responderConviteEvento('recusado')">❌ Não vou</button>
+      </div>
     </div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
       <div>
@@ -2673,6 +2694,16 @@
         <button class="btn" type="button" onclick="salvarConfigCertificadoEvento()" style="flex:1;">Salvar</button>
         <button class="btn" type="button" onclick="fecharConfigCertificadoEvento()" style="flex:1;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Fechar</button>
       </div>
+    </div>
+  </div>
+
+  <div id="convidarEventoOverlay" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:420px;width:100%;max-height:88vh;overflow-y:auto;">
+      <div class="card-label" style="margin:0 0 10px;">🎟️ Convidar pro evento</div>
+      <p id="convidarEventoTitulo" style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;"></p>
+      <input class="admin-input" id="convidarEventoBusca" placeholder="🔍 Digite o nome da pessoa..." oninput="renderConvidarEventoResultados()">
+      <div id="convidarEventoResultados"></div>
+      <button class="btn" type="button" onclick="fecharConvidarEvento()" style="margin-top:10px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Fechar</button>
     </div>
   </div>
 
@@ -5950,6 +5981,7 @@ function aplicarPermissoes(){
 
   tentarChamar(function(){ renderSaudacao(); });
   tentarChamar(function(){ renderAnuncioGraduacaoHome(); });
+  tentarChamar(function(){ renderConviteEventoHome(); });
   tentarChamar(function(){ aplicarAparenciaAtual(); });
   tentarChamar(function(){ populaSelectsNucleoProfessor(); });
   tentarChamar(function(){ renderPlanoAulaHome(); });
@@ -10243,6 +10275,23 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
       presBtn.style.cssText = 'display:inline-block;margin:6px 0 0 26px;font-size:12px;font-weight:600;color:#2E8B57;background:none;border:none;cursor:pointer;padding:0;';
       presBtn.onclick = () => abrirPresencaEvento(indiceReal);
       div.appendChild(presBtn);
+
+      const convidarBtn = document.createElement('button');
+      convidarBtn.type = 'button';
+      convidarBtn.textContent = '🎟️ Convidar';
+      convidarBtn.style.cssText = 'display:inline-block;margin:6px 0 0 10px;font-size:12px;font-weight:600;color:var(--navy-700);background:none;border:none;cursor:pointer;padding:0;';
+      convidarBtn.onclick = () => abrirConvidarEvento(indiceReal);
+      div.appendChild(convidarBtn);
+    }
+
+    // Quem aceitou o convite aparece aqui pra todo mundo ver — recusar ou
+    // "vou pensar" NUNCA aparece aqui, só como retorno privado pro criador.
+    const confirmados = obterConvidadosConfirmados(ev.codigoCheckin);
+    if(confirmados.length > 0){
+      const confirmadosEl = document.createElement('p');
+      confirmadosEl.style.cssText = 'font-size:12px;color:#2E8B57;font-weight:600;margin:6px 0 0 26px;';
+      confirmadosEl.textContent = '🎟️ Presença confirmada: ' + confirmados.map(c => c.convidadoNome).join(', ');
+      div.appendChild(confirmadosEl);
     }
 
     // Curtir/comentar, igual ao GingaFeed.
@@ -11913,6 +11962,195 @@ function removerArteCertificadoEvento(){
   eventos[_certificadoConfigIndice] = Object.assign({}, ev, {temImagemCertificado: false});
   setDado('gingapass_eventos', JSON.stringify(eventos));
   abrirConfigCertificadoEvento(_certificadoConfigIndice);
+}
+
+/* ===================== Convite de evento (convidar + confirmar presença) =====================
+   Quem cria o evento manda um convite pra uma pessoa específica (de qualquer
+   grupo). O convite aparece em destaque na tela Início do convidado até ele
+   responder — aceitar, recusar ou "vou pensar". Só quando ACEITA é que o
+   post do evento mostra "presença confirmada"; recusar ou pensar manda só
+   uma mensagem privada de volta pro criador (não aparece pra mais ninguém).
+   Fica num array só (texto puro, sem foto) em gingapass_convites_evento,
+   sincronizado pela nuvem do mesmo jeito genérico que gingapass_eventos. */
+function obterConvitesEvento(){
+  return JSON.parse(localStorage.getItem('gingapass_convites_evento') || '[]');
+}
+
+function obterConvidadosConfirmados(eventoId){
+  return obterConvitesEvento().filter(c => c.eventoId === eventoId && c.status === 'aceito');
+}
+
+let _convidarEventoIndiceReal = null;
+
+function abrirConvidarEvento(indiceReal){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[indiceReal];
+  if(!ev || !podeGerenciarEvento(ev)){
+    alert('Só quem criou este evento (ou a senha master/matriz) pode convidar gente pra ele.');
+    return;
+  }
+  _convidarEventoIndiceReal = indiceReal;
+  const overlay = document.getElementById('convidarEventoOverlay');
+  const titulo = document.getElementById('convidarEventoTitulo');
+  const busca = document.getElementById('convidarEventoBusca');
+  if(titulo) titulo.textContent = 'Evento: ' + ev.titulo;
+  if(busca) busca.value = '';
+  renderConvidarEventoResultados();
+  if(overlay) overlay.style.display = 'flex';
+}
+
+function fecharConvidarEvento(){
+  const overlay = document.getElementById('convidarEventoOverlay');
+  if(overlay) overlay.style.display = 'none';
+  _convidarEventoIndiceReal = null;
+}
+
+// Busca por nome entre alunos e professores/mestres de QUALQUER grupo — o
+// convite pode ser pra alguém de outro grupo, não só do meu.
+function renderConvidarEventoResultados(){
+  const container = document.getElementById('convidarEventoResultados');
+  if(!container) return;
+  const buscaEl = document.getElementById('convidarEventoBusca');
+  const termo = buscaEl ? _normalizarTextoBusca(buscaEl.value) : '';
+  if(!termo){
+    container.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Digite um nome pra buscar.</p>';
+    return;
+  }
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => !c.semAcesso);
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').filter(c => !c.oculto);
+  const resultadosAlunos = alunosContas
+    .filter(c => _normalizarTextoBusca(c.nome || '').indexOf(termo) !== -1)
+    .slice(0, 15)
+    .map(c => ({tipo: 'aluno', identificador: c.user, nome: c.nome, rotulo: 'Aluno'}));
+  const resultadosProfessores = obterProfessoresReais()
+    .filter(nome => _normalizarTextoBusca(nome).indexOf(termo) !== -1)
+    .slice(0, 15)
+    .map(nome => {
+      const conta = academiasContas.find(c => mesmoProfessor(c.nome, nome) || mesmoProfessor(c.user, nome));
+      return {tipo: 'academia', identificador: conta ? conta.user : nome, nome, rotulo: 'Professor/Mestre'};
+    });
+  const resultados = resultadosAlunos.concat(resultadosProfessores);
+  container.innerHTML = '';
+  if(resultados.length === 0){
+    container.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;">Ninguém encontrado com esse nome.</p>';
+    return;
+  }
+  resultados.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'aluno-row';
+    const span = document.createElement('span');
+    span.textContent = r.nome + ' · ' + r.rotulo;
+    row.appendChild(span);
+    const btn = document.createElement('button');
+    btn.className = 'aluno-del';
+    btn.style.color = 'var(--navy-700)';
+    btn.textContent = 'Convidar';
+    btn.onclick = () => convidarParaEvento(r.tipo, r.identificador, r.nome);
+    row.appendChild(btn);
+    container.appendChild(row);
+  });
+}
+
+function convidarParaEvento(tipo, identificador, nome){
+  if(_convidarEventoIndiceReal === null) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[_convidarEventoIndiceReal];
+  if(!ev) return;
+  const convidadoId = tipo + ':' + identificador;
+  if(convidadoId === identificadorUsuarioAtual()){
+    alert('Você não pode convidar a si mesmo.');
+    return;
+  }
+  const convites = obterConvitesEvento();
+  if(convites.some(c => c.eventoId === ev.codigoCheckin && c.convidadoId === convidadoId && c.status === 'pendente')){
+    alert('Essa pessoa já tem um convite pendente pra esse evento.');
+    return;
+  }
+  convites.push({
+    id: 'convite_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    eventoId: ev.codigoCheckin,
+    eventoTitulo: ev.titulo,
+    convidadoId,
+    convidadoNome: nome,
+    convidadoPorId: identificadorUsuarioAtual(),
+    convidadoPorNome: obterNomeExibicaoAtual() || 'Alguém',
+    status: 'pendente',
+    data: Date.now(),
+    respondidoEm: null
+  });
+  setDado('gingapass_convites_evento', JSON.stringify(convites)).then(function(ok){
+    if(!ok){
+      alert('Convite salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+    }
+    alert('Convite enviado pra ' + nome + '! Vai aparecer em destaque na tela Início dela(e) até responder.');
+    tentarChamar(function(){ renderConviteEventoHome(); });
+  });
+}
+
+// Banner na tela Início — mostra o convite pendente mais antigo (pra nenhum
+// ficar esquecido pra sempre); só some quando a pessoa responde.
+function renderConviteEventoHome(){
+  const banner = document.getElementById('conviteEventoBanner');
+  const textoEl = document.getElementById('conviteEventoTexto');
+  if(!banner || !textoEl) return;
+  if(!currentRole || !currentUser){
+    banner.style.display = 'none';
+    return;
+  }
+  const meuId = identificadorUsuarioAtual();
+  const pendentes = obterConvitesEvento()
+    .filter(c => c.convidadoId === meuId && c.status === 'pendente')
+    .sort((a, b) => a.data - b.data);
+  if(pendentes.length === 0){
+    banner.style.display = 'none';
+    return;
+  }
+  const c = pendentes[0];
+  const outros = pendentes.length - 1;
+  textoEl.textContent = (c.convidadoPorNome || 'Alguém') + ' te convidou pro evento "' + c.eventoTitulo + '"! Vai?' +
+    (outros > 0 ? (' (+' + outros + ' outro' + (outros > 1 ? 's' : '') + ' convite' + (outros > 1 ? 's' : '') + ' pendente' + (outros > 1 ? 's' : '') + ')') : '');
+  banner.dataset.conviteId = c.id;
+  banner.style.display = 'block';
+}
+
+function responderConviteEvento(resposta){
+  const banner = document.getElementById('conviteEventoBanner');
+  const conviteId = banner ? banner.dataset.conviteId : null;
+  if(!conviteId) return;
+  const convites = obterConvitesEvento();
+  const idx = convites.findIndex(c => c.id === conviteId);
+  if(idx === -1) return;
+  convites[idx] = Object.assign({}, convites[idx], {status: resposta, respondidoEm: Date.now()});
+  const conviteRespondido = convites[idx];
+  setDado('gingapass_convites_evento', JSON.stringify(convites)).then(function(ok){
+    if(!ok){
+      alert('Sua resposta ficou salva neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+    }
+    renderConviteEventoHome();
+    tentarChamar(function(){ renderEventos(); });
+    // Recusou ou vai pensar: não aparece no post pra ninguém, só um retorno
+    // privado pro criador do convite saber (aceitar já aparece sozinho no
+    // post, via obterConvidadosConfirmados).
+    if(resposta !== 'aceito'){
+      _enviarRetornoPrivadoConvite(conviteRespondido);
+    }
+  });
+}
+
+function _enviarRetornoPrivadoConvite(convite){
+  if(!convite || !convite.convidadoPorId) return;
+  const meuId = identificadorUsuarioAtual();
+  if(convite.convidadoPorId === meuId) return;
+  const chave = chaveChatDireto(meuId, convite.convidadoPorId);
+  const meuNome = obterNomeExibicaoAtual() || convite.convidadoNome || currentUser;
+  const texto = convite.status === 'recusado'
+    ? ('🎟️ Sobre o convite pro evento "' + convite.eventoTitulo + '": não vou poder ir dessa vez.')
+    : ('🎟️ Sobre o convite pro evento "' + convite.eventoTitulo + '": ainda vou pensar, te aviso!');
+  buscarValorFresco(chave).then(function(valorFresco){
+    const mensagens = JSON.parse(valorFresco || localStorage.getItem(chave) || '[]');
+    mensagens.push({de: meuId, deNome: meuNome, texto, data: Date.now()});
+    setDado(chave, JSON.stringify(mensagens));
+  });
 }
 
 let fotosSelecionadas = [];
