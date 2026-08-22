@@ -749,6 +749,8 @@
   } catch(e){}
 })();
 </script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
 <body>
 <div class="phone">
@@ -897,11 +899,19 @@
   <div class="screen" id="academias">
     <p class="greeting" style="font-size:18px;">Academias da rede</p>
     <p class="subgreeting">Encontre um núcleo perto de você</p>
-    <div class="search-bar">🔍 Buscar por bairro ou cidade</div>
+    <div class="search-bar" style="padding:0;">
+      <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por bairro, cidade, estado ou país" oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:14px;padding:12px 14px;color:var(--ink);">
+    </div>
     <button class="btn" type="button" onclick="calcularDistanciasAcademias(this)" style="margin-bottom:14px;">📍 Ver distância até você</button>
     <p id="distanciaStatus" style="font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;"></p>
 
-    <div id="academiasRedeList"><div class="academia-card"><div class="academia-thumb">MB</div><div class="academia-info"><h4>Mestrando Borracha</h4><p>Av. Pref. Isoldackson Cruz de Brito, 305 - Vila Margarida, Itaguaí - RJ, 23810-000</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">NB</div><div class="academia-info"><h4>Nucléo Bairro Leandro - Itaguai</h4><p>Est. do Mazomba, Nº 1 - Brisa Mar, Itaguaí - RJ, 23830-250</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PP</div><div class="academia-info"><h4>Projeto Pingos Dourados</h4><p>Rua Moreira, 27 - Santa Cruz RJ</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PE</div><div class="academia-info"><h4>Polo Estrela do Céu</h4><p>R. Eduardo de Oliveira Júnior, 154-200 - Estrela do Céu, Itaguaí - RJ, 23811-480</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PS</div><div class="academia-info"><h4>PROJETO SEMEAR CAPOEIRA TEAM MANGUARIBA</h4><p>R. Nilton de Souza Filho, 657 - Paciência, Rio de Janeiro - RJ, 23065-270</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PD</div><div class="academia-info"><h4>Polo de Cosmos Santa Cruz-RJ</h4><p>R. Itapaci, 103 - Cosmos</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">SD</div><div class="academia-info"><h4>Sec. de Ordem Pública Itaguaí</h4><p>Praça Vicente Cicarino, 122-198 - Centro, Itaguaí - RJ, 23815-270</p><div class="academia-meta"><span>📍 Aulas às sextas</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">VO</div><div class="academia-info"><h4>Vila Olímpica Jardim Bangu</h4><p>Rua Roque Barbosa, s/nº – Bangu, Rio de Janeiro - RJ</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PT</div><div class="academia-info"><h4>Professor Tizil</h4><p>Rua Soldado Pedro de Sousa (próximo à Estrada Urucânia), CEP 23580-110</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">I</div><div class="academia-info"><h4>Instflecha</h4><p>Estarda Rj14 90 mangaratiba 23860-000</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PA</div><div class="academia-info"><h4>Polo Angra</h4><p>Rua Mário Natalino Jordão, S/N - Monsuaba, Angra dos Reis - RJ, CEP 23916-080</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">VO</div><div class="academia-info"><h4>Vila Olímpica - Vidigal</h4><p>Avenida Presidente João Goulart, s/n – Vidigal, Rio de Janeiro – RJ</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PC</div><div class="academia-info"><h4>Polo Cosmos RJ</h4><p>Rua Afonso de Carvalho n58  Cosmos</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PZ</div><div class="academia-info"><h4>Psico Zone</h4><p>Rua Santa Catarina, 74 - Bairro Santa Maria Goretti, CEP 91030-320</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PP</div><div class="academia-info"><h4>Polo Parque Lagoa Mocambinho, Teresina PI</h4><p>Q. Mocambinho St. A 27, 533-241 - Mocambinho, Teresina - Pl, 64010-060</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div><div class="academia-card"><div class="academia-thumb">PG</div><div class="academia-info"><h4>Professor Grauna</h4><p>Polo sepetiba</p><div class="academia-meta"><span>📍 —</span><span>⭐ 4.8</span></div></div></div></div>
+    <div id="academiasRedeList"></div>
+
+    <p class="section-title">🗺️ Mapa da rede</p>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div id="academiasMapa" style="width:100%;height:280px;background:var(--cream-2);"></div>
+      <p id="academiasMapaVazio" style="font-size:11.5px;color:var(--ink-soft);margin:0;padding:12px 14px;display:none;">Nenhuma academia com endereço localizável ainda.</p>
+    </div>
   </div>
 
   <!-- MENSALIDADE -->
@@ -8217,6 +8227,57 @@ function editarEnderecoNucleoPerfil(nomeNucleo){
   });
 }
 
+// Nome de exibição do núcleo — o que aparece no card e na busca de
+// "Academias da rede". Precisa atualizar em três lugares pra não quebrar
+// referência solta: o registro da rede, os núcleos gerenciados da própria
+// conta, e o campo "núcleo" de qualquer aluno já cadastrado nele.
+function editarNomeNucleoPerfil(nomeAntigo){
+  if(currentRole !== 'academia' && currentRole !== 'matriz') return;
+  const novoNome = prompt('Nome de exibição desta academia (como aparece na busca e no card de "Academias da rede"):', nomeAntigo);
+  if(novoNome === null) return;
+  const nomeNovo = novoNome.trim();
+  if(!nomeNovo || nomeNovo === nomeAntigo) return;
+
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  if(rede.some(a => a.nome === nomeNovo)){
+    alert('Já existe uma academia com esse nome. Escolha outro.');
+    return;
+  }
+  const idxRede = rede.findIndex(a => a.nome === nomeAntigo);
+  if(idxRede < 0) return;
+  rede[idxRede].nome = nomeNovo;
+
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  contas.forEach(c => {
+    if(c.nome === nomeAntigo) c.nome = nomeNovo;
+    if(c.nucleosGerenciados){
+      const idxN = c.nucleosGerenciados.indexOf(nomeAntigo);
+      if(idxN >= 0) c.nucleosGerenciados[idxN] = nomeNovo;
+    }
+  });
+
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  alunosContas.forEach(al => {
+    if(mesmoNucleo(al.nucleo, nomeAntigo)) al.nucleo = nomeNovo;
+  });
+
+  Promise.all([
+    setDado('gingapass_rede_academias', JSON.stringify(rede)),
+    setDado('gingapass_academias_contas', JSON.stringify(contas)),
+    setDado('gingapass_alunos_contas', JSON.stringify(alunosContas))
+  ]).then(function(resultados){
+    if(resultados.some(ok => !ok)){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+    } else {
+      alert('Nome atualizado pra "' + nomeNovo + '"!');
+    }
+    tentarChamar(function(){ renderPerfil(); });
+    tentarChamar(function(){ renderRedeAcademias(); });
+    tentarChamar(function(){ renderAcademiasScreen(); });
+    tentarChamar(function(){ renderAlunos(); });
+  });
+}
+
 function confirmarSenhaMaster(){
   const master = JSON.parse(localStorage.getItem('gingapass_master') || 'null');
   if(!master){
@@ -9271,13 +9332,22 @@ function renderPerfil(){
               const span = document.createElement('span');
               span.style.cssText = 'font-size:13px;color:var(--navy-900);min-width:0;';
               span.innerHTML = '📍 ' + n + '<br><span style="font-size:11px;color:var(--ink-soft);">' + ((entradaRede && entradaRede.endereco) ? entradaRede.endereco : 'Sem endereço cadastrado') + '</span>';
+              const acoesNucleo = document.createElement('div');
+              acoesNucleo.style.cssText = 'display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;';
               const btnEnd = document.createElement('button');
               btnEnd.type = 'button';
               btnEnd.textContent = (entradaRede && entradaRede.endereco) ? 'Editar endereço' : 'Inserir endereço';
-              btnEnd.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;';
+              btnEnd.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
               btnEnd.onclick = () => editarEnderecoNucleoPerfil(n);
+              const btnNome = document.createElement('button');
+              btnNome.type = 'button';
+              btnNome.textContent = 'Editar nome';
+              btnNome.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
+              btnNome.onclick = () => editarNomeNucleoPerfil(n);
+              acoesNucleo.appendChild(btnEnd);
+              acoesNucleo.appendChild(btnNome);
               row.appendChild(span);
-              row.appendChild(btnEnd);
+              row.appendChild(acoesNucleo);
               listaNucleos.appendChild(row);
             });
           }
@@ -19580,11 +19650,22 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Antes só buscava endereço dentro do Brasil (&countrycodes=br) — qualquer
+// academia fora do país nunca geocodificava, então nunca tinha distância
+// nem aparecia no mapa. Removido o filtro de país pra funcionar em
+// qualquer lugar do mundo.
 function tentarGeocodificar(query){
-  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=' + encodeURIComponent(query);
-  return fetch(url).then(r => r.json()).then(resultados => {
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(query);
+  return fetch(url, {headers: {'Accept-Language': 'pt-BR'}}).then(r => r.json()).then(resultados => {
     if(resultados && resultados[0]){
-      return {lat: parseFloat(resultados[0].lat), lon: parseFloat(resultados[0].lon)};
+      const end = resultados[0].address || {};
+      return {
+        lat: parseFloat(resultados[0].lat),
+        lon: parseFloat(resultados[0].lon),
+        cidade: end.city || end.town || end.village || end.municipality || '',
+        estado: end.state || end.region || '',
+        pais: end.country || ''
+      };
     }
     return null;
   }).catch(() => null);
@@ -19669,9 +19750,22 @@ function renderAcademiasScreen(){
     const conta = academiasContas.find(c => (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) || c.nome === a.professor || c.nome === a.nome);
     return !(conta && conta.oculto);
   });
+  // Busca por texto (bairro, cidade, estado, país...) — antes a "barra de
+  // busca" era só um <div> decorativo, não dava nem pra digitar nela.
+  const buscaInput = document.getElementById('academiasBuscaInput');
+  const termoBusca = buscaInput ? _normalizarTextoBusca(buscaInput.value) : '';
+  if(termoBusca){
+    rede = rede.filter(a => {
+      const geo = _geoCacheDeEndereco(a.endereco);
+      const alvo = _normalizarTextoBusca([a.nome, a.endereco, a.professor, geo && geo.cidade, geo && geo.estado, geo && geo.pais].filter(Boolean).join(' '));
+      return alvo.indexOf(termoBusca) !== -1;
+    });
+  }
+
   container.innerHTML = '';
   if(rede.length === 0){
-    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Nenhuma academia cadastrada na rede ainda.</p>';
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">' + (termoBusca ? 'Nenhuma academia encontrada com essa busca.' : 'Nenhuma academia cadastrada na rede ainda.') + '</p>';
+    tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
     return;
   }
   const temDistanciasCalculadas = Object.keys(_distanciasCalculadas).length > 0;
@@ -19726,8 +19820,114 @@ function renderAcademiasScreen(){
       distanciaTexto = '📍 endereço não localizado no mapa';
     }
     card.querySelector('.academia-meta span').textContent = distanciaTexto;
+    card.style.cursor = 'pointer';
+    card.onclick = () => abrirPerfilAcademiaPublico(a.nome);
     container.appendChild(card);
   });
+
+  // Sempre plota o mapa com TODAS as academias do grupo (não só as que
+  // batem na busca), pra ele não ficar vazio quando alguém está filtrando.
+  tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
+}
+
+function _normalizarTextoBusca(texto){
+  return (texto || '').toString().trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function _geoCacheDeEndereco(endereco){
+  if(!endereco) return null;
+  const cache = JSON.parse(localStorage.getItem('gingapass_geocache') || '{}');
+  return cache[endereco] || null;
+}
+
+// Clicar num card de "Academias da rede" abre o perfil público do
+// professor/mestre responsável por aquele núcleo — já existe uma tela
+// pronta pra isso (fotos publicadas + botão de mensagem), só precisa achar
+// quem é o professor daquele núcleo específico.
+function abrirPerfilAcademiaPublico(nomeNucleo){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const entrada = rede.find(a => a.nome === nomeNucleo);
+  const nomeProfessor = entrada ? (entrada.professor || '').trim() : '';
+  if(!nomeProfessor){
+    alert('Essa academia ainda não tem professor/mestre responsável cadastrado.');
+    return;
+  }
+  abrirPerfilPublico('professor', nomeProfessor);
+}
+
+let _academiasMapaInstancia = null;
+let _academiasMapaMarkers = null;
+let _academiasMapaGeocodificando = false;
+
+function _obterOuIniciarMapaAcademias(){
+  const container = document.getElementById('academiasMapa');
+  if(!container || typeof L === 'undefined') return null;
+  if(!_academiasMapaInstancia){
+    _academiasMapaInstancia = L.map(container, {scrollWheelZoom: false}).setView([-15.78, -47.93], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 18
+    }).addTo(_academiasMapaInstancia);
+    _academiasMapaMarkers = L.layerGroup().addTo(_academiasMapaInstancia);
+    // O mapa às vezes "nasce" com o container ainda de tamanho errado (troca
+    // de tela); sem isso ele fica cortado/deslocado até a pessoa mexer nele.
+    setTimeout(function(){ if(_academiasMapaInstancia) _academiasMapaInstancia.invalidateSize(); }, 300);
+  }
+  return _academiasMapaInstancia;
+}
+
+// Plota uma bolinha por academia com endereço já geocodificado (cidade,
+// estado, país — funciona fora do Brasil também agora). Quem ainda não tem
+// coordenada guardada é geocodificado sozinho aqui, devagar (1 por vez,
+// respeitando o limite do serviço gratuito), e o mapa se atualiza
+// automaticamente conforme cada endereço novo é localizado.
+function renderMapaAcademias(redeCompleta){
+  const mapa = _obterOuIniciarMapaAcademias();
+  const vazioEl = document.getElementById('academiasMapaVazio');
+  if(!mapa || !_academiasMapaMarkers) return;
+
+  let rede = redeCompleta.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  rede = rede.filter(a => {
+    const conta = academiasContas.find(c => (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) || c.nome === a.professor || c.nome === a.nome);
+    return !(conta && conta.oculto);
+  }).filter(a => a.endereco);
+
+  _academiasMapaMarkers.clearLayers();
+  const pontos = [];
+  rede.forEach(a => {
+    const geo = _geoCacheDeEndereco(a.endereco);
+    if(geo && geo.lat && geo.lon){
+      const local = [geo.cidade, geo.estado, geo.pais].filter(Boolean).join(', ');
+      const marker = L.marker([geo.lat, geo.lon]);
+      const nomeEscapado = a.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') + '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>');
+      marker.addTo(_academiasMapaMarkers);
+      pontos.push([geo.lat, geo.lon]);
+    }
+  });
+
+  if(vazioEl) vazioEl.style.display = pontos.length === 0 ? 'block' : 'none';
+  if(pontos.length === 1){
+    mapa.setView(pontos[0], 12);
+  } else if(pontos.length > 1){
+    mapa.fitBounds(pontos, {padding: [24, 24], maxZoom: 12});
+  }
+
+  if(!_academiasMapaGeocodificando){
+    const semCoordenada = rede.filter(a => !_geoCacheDeEndereco(a.endereco));
+    if(semCoordenada.length > 0){
+      _academiasMapaGeocodificando = true;
+      (async function(){
+        for(const a of semCoordenada.slice(0, 8)){
+          await geocodificarEndereco(a.endereco);
+          await new Promise(function(r){ setTimeout(r, 1100); });
+        }
+        _academiasMapaGeocodificando = false;
+        tentarChamar(function(){ renderMapaAcademias(JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]')); });
+      })();
+    }
+  }
 }
 
 function publicarAviso(){
