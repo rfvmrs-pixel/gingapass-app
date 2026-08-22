@@ -2604,6 +2604,23 @@
     <div id="academiasMapaExpandidoLista" style="flex:1;overflow-y:auto;padding:0 16px 24px;"></div>
   </div>
 
+  <div id="certificadoConfigOverlay" style="display:none;position:fixed;inset:0;background:rgba(4,18,33,0.92);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:420px;width:100%;max-height:88vh;overflow-y:auto;">
+      <div class="card-label" style="margin:0 0 10px;">🏆 Certificado deste evento</div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Por padrão, o certificado usa o cartaz do evento como fundo. Se preferir, envie uma arte diferente feita só pra isso.</p>
+      <p id="certificadoConfigStatus" style="font-size:11.5px;color:var(--navy-700);font-weight:600;margin:0 0 10px;"></p>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Arte personalizada pro certificado (opcional)</label>
+      <input type="file" id="certificadoConfigArteInput" accept="image/*" style="font-size:12px;margin-bottom:8px;">
+      <button class="btn" type="button" id="certificadoConfigRemoverArteBtn" style="display:none;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);margin-bottom:10px;" onclick="removerArteCertificadoEvento()">Remover arte personalizada (voltar a usar o cartaz do evento)</button>
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Mensagem extra no certificado (opcional, além da mensagem padrão)</label>
+      <textarea class="admin-input" id="certificadoConfigMensagemInput" placeholder="Ex: Obrigado por fazer parte dessa turma especial!" style="min-height:70px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn" type="button" onclick="salvarConfigCertificadoEvento()" style="flex:1;">Salvar</button>
+        <button class="btn" type="button" onclick="fecharConfigCertificadoEvento()" style="flex:1;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="menu-mais-overlay" id="menuMaisOverlay" onclick="fecharMenuMais()">
     <div class="menu-mais-painel" onclick="event.stopPropagation()">
       <div class="menu-mais-alca"></div>
@@ -2770,7 +2787,7 @@ function _idbAbrirFotos(){
   }
   _idbFotosAbrindo = new Promise(function(resolve){
     try{
-      const req = window.indexedDB.open('gingapass_cache_local', 4);
+      const req = window.indexedDB.open('gingapass_cache_local', 5);
       req.onupgradeneeded = function(){
         const db = req.result;
         if(!db.objectStoreNames.contains('fotos')){
@@ -2784,6 +2801,11 @@ function _idbAbrirFotos(){
         }
         if(!db.objectStoreNames.contains('fotosPerfil')){
           db.createObjectStore('fotosPerfil', {keyPath: 'chave'});
+        }
+        // Arte personalizada pro certificado, opcional e separada do cartaz
+        // do evento (mesmo motivo dos outros stores: nunca no localStorage).
+        if(!db.objectStoreNames.contains('certificadoImagens')){
+          db.createObjectStore('certificadoImagens', {keyPath: 'codigoCheckin'});
         }
       };
       req.onsuccess = function(){ _idbFotosDb = req.result; resolve(_idbFotosDb); };
@@ -2945,6 +2967,74 @@ function removerImagemEvento(codigoCheckin){
   idbRemoverImagemEvento(codigoCheckin);
   if(eventoPostersCollection){
     eventoPostersCollection.doc(codigoCheckin).delete().catch(function(){});
+  }
+}
+
+/* =================== Arte personalizada do certificado (opcional) ===================
+   Mesma ideia do cartaz do evento: fica fora do localStorage (IndexedDB +
+   coleção própria do Firestore), pra não estourar o limite de tamanho do
+   array de eventos. Só existe quando quem criou o evento decide enviar uma
+   arte específica pro certificado — sem ela, o certificado usa o cartaz do
+   próprio evento como fundo (ver renderizarCertificadoCanvas). */
+window._certificadoImagensCache = {};
+let certificadoImagensCollection = null;
+
+function idbSalvarImagemCertificado(codigoCheckin, dataUrl){
+  window._certificadoImagensCache[codigoCheckin] = dataUrl;
+  _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    try{
+      const tx = db.transaction('certificadoImagens', 'readwrite');
+      tx.objectStore('certificadoImagens').put({codigoCheckin, dataUrl});
+    } catch(e){
+      console.error('Erro ao salvar arte do certificado no IndexedDB:', e);
+    }
+  });
+}
+
+function idbRemoverImagemCertificado(codigoCheckin){
+  delete window._certificadoImagensCache[codigoCheckin];
+  _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    try{
+      const tx = db.transaction('certificadoImagens', 'readwrite');
+      tx.objectStore('certificadoImagens').delete(codigoCheckin);
+    } catch(e){}
+  });
+}
+
+function idbCarregarImagensCertificadoNaMemoria(){
+  return _idbAbrirFotos().then(function(db){
+    if(!db) return;
+    return new Promise(function(resolve){
+      try{
+        const tx = db.transaction('certificadoImagens', 'readonly');
+        const req = tx.objectStore('certificadoImagens').getAll();
+        req.onsuccess = function(){
+          if(Array.isArray(req.result)){
+            req.result.forEach(function(r){ window._certificadoImagensCache[r.codigoCheckin] = r.dataUrl; });
+          }
+          resolve();
+        };
+        req.onerror = function(){ resolve(); };
+      } catch(e){ resolve(); }
+    });
+  }).catch(function(){});
+}
+
+function salvarImagemCertificado(codigoCheckin, dataUrl){
+  idbSalvarImagemCertificado(codigoCheckin, dataUrl);
+  if(certificadoImagensCollection){
+    certificadoImagensCollection.doc(codigoCheckin).set({imagem: dataUrl, atualizado: Date.now()}).catch(function(e){
+      console.error('Erro ao sincronizar arte do certificado com a nuvem:', e);
+    });
+  }
+}
+
+function removerImagemCertificado(codigoCheckin){
+  idbRemoverImagemCertificado(codigoCheckin);
+  if(certificadoImagensCollection){
+    certificadoImagensCollection.doc(codigoCheckin).delete().catch(function(){});
   }
 }
 
@@ -3883,6 +3973,7 @@ function iniciarFirebase(tentativas){
     if(statusEl) statusEl.textContent = 'Sem conexão com a nuvem. Verifique se há bloqueador de anúncios/rastreadores ativo no navegador, ou troque de rede (wi-fi/dados móveis) e recarregue a página.';
     firebaseSynced = true;
     idbCarregarImagensEventoNaMemoria().then(function(){ migrarImagensEventosAntigas(); });
+    idbCarregarImagensCertificadoNaMemoria();
     seedContas(false);
     return;
   }
@@ -3895,6 +3986,7 @@ function iniciarFirebase(tentativas){
     localizacoesCollection = db.collection('gingapass_localizacoes');
     presencaCollection = db.collection('gingapass_presenca');
     eventoPostersCollection = db.collection('gingapass_eventos_posters');
+    certificadoImagensCollection = db.collection('gingapass_certificados_arte');
     videosNuvemCollection = db.collection('gingapass_videos_nuvem');
     lojaProdutosCollection = db.collection('gingapass_loja_produtos_itens');
     socialPostsCollection = db.collection('gingapass_social_posts');
@@ -4026,6 +4118,7 @@ function iniciarFirebase(tentativas){
 
     migrarFotosAntigasSeNecessario();
     idbCarregarImagensEventoNaMemoria().then(function(){ migrarImagensEventosAntigas(); });
+    idbCarregarImagensCertificadoNaMemoria();
 
     eventoPostersCollection.onSnapshot(function(snapshot){
       let mudouAlguma = false;
@@ -4048,6 +4141,28 @@ function iniciarFirebase(tentativas){
       }
     }, function(e){
       console.error('Erro ao sincronizar cartazes de eventos:', e);
+    });
+
+    certificadoImagensCollection.onSnapshot(function(snapshot){
+      let mudouAlguma = false;
+      snapshot.docChanges().forEach(function(change){
+        if(change.type === 'removed'){
+          delete window._certificadoImagensCache[change.doc.id];
+          mudouAlguma = true;
+          return;
+        }
+        const data = change.doc.data();
+        if(data && typeof data.imagem === 'string'){
+          window._certificadoImagensCache[change.doc.id] = data.imagem;
+          idbSalvarImagemCertificado(change.doc.id, data.imagem);
+          mudouAlguma = true;
+        }
+      });
+      if(mudouAlguma){
+        tentarChamar(function(){ renderEventosGerenciar(); });
+      }
+    }, function(e){
+      console.error('Erro ao sincronizar arte personalizada de certificados:', e);
     });
 
     muralFotosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
@@ -4174,6 +4289,7 @@ function iniciarFirebase(tentativas){
     console.error('Firebase não pôde ser iniciado, o app vai funcionar só localmente:', e);
     firebaseSynced = true;
     idbCarregarImagensEventoNaMemoria().then(function(){ migrarImagensEventosAntigas(); });
+    idbCarregarImagensCertificadoNaMemoria();
   }
 }
 </script>
@@ -10301,6 +10417,13 @@ function renderEventosGerenciar(){
         editBtn.onclick = () => editarEvento(indiceReal);
         actions.appendChild(editBtn);
 
+        const certBtn = document.createElement('button');
+        certBtn.className = 'aluno-del';
+        certBtn.style.color = 'var(--amber-700)';
+        certBtn.textContent = '🏆 Certificado';
+        certBtn.onclick = () => abrirConfigCertificadoEvento(indiceReal);
+        actions.appendChild(certBtn);
+
         const delBtn = document.createElement('button');
         delBtn.className = 'aluno-del';
         delBtn.textContent = 'Remover';
@@ -10693,7 +10816,10 @@ function renderizarCertificadoCanvas(ev){
   // professor identificado (ex: criado direto pela matriz sem nome cadastrado).
   const nomeCabecalho = professor.nome || grupo.nome || 'GingaPass';
   const logoCabecalhoSrc = professor.foto || grupo.foto || '';
-  const posterSrc = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem || '';
+  // Arte personalizada pro certificado (se quem criou o evento cadastrou
+  // uma em "🏆 Certificado" > "Arte personalizada") tem prioridade sobre o
+  // cartaz do próprio evento, que continua sendo o padrão sem ela.
+  const posterSrc = window._certificadoImagensCache[ev.codigoCheckin] || window._eventoImagensCache[ev.codigoCheckin] || ev.imagem || '';
 
   const CORES = {
     bg1: '#0A2620', bg2: '#123A30', bg3: '#08201A',
@@ -10858,9 +10984,10 @@ function renderizarCertificadoCanvas(ev){
       // estranho quando o próprio título do evento já cita a pessoa (ex:
       // título "Workshop com Mestre Pelezinho" + ", com Borracha" no meio
       // do texto ficaria confuso, como se fossem duas pessoas diferentes).
+      // A data também não repete aqui — já aparece uma vez só, no rodapé
+      // (com o ícone 📅), pra não ficar escrita duas vezes no certificado.
       const linhaEvento = 'participou de "' + (ev.titulo || 'evento') + '"' +
-        (ev.local ? (', em ' + ev.local) : '') +
-        (ev.data ? (', realizado em ' + ev.data) : '') + '.';
+        (ev.local ? (', em ' + ev.local) : '') + '.';
       const linhasEvento = _quebrarTextoCanvas(ctx, linhaEvento, larguraTexto);
       linhasEvento.slice(0, 3).forEach(linha => { ctx.fillText(linha, inicioTexto, y); y += 25; });
 
@@ -10872,6 +10999,28 @@ function renderizarCertificadoCanvas(ev){
 
       // ---------- rodapé: data/local à esquerda, assinatura à direita ----------
       const rodapeY = ALTURA - 56;
+
+      // ---------- mensagem extra de quem criou o evento (opcional, além da
+      // mensagem padrão acima) — só entra se sobrar espaço até o rodapé. ----------
+      if(ev.certificadoMensagem){
+        y += 20;
+        ctx.strokeStyle = 'rgba(227,178,75,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(inicioTexto, y - 10);
+        ctx.lineTo(inicioTexto + 46, y - 10);
+        ctx.stroke();
+        y += 8;
+        ctx.fillStyle = CORES.creme;
+        ctx.font = '400 15px Inter, Arial';
+        const linhasMensagem = _quebrarTextoCanvas(ctx, ev.certificadoMensagem, larguraTexto);
+        const maxYMensagem = rodapeY - 40;
+        linhasMensagem.forEach(linha => {
+          if(y > maxYMensagem) return;
+          ctx.fillText(linha, inicioTexto, y);
+          y += 22;
+        });
+      }
       ctx.textAlign = 'left';
       ctx.font = '400 15px Inter, Arial';
       ctx.fillStyle = CORES.cinzaClaro;
@@ -11547,9 +11696,88 @@ function removerEvento(i){
   setDado('gingapass_eventos', JSON.stringify(eventos));
   if(removido && removido.codigoCheckin){
     removerImagemEvento(removido.codigoCheckin);
+    removerImagemCertificado(removido.codigoCheckin);
   }
   renderEventos();
   renderEventosGerenciar();
+}
+
+/* ===== Configuração do certificado do evento: arte personalizada + mensagem extra ===== */
+let _certificadoConfigIndice = null;
+
+function abrirConfigCertificadoEvento(indiceReal){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[indiceReal];
+  if(!ev || !podeGerenciarEvento(ev)){
+    alert('Só quem criou este evento (ou a senha master/matriz) pode configurar o certificado dele.');
+    return;
+  }
+  _certificadoConfigIndice = indiceReal;
+  const overlay = document.getElementById('certificadoConfigOverlay');
+  const status = document.getElementById('certificadoConfigStatus');
+  const removerBtn = document.getElementById('certificadoConfigRemoverArteBtn');
+  const mensagemInput = document.getElementById('certificadoConfigMensagemInput');
+  const arteInput = document.getElementById('certificadoConfigArteInput');
+  const temArte = !!(window._certificadoImagensCache[ev.codigoCheckin] || ev.temImagemCertificado);
+  if(status) status.textContent = temArte ? '✅ Certificado usando uma arte personalizada.' : 'Certificado usando o cartaz do evento como fundo.';
+  if(removerBtn) removerBtn.style.display = temArte ? 'block' : 'none';
+  if(mensagemInput) mensagemInput.value = ev.certificadoMensagem || '';
+  if(arteInput) arteInput.value = '';
+  if(overlay) overlay.style.display = 'flex';
+}
+
+function fecharConfigCertificadoEvento(){
+  const overlay = document.getElementById('certificadoConfigOverlay');
+  if(overlay) overlay.style.display = 'none';
+  _certificadoConfigIndice = null;
+}
+
+function salvarConfigCertificadoEvento(){
+  if(_certificadoConfigIndice === null) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[_certificadoConfigIndice];
+  if(!ev) return;
+  const mensagemInput = document.getElementById('certificadoConfigMensagemInput');
+  const arteInput = document.getElementById('certificadoConfigArteInput');
+  const mensagem = mensagemInput ? mensagemInput.value.trim() : '';
+  const arquivo = arteInput && arteInput.files && arteInput.files[0];
+
+  const salvarTexto = (temArte) => {
+    const atualizado = Object.assign({}, ev, {certificadoMensagem: mensagem});
+    if(temArte !== undefined) atualizado.temImagemCertificado = temArte;
+    eventos[_certificadoConfigIndice] = atualizado;
+    setDado('gingapass_eventos', JSON.stringify(eventos));
+    fecharConfigCertificadoEvento();
+    alert('Configuração do certificado salva!');
+  };
+
+  if(arquivo){
+    comprimirImagem(arquivo, 1200, 0.75).then(dataUrl => {
+      if(!dataUrl){
+        alert('Não consegui processar essa imagem. Tenta outra foto, ou salva só a mensagem por enquanto.');
+        salvarTexto(undefined);
+        return;
+      }
+      salvarImagemCertificado(ev.codigoCheckin, dataUrl);
+      salvarTexto(true);
+    }).catch(erro => {
+      alert('Não consegui processar essa imagem: ' + (erro && erro.message ? erro.message : erro) + '\n\nA mensagem ainda assim foi salva.');
+      salvarTexto(undefined);
+    });
+  } else {
+    salvarTexto(undefined);
+  }
+}
+
+function removerArteCertificadoEvento(){
+  if(_certificadoConfigIndice === null) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[_certificadoConfigIndice];
+  if(!ev) return;
+  removerImagemCertificado(ev.codigoCheckin);
+  eventos[_certificadoConfigIndice] = Object.assign({}, ev, {temImagemCertificado: false});
+  setDado('gingapass_eventos', JSON.stringify(eventos));
+  abrirConfigCertificadoEvento(_certificadoConfigIndice);
 }
 
 let fotosSelecionadas = [];
