@@ -9765,18 +9765,29 @@ function renderCalendarioEventosHeatmap(){
   });
 }
 
+// Mesma preferência "Silenciar grupo/pessoa" do GingaSocial — silenciar
+// alguém ali agora também esconde os eventos criados por ela/pelo grupo
+// dela, em qualquer uma das listas de consumo (não nas de "Gerenciar").
+function _eventoVisivelComMute(ev, mute, meuId){
+  if(!mute || !ev.criadoPor) return true;
+  if(ev.criadoPor === meuId) return true;
+  return _visivelComMuteGeral(ev.criadoPor, ev.criadoPor.split(':')[0], mute);
+}
+
 function renderEventos(){
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const comIndice = todosEventos.map((ev, indiceReal) => ({ev, indiceReal}));
-  const doMeuGrupo = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && _eventoBateFiltroMes(x.ev));
+  const meuMuteEv = (typeof obterMuteSocial === 'function') ? obterMuteSocial() : null;
+  const meuIdEv = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
+  const doMeuGrupo = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && _eventoBateFiltroMes(x.ev) && _eventoVisivelComMute(x.ev, meuMuteEv, meuIdEv));
   // Em destaque = ainda não passou da data programada. Eventos realizados =
   // já passou (ver eventoJaPassou). Sem data confiável, fica sempre em destaque.
   const destaque = doMeuGrupo.filter(x => !eventoJaPassou(x.ev));
   const realizados = doMeuGrupo.filter(x => eventoJaPassou(x.ev));
   // Evento Público: visível pra QUALQUER pessoa com acesso ao app, independente
   // do grupo/núcleo dela — por isso não filtra por meuGrupoEv aqui.
-  const publicos = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev) && _eventoBateFiltroMes(x.ev));
+  const publicos = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev) && _eventoBateFiltroMes(x.ev) && _eventoVisivelComMute(x.ev, meuMuteEv, meuIdEv));
 
   renderListaEventos('eventosFeedCompleto', destaque, 'Nenhum evento publicado ainda.');
   renderListaEventos('eventosFeedRealizados', realizados, 'Nenhum evento realizado ainda.');
@@ -9784,9 +9795,9 @@ function renderEventos(){
 
   // O carrossel da tela Início sempre mostra os próximos eventos de verdade,
   // sem o filtro de mês da aba Eventos (senão filtrar lá "escondia" eventos
-  // reais da Início também).
-  const destaqueParaHome = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && !eventoJaPassou(x.ev));
-  const publicosParaHome = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev));
+  // reais da Início também) — mas continua respeitando quem foi silenciado.
+  const destaqueParaHome = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && !eventoJaPassou(x.ev) && _eventoVisivelComMute(x.ev, meuMuteEv, meuIdEv));
+  const publicosParaHome = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev) && _eventoVisivelComMute(x.ev, meuMuteEv, meuIdEv));
   renderEventosHome(destaqueParaHome, publicosParaHome);
   tentarChamar(function(){ renderAniversariantesMes(); });
   tentarChamar(function(){ renderCalendarioEventosHeatmap(); });
@@ -9884,6 +9895,15 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
     comentCount.style.cssText = 'font-size:12px;color:var(--ink-soft);';
     comentCount.textContent = comentarios.length + (comentarios.length === 1 ? ' comentário' : ' comentários');
     acoes.appendChild(comentCount);
+    if(ev.criadoPor && ev.criadoPor !== meuId){
+      const muteBtn = document.createElement('button');
+      muteBtn.type = 'button';
+      muteBtn.title = 'Silenciar essa pessoa ou o grupo dela';
+      muteBtn.textContent = '🔇';
+      muteBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;padding:0;margin-left:auto;';
+      muteBtn.onclick = () => abrirMenuSilenciarEvento(ev);
+      acoes.appendChild(muteBtn);
+    }
     div.appendChild(acoes);
 
     if(comentarios.length){
@@ -14206,6 +14226,30 @@ function _visivelComMuteGeral(chaveConta, autorRole, mute){
 
 // Menu simples (confirm em duas etapas) pra escolher entre silenciar só a
 // pessoa ou o grupo dela inteiro, a partir de um post do feed.
+// Mesmo menu de silenciar dos posts, só que a partir de um evento — usa a
+// mesma preferência (Silenciar grupo/pessoa) que já vale pro GingaSocial e
+// pro Mural, então silenciar por aqui também esconde posts/fotos dessa
+// pessoa/grupo, e vice-versa.
+function abrirMenuSilenciarEvento(ev){
+  if(!ev.criadoPor) return;
+  const role = ev.criadoPor.split(':')[0];
+  const nome = (typeof _resolverNomeDeChaveConta === 'function') ? _resolverNomeDeChaveConta(ev.criadoPor) : ev.criadoPor;
+  const grupoId = _grupoCadastradoIdDeAutor(ev.criadoPor, role);
+  if(!grupoId){
+    alternarSilenciarPessoaSocial(ev.criadoPor, nome);
+    renderEventos();
+    return;
+  }
+  const grupo = listarTodosGruposParceirosCadastrados().find(g => g.id === grupoId);
+  const silenciarGrupo = confirm('Silenciar "' + (grupo ? grupo.nome : 'o grupo') + '" inteiro?\n\nOK = silenciar o grupo todo (esconde posts, fotos e eventos dele)\nCancelar = silenciar só ' + (nome || 'essa pessoa'));
+  if(silenciarGrupo){
+    alternarSilenciarGrupoSocial(grupoId, grupo ? grupo.nome : '');
+  } else {
+    alternarSilenciarPessoaSocial(ev.criadoPor, nome);
+  }
+  renderEventos();
+}
+
 function abrirMenuSilenciarPost(post){
   if(!post.autorGrupoId){
     alternarSilenciarPessoaSocial(post.autorId, post.autorNome);
