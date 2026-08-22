@@ -1211,8 +1211,11 @@
 
     <div class="card" style="margin-bottom:10px;">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por mês (deixe em branco pra ver tudo)</label>
-      <input class="admin-input" id="eventosFiltroMes" type="month" style="margin-bottom:0;" onchange="renderEventos(); tentarChamar(function(){ renderEventosGerenciar(); });">
+      <input class="admin-input" id="eventosFiltroMes" type="month" style="margin-bottom:0;" onchange="renderEventos(); tentarChamar(function(){ renderEventosGerenciar(); }); tentarChamar(function(){ renderCalendarioEventosHeatmap(); });">
     </div>
+
+    <p class="section-title">🗓️ Calendário de eventos</p>
+    <div class="card" style="margin-bottom:10px;" id="calendarioEventosHeatmap"></div>
 
     <div id="eventosCriarBoxAdmin" style="display:none;">
       <div class="card">
@@ -9648,6 +9651,63 @@ function _eventoBateFiltroMes(ev){
   return iso.slice(0, 7) === filtro;
 }
 
+// Calendário tipo "heatmap": um quadrado por mês do ano, mais escuro quanto
+// mais eventos tiver naquele mês — dá pra ver de longe onde a rede tem mais
+// evento sem precisar abrir mês por mês. Clicar num mês já aplica o filtro
+// acima (clicar de novo no mesmo mês limpa o filtro).
+let _calendarioEventosAno = new Date().getFullYear();
+
+function renderCalendarioEventosHeatmap(){
+  const box = document.getElementById('calendarioEventosHeatmap');
+  if(!box) return;
+  const meuGrupoEv = obterMeuGrupoId();
+  const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const doMeuGrupo = todosEventos.filter(ev => (ev.grupo || 'matriz') === meuGrupoEv);
+
+  const contagens = new Array(12).fill(0);
+  doMeuGrupo.forEach(ev => {
+    const iso = ev.dataISO || extrairIsoDeDataEventoTexto(ev.data);
+    if(!iso) return;
+    const partes = iso.split('-');
+    if(Number(partes[0]) === _calendarioEventosAno) contagens[Number(partes[1]) - 1]++;
+  });
+  const maxContagem = Math.max(1, ...contagens);
+  const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const mesFiltroAtual = _mesFiltroEventos();
+
+  let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+    '<button type="button" onclick="_calendarioEventosAno--; renderCalendarioEventosHeatmap();" style="border:none;background:none;font-size:16px;cursor:pointer;color:var(--navy-900);padding:4px 8px;">◀</button>' +
+    '<b style="font-size:14px;color:var(--navy-900);">' + _calendarioEventosAno + '</b>' +
+    '<button type="button" onclick="_calendarioEventosAno++; renderCalendarioEventosHeatmap();" style="border:none;background:none;font-size:16px;cursor:pointer;color:var(--navy-900);padding:4px 8px;">▶</button>' +
+    '</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">';
+
+  nomesMeses.forEach((nome, i) => {
+    const count = contagens[i];
+    const intensidade = count === 0 ? 0 : 0.28 + (count / maxContagem) * 0.72;
+    const chaveMes = _calendarioEventosAno + '-' + String(i + 1).padStart(2, '0');
+    const selecionado = mesFiltroAtual === chaveMes;
+    html += '<div class="_mesHeatmapCell" data-mes="' + chaveMes + '" style="cursor:pointer;border-radius:10px;padding:10px 4px;text-align:center;background:' +
+      (count === 0 ? '#F1E7F7' : 'rgba(194,44,117,' + intensidade + ')') +
+      ';border:2px solid ' + (selecionado ? '#6C3FA6' : 'transparent') + ';">' +
+      '<div style="font-size:11px;font-weight:600;color:' + (count === 0 ? 'var(--ink-soft)' : '#fff') + ';">' + nome + '</div>' +
+      '<div style="font-size:16px;font-weight:700;color:' + (count === 0 ? 'var(--ink-soft)' : '#fff') + ';">' + count + '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+
+  Array.from(box.querySelectorAll('._mesHeatmapCell')).forEach(cell => {
+    cell.onclick = () => {
+      const mesInput = document.getElementById('eventosFiltroMes');
+      const chave = cell.dataset.mes;
+      if(mesInput) mesInput.value = (mesInput.value === chave) ? '' : chave;
+      renderEventos();
+      tentarChamar(function(){ renderEventosGerenciar(); });
+      renderCalendarioEventosHeatmap();
+    };
+  });
+}
+
 function renderEventos(){
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
@@ -9672,6 +9732,7 @@ function renderEventos(){
   const publicosParaHome = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev));
   renderEventosHome(destaqueParaHome, publicosParaHome);
   tentarChamar(function(){ renderAniversariantesMes(); });
+  tentarChamar(function(){ renderCalendarioEventosHeatmap(); });
 }
 
 // Monta a lista (texto + cartaz + botão de presença) usada nas seções da aba
