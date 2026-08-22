@@ -10608,6 +10608,13 @@ function renderEventosGerenciar(){
         certBtn.onclick = () => abrirConfigCertificadoEvento(indiceReal);
         actions.appendChild(certBtn);
 
+        const convidarBtnGer = document.createElement('button');
+        convidarBtnGer.className = 'aluno-del';
+        convidarBtnGer.style.color = 'var(--navy-700)';
+        convidarBtnGer.textContent = '🎟️ Convidar';
+        convidarBtnGer.onclick = () => abrirConvidarEvento(indiceReal);
+        actions.appendChild(convidarBtnGer);
+
         const delBtn = document.createElement('button');
         delBtn.className = 'aluno-del';
         delBtn.textContent = 'Remover';
