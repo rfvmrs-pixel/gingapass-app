@@ -9149,7 +9149,15 @@ function iniciarSlideshowMural(){
     _muralSlideshowInterval = null;
   }
 
-  const fotos = agruparFotosEmPosts(normalizarFotos().filter(f => estouNoMesmoGrupoQueAutor(f.autorId, f.autorRole)).slice().reverse());
+  // Respeita "Preferências" do GingaSocial (silenciar grupo/pessoa) aqui
+  // também — antes só valia dentro do GingaSocial, mesmo sendo a mesma
+  // pessoa/grupo silenciado.
+  const meuMuteMural = (typeof obterMuteSocial === 'function') ? obterMuteSocial() : null;
+  const meuIdMural = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
+  const fotos = agruparFotosEmPosts(normalizarFotos()
+    .filter(f => estouNoMesmoGrupoQueAutor(f.autorId, f.autorRole))
+    .filter(f => f.autorId === meuIdMural || _visivelComMuteGeral(f.autorId, f.autorRole, meuMuteMural))
+    .slice().reverse());
   if(fotos.length === 0){
     img.style.display = 'none';
     if(vazio) vazio.style.display = 'block';
@@ -12904,9 +12912,13 @@ function renderFotosFeed(grupoIdForcado){
   renderAniversariantesMes();
   const container = document.getElementById('feedFotos');
   if(!container || !currentRole) return;
-  const fotos = agruparFotosEmPosts(normalizarFotos().filter(f => grupoIdForcado ? (obterGrupoIdDeAutor(f.autorId, f.autorRole) === grupoIdForcado) : estouNoMesmoGrupoQueAutor(f.autorId, f.autorRole)).slice().reverse());
-  container.innerHTML = '';
   const meuId = identificadorUsuarioAtual();
+  const meuMuteFeed = (!grupoIdForcado && typeof obterMuteSocial === 'function') ? obterMuteSocial() : null;
+  const fotos = agruparFotosEmPosts(normalizarFotos()
+    .filter(f => grupoIdForcado ? (obterGrupoIdDeAutor(f.autorId, f.autorRole) === grupoIdForcado) : estouNoMesmoGrupoQueAutor(f.autorId, f.autorRole))
+    .filter(f => f.autorId === meuId || _visivelComMuteGeral(f.autorId, f.autorRole, meuMuteFeed))
+    .slice().reverse());
+  container.innerHTML = '';
 
   if(fotos.length > 0){
     if(_feedFotoIndice < 0) _feedFotoIndice = fotos.length - 1;
@@ -12941,7 +12953,10 @@ function renderFotosFeed(grupoIdForcado){
     _feedAutoTimer = setInterval(() => navegarFeedFotos(1), 10000);
   }
 
-  const videos = lerVideosLocais().filter(v => grupoIdForcado ? (obterGrupoIdDeAutor(v.autorId, v.autorRole) === grupoIdForcado) : estouNoMesmoGrupoQueAutor(v.autorId, v.autorRole)).slice().reverse();
+  const videos = lerVideosLocais()
+    .filter(v => grupoIdForcado ? (obterGrupoIdDeAutor(v.autorId, v.autorRole) === grupoIdForcado) : estouNoMesmoGrupoQueAutor(v.autorId, v.autorRole))
+    .filter(v => v.autorId === meuId || _visivelComMuteGeral(v.autorId, v.autorRole, meuMuteFeed))
+    .slice().reverse();
   videos.forEach(video => {
     const card = document.createElement('div');
     card.className = 'card';
@@ -14174,6 +14189,21 @@ function _postVisivelComMute(post, mute){
   return true;
 }
 
+// Mesma checagem de "Preferências" (Silenciar grupo/pessoa) do GingaSocial,
+// mas pra conteúdo que NÃO guarda autorGrupoId salvo (fotos/vídeos do
+// Mural/GingaFeed, mais antigo) — calcula o grupo oficial do autor na hora.
+// Sem isso, silenciar alguém no GingaSocial não tinha efeito nenhum no
+// Mural, mesmo sendo a mesma pessoa/grupo.
+function _visivelComMuteGeral(chaveConta, autorRole, mute){
+  if(!mute || !chaveConta) return true;
+  if(mute.pessoas && mute.pessoas.indexOf(chaveConta) !== -1) return false;
+  if(mute.grupos && mute.grupos.length){
+    const grupoAutor = _grupoCadastradoIdDeAutor(chaveConta, autorRole);
+    if(grupoAutor && mute.grupos.indexOf(grupoAutor) !== -1) return false;
+  }
+  return true;
+}
+
 // Menu simples (confirm em duas etapas) pra escolher entre silenciar só a
 // pessoa ou o grupo dela inteiro, a partir de um post do feed.
 function abrirMenuSilenciarPost(post){
@@ -14566,7 +14596,14 @@ function iniciarSlideshowSocial(){
     _socialSlideshowInterval = null;
   }
 
-  const posts = (window._socialPostsCache || []).filter(p => p.tipo === 'foto' && p.imagens && p.imagens.length > 0).slice().sort((a, b) => b.data - a.data);
+  // Respeita "Preferências" (silenciar grupo/pessoa) — antes o slideshow da
+  // Início ignorava o que a pessoa silenciou, só o feed completo respeitava.
+  const meuMuteSlide = (typeof obterMuteSocial === 'function') ? obterMuteSocial() : null;
+  const meuIdSlide = (currentRole && currentUser) ? identificadorUsuarioAtual() : null;
+  const posts = (window._socialPostsCache || [])
+    .filter(p => p.tipo === 'foto' && p.imagens && p.imagens.length > 0)
+    .filter(p => p.autorId === meuIdSlide || _postVisivelComMute(p, meuMuteSlide))
+    .slice().sort((a, b) => b.data - a.data);
   if(posts.length === 0){
     img.style.display = 'none';
     if(legenda) legenda.textContent = '';
