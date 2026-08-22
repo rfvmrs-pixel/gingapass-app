@@ -1825,7 +1825,8 @@
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
         <select class="admin-input" id="novoAlunoTipoMensalidadeAd">
           <option value="mensalista">Mensalista (paga mensalidade)</option>
-          <option value="bolsista">Bolsista de projeto social (não paga)</option>
+          <option value="bolsista">Bolsista (não paga)</option>
+          <option value="projeto">Aluno de projeto social (não paga)</option>
         </select>
         <select class="admin-input" id="novoAlunoNivelAd"><option value="">Nível na hierarquia (opcional — Graduações)</option></select>
         <select class="admin-input" id="novoAlunoNucleoAd"><option value="">Selecione o núcleo (se você tiver mais de um)...</option></select>
@@ -1881,7 +1882,8 @@
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
         <select class="admin-input" id="novoAlunoTipoMensalidade">
           <option value="mensalista">Mensalista (paga mensalidade)</option>
-          <option value="bolsista">Bolsista de projeto social (não paga)</option>
+          <option value="bolsista">Bolsista (não paga)</option>
+          <option value="projeto">Aluno de projeto social (não paga)</option>
         </select>
         <select class="admin-input" id="novoAlunoNivel"><option value="">Nível na hierarquia (opcional — Graduações)</option></select>
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Tipo de cadastro</label>
@@ -13328,6 +13330,21 @@ function renderPagamentoAluno(){
   if(!btnPix || (currentRole !== 'aluno' && currentRole !== 'academia')) return;
 
   const minhaConta = resolverMinhaContaComoAluno();
+  // Bolsista e aluno de projeto social não pagam — a opção de pagar fica
+  // sempre desabilitada pra eles, mesmo que o professor tenha Pix/cartão
+  // cadastrado (senão a mensagem de "forma de pagamento não cadastrada"
+  // aparecia igual, confundindo quem nem deveria pagar).
+  if(minhaConta && _naoPagaMensalidade(minhaConta)){
+    btnPix.style.display = 'none';
+    btnCartao.style.display = 'none';
+    if(aviso){
+      aviso.textContent = minhaConta.tipoMensalidade === 'projeto'
+        ? '🎗️ Você é aluno(a) de projeto social — não precisa pagar mensalidade.'
+        : '🎗️ Você é bolsista — não precisa pagar mensalidade.';
+      aviso.style.display = 'block';
+    }
+    return;
+  }
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
 
   let origem = null;
@@ -13400,6 +13417,18 @@ function renderMinhaMensalidadeProfessor(){
   const btnPix = document.getElementById('btnPagarPixProfessor');
   const btnCartao = document.getElementById('btnPagarCartaoProfessor');
   const aviso = document.getElementById('pagamentoAvisoProfessor');
+  if(_naoPagaMensalidade(minhaContaAluno)){
+    if(btnPix) btnPix.style.display = 'none';
+    if(btnCartao) btnCartao.style.display = 'none';
+    if(aviso){
+      aviso.textContent = minhaContaAluno.tipoMensalidade === 'projeto'
+        ? '🎗️ Você está marcado como aluno(a) de projeto social — não precisa pagar mensalidade.'
+        : '🎗️ Você está marcado como bolsista — não precisa pagar mensalidade.';
+      aviso.style.display = 'block';
+    }
+    renderComprovantesProfessor(minhaContaAluno.user);
+    return;
+  }
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   let origem = rede.find(a => mesmoNucleo(a.nome, minhaContaAluno.nucleo) && (a.pix || a.cartao));
   if(!origem && minhaContaAluno.professor){
@@ -16543,6 +16572,8 @@ function renderAlunos(){
       : '') +
       (c.tipoMensalidade === 'bolsista'
         ? '<span style="display:inline-block;background:var(--cream-2);color:var(--amber-700);font-weight:700;font-size:11px;padding:3px 8px;border-radius:100px;margin-right:8px;">🎗️ BOLSISTA</span>'
+        : c.tipoMensalidade === 'projeto'
+        ? '<span style="display:inline-block;background:#D6E9F7;color:#1F5C8B;font-weight:700;font-size:11px;padding:3px 8px;border-radius:100px;margin-right:8px;">📋 PROJETO</span>'
         : '') +
       '<span style="' + (atrasado ? 'color:#8B1E0F;font-weight:700;' : '') + '">' + c.nome + '</span>' +
       (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
@@ -16585,7 +16616,7 @@ function editarAluno(i){
   if(novoNome === null) return;
   const novaCorda = prompt('Graduação/corda:', conta.corda || '');
   if(novaCorda === null) return;
-  const novoTipoMensalidade = prompt('Esse aluno é mensalista (paga) ou bolsista de projeto social (não paga)? Digite "mensalista" ou "bolsista":', conta.tipoMensalidade || 'mensalista');
+  const novoTipoMensalidade = prompt('Esse aluno é mensalista (paga), bolsista ou aluno de projeto social (esses dois não pagam)? Digite "mensalista", "bolsista" ou "projeto":', conta.tipoMensalidade || 'mensalista');
   if(novoTipoMensalidade === null) return;
   const niveisDisponiveis = obterOrdemGraduacaoAtual();
   const novoNivel = prompt('Nível na hierarquia (deixe em branco pra continuar sem nível definido). Opções cadastradas: ' + niveisDisponiveis.join(', '), conta.nivelGraduacao || '');
@@ -16625,7 +16656,10 @@ function editarAluno(i){
 
   conta.nome = novoNome.trim() || conta.nome;
   conta.corda = novaCorda.trim();
-  conta.tipoMensalidade = /bols/i.test(novoTipoMensalidade.trim()) ? 'bolsista' : 'mensalista';
+  {
+    const respostaTipo = novoTipoMensalidade.trim();
+    conta.tipoMensalidade = /bols/i.test(respostaTipo) ? 'bolsista' : /proj/i.test(respostaTipo) ? 'projeto' : 'mensalista';
+  }
   conta.nivelGraduacao = novoNivel.trim();
   conta.nucleo = novoNucleo.trim();
   conta.professor = novoProfessor.trim();
@@ -17006,8 +17040,13 @@ function renderPagamentos(sufixo){
   const log = JSON.parse(localStorage.getItem('gingapass_pagamentos_log') || '[]');
   const registrosDoMes = new Map(log.filter(r => r.mes === mes).map(r => [r.aluno, r]));
 
-  const totalAlunos = contas.length;
-  const totalPagos = contas.filter(c => registrosDoMes.has(c.user)).length;
+  // Bolsista/aluno de projeto não entra na conta de "pendente" nem na
+  // adesão — eles não pagam mesmo, então contar como pendente inflava esse
+  // número sem necessidade.
+  const contasPagantes = contas.filter(c => !_naoPagaMensalidade(c));
+  const totalIsentos = contas.length - contasPagantes.length;
+  const totalAlunos = contasPagantes.length;
+  const totalPagos = contasPagantes.filter(c => registrosDoMes.has(c.user)).length;
   const pendentes = totalAlunos - totalPagos;
   const pct = totalAlunos > 0 ? Math.round((totalPagos / totalAlunos) * 100) : 0;
 
@@ -17019,7 +17058,8 @@ function renderPagamentos(sufixo){
     '<p style="font-weight:700;font-size:15px;color:var(--navy-900);margin:0 0 8px;text-transform:capitalize;">' + nomeMes + '</p>' +
     '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Confirmados</span><b style="color:#2E8B57;">' + totalPagos + '</b></div>' +
     '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Pendentes</span><b style="color:#C0392B;">' + pendentes + '</b></div>' +
-    '<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Adesão</span><b>' + pct + '%</b></div>';
+    '<div style="display:flex;justify-content:space-between;font-size:13px;' + (totalIsentos > 0 ? 'margin-bottom:4px;' : '') + '"><span>Adesão</span><b>' + pct + '%</b></div>' +
+    (totalIsentos > 0 ? '<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Bolsista/Projeto (não paga)</span><b style="color:var(--ink-soft);">' + totalIsentos + '</b></div>' : '');
 
   container.innerHTML = '';
   if(contas.length === 0){
@@ -17036,7 +17076,7 @@ function renderPagamentos(sufixo){
   const filtroStatus = filtroStatusEl ? filtroStatusEl.value : 'todos';
   let contasFiltradas = contas;
   if(filtroStatus === 'pagos') contasFiltradas = contas.filter(c => registrosDoMes.has(c.user));
-  else if(filtroStatus === 'pendentes') contasFiltradas = contas.filter(c => !registrosDoMes.has(c.user));
+  else if(filtroStatus === 'pendentes') contasFiltradas = contas.filter(c => !_naoPagaMensalidade(c) && !registrosDoMes.has(c.user));
 
   if(contasFiltradas.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno encontrado com esse filtro.</p>';
@@ -17064,14 +17104,27 @@ function renderPagamentos(sufixo){
     if(pago && registro.data){
       dataFormatada = new Date(registro.data).toLocaleDateString('pt-BR');
     }
-    info.innerHTML = '<b>' + c.nome + '</b>' + (pago ? '<br><span style="font-size:11px;color:var(--ink-soft);">Pago em ' + dataFormatada + '</span>' : '');
+    // Tarja mostrando Bolsista/Projeto — quem não paga fica bem marcado na
+    // lista, pra não confundir com quem só está com pagamento pendente.
+    const isento = _naoPagaMensalidade(c);
+    const tarja = c.tipoMensalidade === 'bolsista' ? '<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#8A5A00;background:#FCE7B8;padding:1px 7px;border-radius:100px;vertical-align:middle;">🎗️ Bolsista</span>'
+      : c.tipoMensalidade === 'projeto' ? '<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#1F5C8B;background:#D6E9F7;padding:1px 7px;border-radius:100px;vertical-align:middle;">📋 Projeto</span>'
+      : '';
+    info.innerHTML = '<b>' + c.nome + '</b>' + tarja + (pago && !isento ? '<br><span style="font-size:11px;color:var(--ink-soft);">Pago em ' + dataFormatada + '</span>' : '');
 
-    const btn = document.createElement('button');
-    btn.className = 'aluno-del';
-    btn.style.flexShrink = '0';
-    btn.style.color = pago ? '#2E8B57' : '#C0392B';
-    btn.textContent = pago ? 'Pago ✓' : 'Confirmar pagamento';
-    btn.onclick = () => alternarPagamento(c.user, sufixo);
+    let btn;
+    if(isento){
+      btn = document.createElement('span');
+      btn.style.cssText = 'flex-shrink:0;font-size:11.5px;font-weight:600;color:var(--ink-soft);';
+      btn.textContent = 'Não paga';
+    } else {
+      btn = document.createElement('button');
+      btn.className = 'aluno-del';
+      btn.style.flexShrink = '0';
+      btn.style.color = pago ? '#2E8B57' : '#C0392B';
+      btn.textContent = pago ? 'Pago ✓' : 'Confirmar pagamento';
+      btn.onclick = () => alternarPagamento(c.user, sufixo);
+    }
 
     row.appendChild(info);
     row.appendChild(btn);
@@ -18225,12 +18278,18 @@ function alterarMensalidadeAluno(userAluno, novoStatus){
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
 }
 
+// "Bolsista" e "Aluno de projeto social" são os dois tipos que NÃO pagam
+// mensalidade — trata os dois igual em toda checagem de cobrança/atraso.
+function _naoPagaMensalidade(conta){
+  return !!conta && (conta.tipoMensalidade === 'bolsista' || conta.tipoMensalidade === 'projeto');
+}
+
 // Detecta atraso automaticamente pela data de vencimento — não depende mais
 // só de alguém marcar manualmente "Atrasado". Se o professor já marcou
 // manualmente, isso continua valendo (ex: aluno negociou um prazo).
 function statusMensalidadeReal(conta){
   if(!conta) return 'Em dia';
-  if(conta.tipoMensalidade === 'bolsista') return 'Em dia'; // bolsista de projeto social não paga, então nunca fica "atrasado"
+  if(_naoPagaMensalidade(conta)) return 'Em dia'; // bolsista/projeto não paga, então nunca fica "atrasado"
   if(conta.mensalidadeStatus === 'Atrasado') return 'Atrasado';
   if(conta.vencimentoMensalidade){
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -18242,7 +18301,7 @@ function statusMensalidadeReal(conta){
 
 function diasEmAtrasoReal(conta){
   if(!conta) return 0;
-  if(conta.tipoMensalidade === 'bolsista') return 0;
+  if(_naoPagaMensalidade(conta)) return 0;
   if(conta.vencimentoMensalidade){
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     const venc = new Date(conta.vencimentoMensalidade + 'T00:00:00');
@@ -18253,7 +18312,7 @@ function diasEmAtrasoReal(conta){
 }
 
 function diasEmAtraso(conta){
-  if(!conta || conta.tipoMensalidade === 'bolsista' || conta.mensalidadeStatus !== 'Atrasado' || !conta.atrasadoDesde) return 0;
+  if(!conta || _naoPagaMensalidade(conta) || conta.mensalidadeStatus !== 'Atrasado' || !conta.atrasadoDesde) return 0;
   return Math.floor((Date.now() - conta.atrasadoDesde) / 86400000);
 }
 
@@ -19094,15 +19153,17 @@ function renderEstatisticas(){
     const resumoVazio = document.getElementById('resumoMensalidadesEstatisticas');
     if(resumoVazio) resumoVazio.innerHTML = '';
   } else {
-    const totalMensalistas = alunos.filter(a => a.tipoMensalidade !== 'bolsista').length;
+    const totalMensalistas = alunos.filter(a => !_naoPagaMensalidade(a)).length;
     const totalBolsistas = alunos.filter(a => a.tipoMensalidade === 'bolsista').length;
+    const totalProjeto = alunos.filter(a => a.tipoMensalidade === 'projeto').length;
     const resumoTipoAluno = document.createElement('div');
-    resumoTipoAluno.style.cssText = 'display:flex;gap:10px;margin-bottom:14px;';
+    resumoTipoAluno.style.cssText = 'display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;';
     const meusAcessos = (currentRole && currentUser) ? obterContagemAcessos(currentRole + ':' + currentUser) : 0;
     resumoTipoAluno.innerHTML =
-      '<div style="flex:1;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--navy-900);display:block;">' + totalMensalistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Mensalistas</span></div>' +
-      '<div style="flex:1;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--amber-700);display:block;">' + totalBolsistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">🎗️ Bolsistas</span></div>' +
-      '<div style="flex:1;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--navy-700);display:block;">' + meusAcessos + '</b><span style="font-size:10.5px;color:var(--ink-soft);">🔓 Meus acessos</span></div>';
+      '<div style="flex:1;min-width:70px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--navy-900);display:block;">' + totalMensalistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">Mensalistas</span></div>' +
+      '<div style="flex:1;min-width:70px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--amber-700);display:block;">' + totalBolsistas + '</b><span style="font-size:10.5px;color:var(--ink-soft);">🎗️ Bolsistas</span></div>' +
+      '<div style="flex:1;min-width:70px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:#2563EB;display:block;">' + totalProjeto + '</b><span style="font-size:10.5px;color:var(--ink-soft);">📋 Projeto</span></div>' +
+      '<div style="flex:1;min-width:70px;background:var(--cream-2);border-radius:10px;padding:10px;text-align:center;"><b style="font-size:18px;color:var(--navy-700);display:block;">' + meusAcessos + '</b><span style="font-size:10.5px;color:var(--ink-soft);">🔓 Meus acessos</span></div>';
     container.appendChild(resumoTipoAluno);
 
     const excluidas = JSON.parse(localStorage.getItem('gingapass_faltas_excluidas') || '[]');
