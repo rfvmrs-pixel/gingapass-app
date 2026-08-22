@@ -20002,6 +20002,18 @@ function _obterOuIniciarMapaAcademias(){
 // de quem chama — o mapa mostra exatamente quem está na lista de cards
 // acima, então filtrar de novo por conta própria (e ignorar a busca) fazia
 // o mapa nunca "acompanhar" o que a pessoa estava filtrando.
+// Logo pra usar no marcador do mapa — prioriza a foto do GRUPO oficial
+// (Capoeira Team, Fundação Capoeira etc.), pra dar pra distinguir de longe
+// qual grupo é cada academia. Sem grupo com foto, cai pra foto própria da
+// academia/núcleo; sem nenhuma das duas, usa o pin padrão do Leaflet.
+function _obterLogoParaMarcadorAcademia(a){
+  const contaProf = obterAcademiaContaPorNucleoOuProfessor(a.professor || a.nome);
+  if(!contaProf) return '';
+  const grupo = obterGrupoCadastradoDaConta('academia', contaProf.user);
+  if(grupo && grupo.foto) return grupo.foto;
+  return obterFotoAcademia(contaProf.user, contaProf) || '';
+}
+
 function renderMapaAcademias(redeFiltrada){
   const mapa = _obterOuIniciarMapaAcademias();
   const vazioEl = document.getElementById('academiasMapaVazio');
@@ -20015,7 +20027,16 @@ function renderMapaAcademias(redeFiltrada){
     const geo = _geoCacheDeEndereco(a.endereco);
     if(geo && geo.lat && geo.lon){
       const local = [geo.cidade, geo.estado, geo.pais].filter(Boolean).join(', ');
-      const marker = L.marker([geo.lat, geo.lon]);
+      const logo = _obterLogoParaMarcadorAcademia(a);
+      const marker = logo
+        ? L.marker([geo.lat, geo.lon], {icon: L.divIcon({
+            className: '_marcadorAcademiaLogo',
+            html: '<div style="width:34px;height:34px;border-radius:50%;background-image:url(' + logo + ');background-size:cover;background-position:center;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.5);"></div>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -17]
+          })})
+        : L.marker([geo.lat, geo.lon]);
       const nomeEscapado = a.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
       marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') + '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>');
       marker.addTo(_academiasMapaMarkers);
