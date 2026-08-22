@@ -270,6 +270,15 @@
     color:var(--amber-700);
     font-weight:600;
   }
+  /* Pulso do marcador de "localização ao vivo" no mapa da rede */
+  @keyframes _pulseLocalizacaoAoVivo{
+    0%{ box-shadow:0 0 0 0 rgba(37,211,102,0.55); }
+    70%{ box-shadow:0 0 0 11px rgba(37,211,102,0); }
+    100%{ box-shadow:0 0 0 0 rgba(37,211,102,0); }
+  }
+  .marcador-ao-vivo-pulso{
+    animation:_pulseLocalizacaoAoVivo 1.8s infinite;
+  }
 
   /* Mensalidade */
   .pay-hero{
@@ -905,6 +914,14 @@
     <button class="btn" type="button" onclick="calcularDistanciasAcademias(this)" style="margin-bottom:14px;">📍 Ver distância até você</button>
     <p id="distanciaStatus" style="font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;"></p>
 
+    <div class="card" id="academiasCardMinhaLocalizacaoAluno" style="display:none;margin-bottom:14px;">
+      <p class="card-label" style="margin:0 0 6px;">🧍 Eu no mapa</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Cadastre seu endereço pra aparecer no mapa com um bonequinho + a logo do seu grupo, ou ative sua localização ao vivo (ela some sozinha se você fechar o app ou parar de compartilhar).</p>
+      <button class="btn" type="button" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);margin-bottom:8px;" onclick="irParaEnderecoPerfilAluno()">✏️ Cadastrar/editar meu endereço</button>
+      <button class="btn js-btn-compartilhar-localizacao" type="button" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
+      <p class="js-status-compartilhar-localizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+    </div>
+
     <div id="academiasRedeList"></div>
 
     <p class="section-title">🗺️ Mapa da rede</p>
@@ -1007,6 +1024,11 @@
       <input class="admin-input" id="perfilNascimentoInput" type="date">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Foto de perfil</label>
       <input type="file" id="perfilFotoInput" accept="image/*" style="font-size:12px;">
+      <div id="perfilCampoEndereco" style="display:none;margin-top:4px;">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Meu endereço</label>
+        <input class="admin-input" id="perfilEnderecoInput" placeholder="Rua, número, bairro, cidade">
+        <p style="font-size:10.5px;color:var(--ink-soft);margin:-8px 0 10px;">Aparece como um marquinho seu no mapa da rede (tela Academias), junto com a logo do seu grupo. Só quem está no seu grupo vê.</p>
+      </div>
       <div id="perfilCamposMatriz" style="display:none;margin-top:12px;">
         <label style="display:block;font-size:11px;color:var(--amber-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Padrão da rede (só a matriz edita)</label>
         <p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Isso define o núcleo/professor que aparecem na tela Início. Para editar os dados de um aluno específico, use "Editar" na lista de alunos.</p>
@@ -1124,8 +1146,8 @@
         <option value="aluno">Um aluno específico</option>
       </select>
       <select class="admin-input" id="localizacaoDestinatarioEspecifico" style="display:none;"></select>
-      <button class="btn" id="btnCompartilharLocalizacao" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
-      <p id="statusCompartilharLocalizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+      <button class="btn js-btn-compartilhar-localizacao" id="btnCompartilharLocalizacao" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
+      <p class="js-status-compartilhar-localizacao" id="statusCompartilharLocalizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
     </div>
     <div class="card">
       <div class="card-label">Pessoas compartilhando comigo agora</div>
@@ -4127,6 +4149,7 @@ function iniciarFirebase(tentativas){
         renderLocalizacoesCompartilhadas();
         if(currentRole === 'pai') renderLocalizacoesCompartilhadas('painelPaiLocalizacao');
       }
+      if(typeof _atualizarMarcadoresAoVivoNoMapaAcademias === 'function') _atualizarMarcadoresAoVivoNoMapaAcademias();
     }, function(e){
       console.error('Erro ao sincronizar localizações compartilhadas:', e);
     });
@@ -8964,6 +8987,15 @@ function alternarEdicaoPerfilInterno(){
     const perfilAtualParaEdicao = chavePerfilAtual ? JSON.parse(localStorage.getItem(chavePerfilAtual) || 'null') : null;
     const nascimentoInput = document.getElementById('perfilNascimentoInput');
     if(nascimentoInput) nascimentoInput.value = (perfilAtualParaEdicao && perfilAtualParaEdicao.nascimento) || '';
+    const campoEndereco = document.getElementById('perfilCampoEndereco');
+    const enderecoInput = document.getElementById('perfilEnderecoInput');
+    if(campoEndereco){
+      // Só faz sentido o próprio aluno cadastrar onde mora (aparece no mapa
+      // da rede). Academia/matriz já têm o endereço do núcleo cadastrado
+      // em outro lugar (tela Academias), então não precisa duplicar aqui.
+      campoEndereco.style.display = (currentRole === 'aluno') ? 'block' : 'none';
+    }
+    if(enderecoInput) enderecoInput.value = (perfilAtualParaEdicao && perfilAtualParaEdicao.endereco) || '';
     if(currentRole === 'matriz'){
       camposMatriz.style.display = 'block';
       populaSelectsNucleoProfessor();
@@ -9001,6 +9033,8 @@ function alternarEdicaoPerfilInterno(){
     const tel = document.getElementById('perfilTelInput').value.trim();
     const nascimentoInputSalvar = document.getElementById('perfilNascimentoInput');
     const nascimento = nascimentoInputSalvar ? nascimentoInputSalvar.value : '';
+    const enderecoInputSalvar = document.getElementById('perfilEnderecoInput');
+    const endereco = (currentRole === 'aluno' && enderecoInputSalvar) ? enderecoInputSalvar.value.trim() : '';
     const fotoInput = document.getElementById('perfilFotoInput');
     const arquivo = fotoInput && fotoInput.files && fotoInput.files[0];
 
@@ -9038,7 +9072,7 @@ function alternarEdicaoPerfilInterno(){
         return;
       }
       const perfilAnterior = JSON.parse(localStorage.getItem(chave) || '{}');
-      const perfil = {nome, email, tel, nascimento};
+      const perfil = {nome, email, tel, nascimento, endereco};
       const chaveFoto = chave + '_foto';
       const promessas = [setDado(chave, JSON.stringify(perfil))];
       // A foto fica num documento SEPARADO (igual as fotos do topo/mural),
@@ -11547,18 +11581,21 @@ function iniciarCompartilharLocalizacao(){
     return;
   }
   const destinatarios = obterDestinatariosLocalizacaoSelecionados();
-  const btn = document.getElementById('btnCompartilharLocalizacao');
-  const status = document.getElementById('statusCompartilharLocalizacao');
-  if(status) status.textContent = 'Pedindo permissão de localização...';
+  // Dois lugares têm esse mesmo botão/status agora: a tela Perfil (original)
+  // e um atalho na tela Academias (pra quem quer aparecer "ao vivo" direto
+  // no mapa da rede) — por isso atualiza TODOS que encontrar, não só um id.
+  const btns = document.querySelectorAll('.js-btn-compartilhar-localizacao');
+  const statusEls = document.querySelectorAll('.js-status-compartilhar-localizacao');
+  statusEls.forEach(status => { status.textContent = 'Pedindo permissão de localização...'; });
 
   localizacaoWatchId = navigator.geolocation.watchPosition(function(pos){
     compartilhandoLocalizacao = true;
-    if(btn){
+    btns.forEach(btn => {
       btn.textContent = 'Parar de compartilhar minha localização';
       btn.style.background = 'var(--white)';
       btn.style.color = 'var(--danger)';
       btn.style.border = '1.5px solid var(--danger)';
-    }
+    });
     const agora = Date.now();
     if(agora - _ultimoEnvioLocalizacaoTs < LOCALIZACAO_INTERVALO_MIN_MS) return;
     _ultimoEnvioLocalizacaoTs = agora;
@@ -11573,14 +11610,15 @@ function iniciarCompartilharLocalizacao(){
       atualizado: agora
     };
     salvarLocalizacaoNaNuvem(doc).then(function(ok){
-      if(status){
+      statusEls.forEach(status => {
         status.textContent = ok
           ? 'Compartilhando sua localização ao vivo. Atualizado agora.'
           : 'Sua localização não sincronizou com a nuvem. Verifique a conexão.';
-      }
+      });
     });
+    if(currentRole === 'aluno') tentarChamar(function(){ _atualizarMarcadoresAoVivoNoMapaAcademias(); });
   }, function(erro){
-    if(status) status.textContent = 'Não conseguimos acessar sua localização. Verifique se você permitiu o acesso ao GPS pro navegador.';
+    statusEls.forEach(status => { status.textContent = 'Não conseguimos acessar sua localização. Verifique se você permitiu o acesso ao GPS pro navegador.'; });
     compartilhandoLocalizacao = false;
   }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 15000});
 }
@@ -11591,18 +11629,19 @@ function pararCompartilharLocalizacao(){
     localizacaoWatchId = null;
   }
   compartilhandoLocalizacao = false;
-  const btn = document.getElementById('btnCompartilharLocalizacao');
-  const status = document.getElementById('statusCompartilharLocalizacao');
-  if(btn){
+  const btns = document.querySelectorAll('.js-btn-compartilhar-localizacao');
+  const statusEls = document.querySelectorAll('.js-status-compartilhar-localizacao');
+  btns.forEach(btn => {
     btn.textContent = 'Compartilhar minha localização';
     btn.style.background = '';
     btn.style.color = '';
     btn.style.border = '';
-  }
-  if(status) status.textContent = 'Você não está compartilhando sua localização.';
+  });
+  statusEls.forEach(status => { status.textContent = 'Você não está compartilhando sua localização.'; });
   if(currentRole && currentUser){
     apagarLocalizacaoNaNuvem(identificadorUsuarioAtual());
   }
+  tentarChamar(function(){ _atualizarMarcadoresAoVivoNoMapaAcademias(); });
 }
 
 function localizacaoEhVisivelPraMim(loc, meuId){
@@ -11681,6 +11720,7 @@ setInterval(function(){
   if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
     renderLocalizacoesCompartilhadas();
   }
+  if(typeof _atualizarMarcadoresAoVivoNoMapaAcademias === 'function') _atualizarMarcadoresAoVivoNoMapaAcademias();
 }, 30000);
 /* =================== fim: Localização em tempo real =================== */
 
@@ -20103,6 +20143,8 @@ function calcularDistanciasAcademias(botao){
 function renderAcademiasScreen(){
   const container = document.getElementById('academiasRedeList');
   if(!container) return;
+  const cardMinhaLocalizacaoAluno = document.getElementById('academiasCardMinhaLocalizacaoAluno');
+  if(cardMinhaLocalizacaoAluno) cardMinhaLocalizacaoAluno.style.display = (currentRole === 'aluno') ? 'block' : 'none';
   let rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   rede = rede.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
@@ -20124,12 +20166,25 @@ function renderAcademiasScreen(){
     });
   }
 
+  // Alunos que cadastraram o próprio endereço (tela Perfil) também entram
+  // no mapa, com um marcador diferente (bonequinho + logo do grupo) — sem
+  // misturar com a lista de núcleos acima, que é só de academias/professores.
+  let alunosComEndereco = _obterAlunosComEnderecoDoGrupo();
+  if(termoBusca){
+    alunosComEndereco = alunosComEndereco.filter(al => {
+      const geo = _geoCacheDeEndereco(al.endereco);
+      const alvo = _normalizarTextoBusca([al.nome, al.endereco, geo && geo.cidade, geo && geo.estado, geo && geo.pais].filter(Boolean).join(' '));
+      return alvo.indexOf(termoBusca) !== -1;
+    });
+  }
+  _ultimaListaAlunosComEndereco = alunosComEndereco;
+
   container.innerHTML = '';
   if(rede.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">' + (termoBusca ? 'Nenhuma academia encontrada com essa busca.' : 'Nenhuma academia cadastrada na rede ainda.') + '</p>';
     _ultimaRedeFiltradaAcademias = rede;
-    tentarChamar(function(){ renderMapaAcademias(rede); });
-    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede); });
+    tentarChamar(function(){ renderMapaAcademias(rede, alunosComEndereco); });
+    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede, alunosComEndereco); });
     return;
   }
   const temDistanciasCalculadas = Object.keys(_distanciasCalculadas).length > 0;
@@ -20151,8 +20206,27 @@ function renderAcademiasScreen(){
   // busca) — assim, ao filtrar por cidade/estado, o mapa dá zoom só nelas
   // em vez de ficar com o Brasil inteiro (ou o mundo) pra enxergar.
   _ultimaRedeFiltradaAcademias = rede;
-  tentarChamar(function(){ renderMapaAcademias(rede); });
-  if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede); });
+  tentarChamar(function(){ renderMapaAcademias(rede, alunosComEndereco); });
+  if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede, alunosComEndereco); });
+}
+
+// Junta os alunos do meu grupo que cadastraram o próprio endereço em Perfil
+// (o endereço fica salvo no perfil pessoal, gingapass_perfil_<user>, não na
+// conta em si). Usa o mesmo professor/núcleo do aluno pra achar o grupo dele
+// e decidir se ele deve aparecer no MEU mapa (mesma regra da lista de núcleos).
+function _obterAlunosComEnderecoDoGrupo(){
+  let alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  alunos = alunos.filter(c => !c.semAcesso);
+  alunos = alunos.filter(c => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(c.professor || c.nucleo || '')));
+  const comEndereco = [];
+  alunos.forEach(c => {
+    const perfil = JSON.parse(localStorage.getItem('gingapass_perfil_' + c.user) || 'null');
+    const endereco = perfil && perfil.endereco ? perfil.endereco.trim() : '';
+    if(endereco){
+      comEndereco.push({user: c.user, nome: (perfil && perfil.nome) || c.nome, endereco, professor: c.professor, nucleo: c.nucleo});
+    }
+  });
+  return comEndereco;
 }
 
 // Extraído do loop acima pra poder reaproveitar o mesmo card (foto do
@@ -20233,9 +20307,12 @@ let _academiasMapaInstancia = null;
 let _academiasMapaMarkers = null;
 let _academiasMapaGeocodificando = false;
 let _ultimaRedeFiltradaAcademias = [];
+let _ultimaListaAlunosComEndereco = [];
 let _academiasMapaExpandidoAberto = false;
+let _academiasMapaAoVivoMarkers = null;
 let _academiasMapaExpInstancia = null;
 let _academiasMapaExpMarkers = null;
+let _academiasMapaExpAoVivoMarkers = null;
 
 function _obterOuIniciarMapaAcademias(){
   const container = document.getElementById('academiasMapa');
@@ -20247,6 +20324,7 @@ function _obterOuIniciarMapaAcademias(){
       maxZoom: 18
     }).addTo(_academiasMapaInstancia);
     _academiasMapaMarkers = L.layerGroup().addTo(_academiasMapaInstancia);
+    _academiasMapaAoVivoMarkers = L.layerGroup().addTo(_academiasMapaInstancia);
     // O mapa às vezes "nasce" com o container ainda de tamanho errado (troca
     // de tela); sem isso ele fica cortado/deslocado até a pessoa mexer nele.
     setTimeout(function(){ if(_academiasMapaInstancia) _academiasMapaInstancia.invalidateSize(); }, 300);
@@ -20267,6 +20345,7 @@ function _obterOuIniciarMapaAcademiasExpandido(){
       maxZoom: 18
     }).addTo(_academiasMapaExpInstancia);
     _academiasMapaExpMarkers = L.layerGroup().addTo(_academiasMapaExpInstancia);
+    _academiasMapaExpAoVivoMarkers = L.layerGroup().addTo(_academiasMapaExpInstancia);
   }
   return _academiasMapaExpInstancia;
 }
@@ -20281,9 +20360,24 @@ function abrirMapaAcademiasExpandido(){
   // atraso antes de iniciar e o invalidateSize logo depois.
   setTimeout(function(){
     _obterOuIniciarMapaAcademiasExpandido();
-    renderMapaAcademiasExpandido(_ultimaRedeFiltradaAcademias);
+    renderMapaAcademiasExpandido(_ultimaRedeFiltradaAcademias, _ultimaListaAlunosComEndereco);
     if(_academiasMapaExpInstancia) _academiasMapaExpInstancia.invalidateSize();
   }, 50);
+}
+
+// Atalho da tela Academias: leva pro Perfil já com a edição aberta e o
+// campo de endereço em foco, pra não precisar procurar onde cadastrar.
+function irParaEnderecoPerfilAluno(){
+  showScreen('perfil', null);
+  setTimeout(function(){
+    const editCard = document.getElementById('perfilEditCard');
+    if(editCard && editCard.style.display === 'none') alternarEdicaoPerfil();
+    const enderecoInput = document.getElementById('perfilEnderecoInput');
+    if(enderecoInput){
+      enderecoInput.scrollIntoView({behavior: 'smooth', block: 'center'});
+      enderecoInput.focus();
+    }
+  }, 150);
 }
 
 function fecharMapaAcademiasExpandido(){
@@ -20313,11 +20407,10 @@ function _obterLogoParaMarcadorAcademia(a){
   return obterFotoAcademia(contaProf.user, contaProf) || '';
 }
 
-// Cria as bolinhas/marcadores num layerGroup já existente. Compartilhado
-// entre o mapa pequeno da tela Academias e o mapa expandido em tela cheia,
-// pra não duplicar a lógica de popup/logo/link do WhatsApp nos dois lugares.
-function _popularMarcadoresMapa(layerGroup, rede){
-  layerGroup.clearLayers();
+// Cria as bolinhas/marcadores de ACADEMIAS num layerGroup já existente.
+// Compartilhado entre o mapa pequeno da tela Academias e o mapa expandido em
+// tela cheia, pra não duplicar a lógica de popup/logo/link do WhatsApp.
+function _popularMarcadoresAcademiasMapa(layerGroup, rede){
   const pontos = [];
   rede.forEach(a => {
     const geo = _geoCacheDeEndereco(a.endereco);
@@ -20350,13 +20443,131 @@ function _popularMarcadoresMapa(layerGroup, rede){
   return pontos;
 }
 
-function renderMapaAcademias(redeFiltrada){
+// Logo pro marcador do ALUNO — mesma ideia do marcador de academia (prioriza
+// a foto do grupo oficial), só que resolvida a partir do professor/núcleo do
+// próprio aluno, já que o aluno não tem "conta de academia" dele mesmo.
+function _obterLogoParaMarcadorAluno(al){
+  const contaProf = obterAcademiaContaPorNucleoOuProfessor(al.professor || al.nucleo || '');
+  if(!contaProf) return '';
+  const grupo = obterGrupoCadastradoDaConta('academia', contaProf.user);
+  return (grupo && grupo.foto) || '';
+}
+
+// Ícone do "bonequinho" do aluno: um círculo com a silhueta de pessoa, e um
+// selinho redondo no canto com a logo do grupo (se tiver) — assim dá pra
+// diferenciar de longe do marcador circular da academia (que é só a foto).
+function _iconeMarcadorPessoa(logo, aoVivo){
+  const corFundo = aoVivo ? 'linear-gradient(135deg,#25D366,#128C4A)' : 'linear-gradient(135deg,#0C447C,#042C53)';
+  const classePulso = aoVivo ? ' marcador-ao-vivo-pulso' : '';
+  return L.divIcon({
+    className: '_marcadorPessoaMapa',
+    html: '<div style="position:relative;width:34px;height:34px;">' +
+      '<div class="' + classePulso.trim() + '" style="width:34px;height:34px;border-radius:50%;background:' + corFundo + ';display:flex;align-items:center;justify-content:center;font-size:17px;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.5);">🧍</div>' +
+      (logo ? '<div style="position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background-image:url(' + logo + ');background-size:cover;background-position:center;border:2px solid #fff;"></div>' : '') +
+      (aoVivo ? '<div style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#25D366;border:1.5px solid #fff;"></div>' : '') +
+      '</div>',
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -17]
+  });
+}
+
+// Marcadores dos ALUNOS que cadastraram o próprio endereço em Perfil —
+// estáticos, igual as academias, só que com o ícone de pessoa + logo.
+function _popularMarcadoresAlunosMapa(layerGroup, alunos){
+  const pontos = [];
+  (alunos || []).forEach(al => {
+    const geo = _geoCacheDeEndereco(al.endereco);
+    if(geo && geo.lat && geo.lon){
+      const local = [geo.cidade, geo.estado, geo.pais].filter(Boolean).join(', ');
+      const logo = _obterLogoParaMarcadorAluno(al);
+      const marker = L.marker([geo.lat, geo.lon], {icon: _iconeMarcadorPessoa(logo, false)});
+      const textoWhats = al.nome + (local ? ' (' + local + ')' : '') +
+        '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + geo.lat + ',' + geo.lon;
+      const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
+      marker.bindPopup('<b>🧍 ' + al.nome + '</b>' + (local ? '<br>' + local : '') +
+        '<br><span style="font-size:11px;color:#6b7a89;">Endereço cadastrado pelo aluno</span>' +
+        '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
+      marker.addTo(layerGroup);
+      pontos.push([geo.lat, geo.lon]);
+    }
+  });
+  return pontos;
+}
+
+// Limpa e repopula os marcadores estáticos (academias + endereço de alunos)
+// de uma vez só, num único layerGroup — usado tanto pro mapa pequeno quanto
+// pro expandido.
+function _popularMarcadoresEstaticosMapa(layerGroup, redeAcademias, alunosComEndereco){
+  layerGroup.clearLayers();
+  const pontosAcademias = _popularMarcadoresAcademiasMapa(layerGroup, redeAcademias);
+  const pontosAlunos = _popularMarcadoresAlunosMapa(layerGroup, alunosComEndereco);
+  return pontosAcademias.concat(pontosAlunos);
+}
+
+// Alunos do MEU grupo que estão com "Compartilhar minha localização"
+// ativado agora (tela Perfil > Localização em tempo real), respeitando as
+// mesmas regras de visibilidade (todos / pessoa específica / pai vê o filho).
+function _alunosAoVivoNoMeuGrupo(){
+  if(!currentRole || !currentUser) return [];
+  const todas = window._localizacoesCache || [];
+  if(todas.length === 0) return [];
+  const meuId = identificadorUsuarioAtual();
+  const agora = Date.now();
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  return todas
+    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
+    .map(l => {
+      const userAluno = l.autorId.split(':')[1];
+      const conta = alunosContas.find(c => c.user === userAluno);
+      return {loc: l, professor: conta ? conta.professor : '', nucleo: conta ? conta.nucleo : ''};
+    })
+    .filter(item => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(item.professor || item.nucleo || '')));
+}
+
+// Marcadores AO VIVO — separados dos estáticos de propósito: são atualizados
+// sozinhos (onSnapshot da localização + intervalo de 30s) sem precisar
+// re-centralizar o mapa toda hora, o que seria irritante enquanto alguém
+// olha o mapa parado.
+function _popularMarcadoresAoVivoMapa(layerGroup){
+  if(!layerGroup) return [];
+  layerGroup.clearLayers();
+  const pontos = [];
+  const agora = Date.now();
+  _alunosAoVivoNoMeuGrupo().forEach(item => {
+    const l = item.loc;
+    const logo = _obterLogoParaMarcadorAluno(item);
+    const minutosAtras = Math.max(0, Math.round((agora - l.atualizado) / 60000));
+    const textoTempo = minutosAtras === 0 ? 'agora mesmo' : ('há ' + minutosAtras + ' min');
+    const marker = L.marker([l.lat, l.lon], {icon: _iconeMarcadorPessoa(logo, true)});
+    const linkWhats = 'https://wa.me/?text=' + encodeURIComponent((l.autor || 'Aluno') + ' está aqui agora' +
+      '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + l.lat + ',' + l.lon);
+    marker.bindPopup('<b>🟢 ' + (l.autor || 'Aluno') + '</b>' +
+      '<br><span style="font-size:11px;color:#6b7a89;">Ao vivo · atualizado ' + textoTempo + '</span>' +
+      '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar localização no WhatsApp</a>');
+    marker.addTo(layerGroup);
+    pontos.push([l.lat, l.lon]);
+  });
+  return pontos;
+}
+
+// Chamado sempre que a nuvem manda uma atualização de localização (onSnapshot)
+// e também no intervalo periódico — só atualiza a camada "ao vivo" dos mapas
+// que já estiverem inicializados, sem mexer no resto.
+function _atualizarMarcadoresAoVivoNoMapaAcademias(){
+  if(_academiasMapaAoVivoMarkers) _popularMarcadoresAoVivoMapa(_academiasMapaAoVivoMarkers);
+  if(_academiasMapaExpAoVivoMarkers) _popularMarcadoresAoVivoMapa(_academiasMapaExpAoVivoMarkers);
+}
+
+function renderMapaAcademias(redeFiltrada, alunosFiltrados){
   const mapa = _obterOuIniciarMapaAcademias();
   const vazioEl = document.getElementById('academiasMapaVazio');
   if(!mapa || !_academiasMapaMarkers) return;
 
   const rede = (redeFiltrada || []).filter(a => a.endereco);
-  const pontos = _popularMarcadoresMapa(_academiasMapaMarkers, rede);
+  const alunos = (alunosFiltrados || []).filter(al => al.endereco);
+  const pontos = _popularMarcadoresEstaticosMapa(_academiasMapaMarkers, rede, alunos);
+  _popularMarcadoresAoVivoMapa(_academiasMapaAoVivoMarkers);
 
   if(vazioEl) vazioEl.style.display = pontos.length === 0 ? 'block' : 'none';
   if(pontos.length === 1){
@@ -20366,7 +20577,8 @@ function renderMapaAcademias(redeFiltrada){
   }
 
   if(!_academiasMapaGeocodificando){
-    const semCoordenada = rede.filter(a => !_geoCacheDeEndereco(a.endereco));
+    const semCoordenada = rede.filter(a => !_geoCacheDeEndereco(a.endereco))
+      .concat(alunos.filter(al => !_geoCacheDeEndereco(al.endereco)));
     if(semCoordenada.length > 0){
       _academiasMapaGeocodificando = true;
       (async function(){
@@ -20385,17 +20597,41 @@ function renderMapaAcademias(redeFiltrada){
   }
 }
 
+// Card simples pro aluno na lista do mapa expandido (foto/logo do grupo,
+// nome e endereço cadastrado) — clique abre o perfil público do aluno.
+function _criarCardAlunoMapa(al){
+  const card = document.createElement('div');
+  card.className = 'academia-card';
+  const logo = _obterLogoParaMarcadorAluno(al);
+  const iniciais = al.nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+  card.innerHTML = '<div class="academia-thumb">' + (logo ? '' : (iniciais || '🧍')) + '</div>' +
+    '<div class="academia-info"><h4></h4><p></p></div>';
+  if(logo){
+    const thumb = card.querySelector('.academia-thumb');
+    thumb.style.backgroundImage = 'url(' + logo + ')';
+    thumb.style.backgroundSize = 'cover';
+    thumb.style.backgroundPosition = 'center';
+  }
+  card.querySelector('h4').textContent = al.nome;
+  card.querySelector('p').textContent = al.endereco;
+  card.style.cursor = 'pointer';
+  card.onclick = () => abrirPerfilPublico('aluno', al.user);
+  return card;
+}
+
 // Versão do mapa pro modal em tela cheia (botão ⛶). Não dispara geocodificação
 // própria — quem cuida disso é sempre o mapa pequeno via renderMapaAcademias,
 // e o resultado chega aqui de qualquer forma porque renderAcademiasScreen()
 // também atualiza o mapa expandido (se estiver aberto) toda vez que re-renderiza.
-function renderMapaAcademiasExpandido(redeFiltrada){
+function renderMapaAcademiasExpandido(redeFiltrada, alunosFiltrados){
   const mapa = _obterOuIniciarMapaAcademiasExpandido();
   const vazioEl = document.getElementById('academiasMapaExpandidoVazio');
   if(!mapa || !_academiasMapaExpMarkers) return;
 
   const rede = (redeFiltrada || []).filter(a => a.endereco);
-  const pontos = _popularMarcadoresMapa(_academiasMapaExpMarkers, rede);
+  const alunos = (alunosFiltrados || []).filter(al => al.endereco);
+  const pontos = _popularMarcadoresEstaticosMapa(_academiasMapaExpMarkers, rede, alunos);
+  _popularMarcadoresAoVivoMapa(_academiasMapaExpAoVivoMarkers);
 
   if(vazioEl) vazioEl.style.display = pontos.length === 0 ? 'block' : 'none';
   if(pontos.length === 1){
@@ -20404,18 +20640,29 @@ function renderMapaAcademiasExpandido(redeFiltrada){
     mapa.fitBounds(pontos, {padding: [30, 30], maxZoom: 13});
   }
 
-  // Lista de cards dos núcleos com endereço localizável (mesmo card usado na
-  // tela normal — foto do grupo, distância, clique abre o perfil).
+  // Lista de cards: núcleos primeiro (mesmo card usado na tela normal —
+  // foto do grupo, distância, clique abre o perfil), depois os alunos com
+  // endereço cadastrado, numa seção separada.
   const listaEl = document.getElementById('academiasMapaExpandidoLista');
   if(listaEl){
     listaEl.innerHTML = '';
     const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-    if(rede.length === 0){
-      listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;">Nenhum núcleo pra mostrar aqui.</p>';
+    if(rede.length === 0 && alunos.length === 0){
+      listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;">Nenhum núcleo ou aluno pra mostrar aqui.</p>';
     } else {
       rede.forEach(a => {
         listaEl.appendChild(_criarCardAcademia(a, academiasContas));
       });
+      if(alunos.length > 0){
+        const tituloAlunos = document.createElement('p');
+        tituloAlunos.className = 'section-title';
+        tituloAlunos.style.marginTop = '14px';
+        tituloAlunos.textContent = '🧍 Alunos com endereço cadastrado';
+        listaEl.appendChild(tituloAlunos);
+        alunos.forEach(al => {
+          listaEl.appendChild(_criarCardAlunoMapa(al));
+        });
+      }
     }
   }
 }
