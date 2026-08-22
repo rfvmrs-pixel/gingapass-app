@@ -12662,11 +12662,36 @@ function obterAniversariantesDoMes(){
   return pessoas.sort((a, b) => a.dia - b.dia);
 }
 
-// Foto/logo do grupo pra estampar no card de aniversário — usa a mesma foto
-// que o professor já cadastrou em "Foto/logo da minha academia" (perfil
-// dele). Funciona pra qualquer papel vendo o card (aluno, pai, professor),
-// não só pro próprio professor.
+// Foto/logo do GRUPO DE CAPOEIRA oficial (Capoeira Team, Fundação Capoeira
+// etc.) pra estampar no card de aniversário — antes usava o balde antigo de
+// rede ("matriz"), que é compartilhado por TODOS os grupos da rede
+// principal e por isso retornava vazio quase sempre (a checagem
+// "meuGrupo === 'matriz'" descartava a busca logo de cara pra quase todo
+// mundo). Funciona pra qualquer papel vendo o card (aluno, pai, professor).
 function obterLogoDoMeuGrupo(){
+  if(!currentRole || !currentUser) return '';
+  let grupo = null;
+  if(currentRole === 'academia'){
+    grupo = obterGrupoCadastradoDaConta('academia', currentUser);
+  } else if(currentRole === 'aluno'){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const minhaConta = contas.find(c => c.user === currentUser);
+    if(minhaConta && minhaConta.professor){
+      const contaProf = obterAcademiaContaPorNucleoOuProfessor(minhaConta.professor);
+      if(contaProf) grupo = obterGrupoCadastradoDaConta('academia', contaProf.user);
+    }
+  } else if(currentRole === 'matriz'){
+    const meuNome = obterMeuNomeProfessor();
+    if(meuNome){
+      const contaProf = obterAcademiaContaPorNucleoOuProfessor(meuNome);
+      if(contaProf) grupo = obterGrupoCadastradoDaConta('academia', contaProf.user);
+    }
+  }
+  if(grupo && grupo.foto) return grupo.foto;
+
+  // Sem grupo oficial com foto ainda vinculado: cai pro comportamento
+  // antigo (foto de academia de alguém do mesmo balde de rede), só pra não
+  // deixar o card sem nenhuma imagem.
   const meuGrupo = obterMeuGrupoId();
   if(meuGrupo === 'matriz') return '';
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
