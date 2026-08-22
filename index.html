@@ -1268,6 +1268,8 @@
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Data programada do evento</label>
         <input class="admin-input" id="evDataIsoAdmin" type="date">
         <input class="admin-input" id="evDataAdmin" placeholder="Data por extenso/horário (ex: 10 de setembro às 19h)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vai ser numa academia do grupo? Selecione (ou digite o endereço abaixo)</label>
+        <select class="admin-input" id="evAcademiaSelectAdmin" onchange="preencherLocalEvento('Admin')"><option value="">Selecione uma academia (opcional)...</option></select>
         <input class="admin-input" id="evLocalAdmin" placeholder="Local">
         <input class="admin-input" id="evPagamentoAdmin" placeholder="Link de pagamento da inscrição (opcional)">
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
@@ -1294,6 +1296,8 @@
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Data programada do evento</label>
         <input class="admin-input" id="evDataIsoMatriz" type="date">
         <input class="admin-input" id="evDataMatriz" placeholder="Data por extenso/horário (ex: 10 de setembro às 19h)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vai ser numa academia do grupo? Selecione (ou digite o endereço abaixo)</label>
+        <select class="admin-input" id="evAcademiaSelectMatriz" onchange="preencherLocalEvento('Matriz')"><option value="">Selecione uma academia (opcional)...</option></select>
         <input class="admin-input" id="evLocalMatriz" placeholder="Local">
         <input class="admin-input" id="evPagamentoMatriz" placeholder="Link de pagamento da inscrição (opcional)">
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
@@ -10065,6 +10069,8 @@ function publicarEventoAdmin(){
       document.getElementById('evLocalAdmin').value = '';
       document.getElementById('evPagamentoAdmin').value = '';
       document.getElementById('evPublicoAdmin').checked = false;
+      const selAcademiaAdmin = document.getElementById('evAcademiaSelectAdmin');
+      if(selAcademiaAdmin) selAcademiaAdmin.value = '';
       if(fotoInput) fotoInput.value = '';
     }
   });
@@ -10086,6 +10092,8 @@ function publicarEventoMatriz(){
       document.getElementById('evLocalMatriz').value = '';
       document.getElementById('evPagamentoMatriz').value = '';
       document.getElementById('evPublicoMatriz').checked = false;
+      const selAcademiaMatriz = document.getElementById('evAcademiaSelectMatriz');
+      if(selAcademiaMatriz) selAcademiaMatriz.value = '';
       if(fotoInput) fotoInput.value = '';
     }
   });
@@ -10172,7 +10180,32 @@ function _eventoVisivelComMute(ev, mute, meuId){
   return _visivelComMuteGeral(ev.criadoPor, ev.criadoPor.split(':')[0], mute);
 }
 
+// Select de academia pro formulário de novo evento — traz os núcleos do meu
+// grupo pra escolher direto (preenche o local sozinho); quem não achar a
+// academia na lista continua podendo digitar o endereço à mão no campo Local.
+function popularSelectAcademiasEvento(sufixo){
+  const sel = document.getElementById('evAcademiaSelect' + sufixo);
+  if(!sel) return;
+  const valorAtual = sel.value;
+  let rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  rede = rede.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
+  sel.innerHTML = '<option value="">Selecione uma academia (opcional)...</option>' +
+    rede.map(a => '<option value="' + a.nome.replace(/"/g, '&quot;') + '">' + a.nome + (a.endereco ? ' — ' + a.endereco : '') + '</option>').join('');
+  if(valorAtual && sel.querySelector('option[value="' + valorAtual.replace(/"/g, '&quot;') + '"]')) sel.value = valorAtual;
+}
+
+function preencherLocalEvento(sufixo){
+  const sel = document.getElementById('evAcademiaSelect' + sufixo);
+  const localInput = document.getElementById('evLocal' + sufixo);
+  if(!sel || !localInput || !sel.value) return;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const academia = rede.find(a => a.nome === sel.value);
+  if(academia) localInput.value = academia.nome + (academia.endereco ? ' — ' + academia.endereco : '');
+}
+
 function renderEventos(){
+  tentarChamar(function(){ popularSelectAcademiasEvento('Admin'); });
+  tentarChamar(function(){ popularSelectAcademiasEvento('Matriz'); });
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const comIndice = todosEventos.map((ev, indiceReal) => ({ev, indiceReal}));
@@ -10243,6 +10276,13 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
         img.src = src;
         img.style.cssText = 'width:100%;border-radius:12px;margin:8px 0 0 0;';
         div.appendChild(img);
+
+        const shareBtn = document.createElement('button');
+        shareBtn.type = 'button';
+        shareBtn.textContent = '📤 Compartilhar cartaz';
+        shareBtn.style.cssText = 'display:inline-block;margin:8px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);background:none;border:none;cursor:pointer;padding:0;';
+        shareBtn.onclick = () => compartilharCartazEvento(ev.codigoCheckin);
+        div.appendChild(shareBtn);
       }
     }
     if(ev.pagamento){
@@ -10607,13 +10647,6 @@ function renderEventosGerenciar(){
         certBtn.textContent = '🏆 Certificado';
         certBtn.onclick = () => abrirConfigCertificadoEvento(indiceReal);
         actions.appendChild(certBtn);
-
-        const convidarBtnGer = document.createElement('button');
-        convidarBtnGer.className = 'aluno-del';
-        convidarBtnGer.style.color = 'var(--navy-700)';
-        convidarBtnGer.textContent = '🎟️ Convidar';
-        convidarBtnGer.onclick = () => abrirConvidarEvento(indiceReal);
-        actions.appendChild(convidarBtnGer);
 
         const delBtn = document.createElement('button');
         delBtn.className = 'aluno-del';
@@ -12158,6 +12191,76 @@ function _enviarRetornoPrivadoConvite(convite){
     mensagens.push({de: meuId, deNome: meuNome, texto, data: Date.now()});
     setDado(chave, JSON.stringify(mensagens));
   });
+}
+
+// Compartilha o cartaz do evento já com "Presença confirmada" escrito nele
+// (quem aceitou o convite até agora) — desenha o cartaz original num canvas,
+// bota uma faixa com os nomes embaixo, e manda pro compartilhamento nativo
+// (ou baixa) — mesma lógica de baixarCertificado, adaptada pro cartaz.
+function compartilharCartazEvento(codigoCheckin){
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos.find(e => e.codigoCheckin === codigoCheckin);
+  if(!ev){
+    alert('Esse evento não existe mais.');
+    return;
+  }
+  const src = window._eventoImagensCache[codigoCheckin] || ev.imagem;
+  if(!src){
+    alert('Esse evento não tem cartaz cadastrado.');
+    return;
+  }
+  const confirmados = obterConvidadosConfirmados(codigoCheckin);
+  const img = new Image();
+  img.onload = function(){
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    if(confirmados.length > 0){
+      const tamanhoFonte = Math.max(16, Math.round(canvas.width / 32));
+      ctx.font = '600 ' + tamanhoFonte + 'px Poppins, Arial';
+      const texto = '🎟️ Presença confirmada: ' + confirmados.map(c => c.convidadoNome).join(', ');
+      const linhas = _quebrarTextoCanvas(ctx, texto, canvas.width - 40);
+      const alturaLinha = Math.round(tamanhoFonte * 1.35);
+      const alturaFaixa = linhas.length * alturaLinha + 24;
+      ctx.fillStyle = 'rgba(4,18,33,0.82)';
+      ctx.fillRect(0, canvas.height - alturaFaixa, canvas.width, alturaFaixa);
+      ctx.fillStyle = '#F3D48A';
+      ctx.textAlign = 'left';
+      let y = canvas.height - alturaFaixa + alturaLinha;
+      linhas.forEach(linha => { ctx.fillText(linha, 20, y); y += alturaLinha; });
+    }
+
+    canvas.toBlob(function(blob){
+      if(!blob){
+        alert('Não consegui gerar a imagem do cartaz agora. Tenta de novo em alguns segundos.');
+        return;
+      }
+      const nomeArquivo = 'cartaz_' + (ev.titulo || 'evento').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_') + '.png';
+      let arquivoCompartilhavel = null;
+      try{ arquivoCompartilhavel = new File([blob], nomeArquivo, {type: 'image/png'}); }catch(e){}
+
+      if(arquivoCompartilhavel && navigator.canShare && navigator.canShare({files: [arquivoCompartilhavel]})){
+        navigator.share({files: [arquivoCompartilhavel], title: nomeArquivo}).catch(function(){});
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = nomeArquivo;
+      link.href = url;
+      link.rel = 'noopener';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
+    }, 'image/png');
+  };
+  img.onerror = function(){ alert('Não consegui carregar o cartaz pra compartilhar agora.'); };
+  img.src = src;
 }
 
 let fotosSelecionadas = [];
