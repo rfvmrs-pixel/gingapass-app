@@ -908,7 +908,8 @@
     <div id="academiasRedeList"></div>
 
     <p class="section-title">🗺️ Mapa da rede</p>
-    <div class="card" style="padding:0;overflow:hidden;">
+    <div class="card" style="padding:0;overflow:hidden;position:relative;">
+      <button type="button" onclick="abrirMapaAcademiasExpandido()" title="Expandir mapa" style="position:absolute;top:10px;right:10px;z-index:400;width:34px;height:34px;border-radius:50%;border:none;background:rgba(6,26,48,0.75);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.25);">⛶</button>
       <div id="academiasMapa" style="width:100%;height:280px;background:var(--cream-2);"></div>
       <p id="academiasMapaVazio" style="font-size:11.5px;color:var(--ink-soft);margin:0;padding:12px 14px;display:none;">Nenhuma academia com endereço localizável ainda.</p>
     </div>
@@ -2568,6 +2569,17 @@
       <button class="btn" type="button" onclick="fecharLightboxMural()" style="width:auto;padding:10px 18px;background:var(--white);color:var(--navy-900);">Fechar</button>
     </div>
     <p style="font-size:11px;color:#C9D6E3;margin-top:10px;text-align:center;">Pra postar no Instagram: toque em "Compartilhar" e escolha o Instagram na lista, ou salve a imagem e poste pelo app.</p>
+  </div>
+
+  <div id="academiasMapaExpandidoOverlay" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:1000;flex-direction:column;">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--navy-900);flex-shrink:0;">
+      <p style="margin:0;color:#fff;font-size:15px;font-weight:600;flex:1;">🗺️ Mapa da rede</p>
+      <button type="button" onclick="fecharMapaAcademiasExpandido()" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+    <div id="academiasMapaExpandido" style="width:100%;height:48vh;background:var(--cream-2);flex-shrink:0;"></div>
+    <p id="academiasMapaExpandidoVazio" style="font-size:11.5px;color:var(--ink-soft);margin:0;padding:12px 16px 0;display:none;">Nenhuma academia com endereço localizável ainda.</p>
+    <p class="section-title" style="margin:14px 16px 8px;">🏠 Núcleos exibidos no mapa</p>
+    <div id="academiasMapaExpandidoLista" style="flex:1;overflow-y:auto;padding:0 16px 24px;"></div>
   </div>
 
   <div class="menu-mais-overlay" id="menuMaisOverlay" onclick="fecharMenuMais()">
@@ -20115,7 +20127,9 @@ function renderAcademiasScreen(){
   container.innerHTML = '';
   if(rede.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">' + (termoBusca ? 'Nenhuma academia encontrada com essa busca.' : 'Nenhuma academia cadastrada na rede ainda.') + '</p>';
+    _ultimaRedeFiltradaAcademias = rede;
     tentarChamar(function(){ renderMapaAcademias(rede); });
+    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede); });
     return;
   }
   const temDistanciasCalculadas = Object.keys(_distanciasCalculadas).length > 0;
@@ -20130,55 +20144,64 @@ function renderAcademiasScreen(){
     });
   }
   rede.forEach(a => {
-    const card = document.createElement('div');
-    card.className = 'academia-card';
-    const iniciais = a.nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
-    // Antes comparava c.nome (nome da PESSOA, ex: "Mestrando Borracha") com
-    // a.nome (nome do NÚCLEO/academia, ex: "Capoeira Team - Sede RJ") — quase
-    // nunca batia, então a foto cadastrada em "Foto/logo da minha academia"
-    // praticamente nunca aparecia aqui. Agora procura primeiro nos núcleos
-    // que cada conta realmente gerencia (nucleosGerenciados), e só depois
-    // tenta pelo nome do professor como reforço de compatibilidade.
-    const contaDaAcademia = academiasContas.find(c =>
-      (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) ||
-      c.nome === a.professor ||
-      c.nome === a.nome
-    );
-    let fotoAcademia = contaDaAcademia ? obterFotoAcademia(contaDaAcademia.user, contaDaAcademia) : '';
-    if(!fotoAcademia && !contaDaAcademia){
-      // Não achou conta de academia pra esse núcleo — provavelmente é o núcleo
-      // da própria matriz (ela não tem "conta de academia"), então usa a foto
-      // que a matriz cadastrou em "Foto/logo da minha academia".
-      const grupoMatriz = JSON.parse(localStorage.getItem('gingapass_grupo_matriz') || 'null');
-      if(grupoMatriz && grupoMatriz.foto) fotoAcademia = grupoMatriz.foto;
-    }
-    card.innerHTML = '<div class="academia-thumb">' + (fotoAcademia ? '' : (iniciais || 'CT')) + '</div>' +
-      '<div class="academia-info"><h4></h4><p></p><div class="academia-meta"><span></span><span>⭐ 4.8</span></div></div>';
-    if(fotoAcademia){
-      const thumb = card.querySelector('.academia-thumb');
-      thumb.style.backgroundImage = 'url(' + fotoAcademia + ')';
-      thumb.style.backgroundSize = 'cover';
-      thumb.style.backgroundPosition = 'center';
-    }
-    card.querySelector('h4').textContent = a.nome;
-    card.querySelector('p').textContent = a.endereco;
-    let distanciaTexto = a.distancia ? ('📍 ' + a.distancia) : '📍 —';
-    if(_distanciasCalculadas[a.nome] !== undefined){
-      const km = _distanciasCalculadas[a.nome];
-      distanciaTexto = '📍 ' + (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km') + ' de você';
-    } else if(_distanciasFalha[a.nome]){
-      distanciaTexto = '📍 endereço não localizado no mapa';
-    }
-    card.querySelector('.academia-meta span').textContent = distanciaTexto;
-    card.style.cursor = 'pointer';
-    card.onclick = () => abrirPerfilAcademiaPublico(a.nome);
-    container.appendChild(card);
+    container.appendChild(_criarCardAcademia(a, academiasContas));
   });
 
   // O mapa mostra só as academias que estão na lista acima (respeitando a
   // busca) — assim, ao filtrar por cidade/estado, o mapa dá zoom só nelas
   // em vez de ficar com o Brasil inteiro (ou o mundo) pra enxergar.
+  _ultimaRedeFiltradaAcademias = rede;
   tentarChamar(function(){ renderMapaAcademias(rede); });
+  if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede); });
+}
+
+// Extraído do loop acima pra poder reaproveitar o mesmo card (foto do
+// grupo, distância, clique pra abrir perfil) tanto na lista normal da tela
+// Academias quanto na lista do mapa expandido em tela cheia.
+function _criarCardAcademia(a, academiasContas){
+  const card = document.createElement('div');
+  card.className = 'academia-card';
+  const iniciais = a.nome.split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');
+  // Antes comparava c.nome (nome da PESSOA, ex: "Mestrando Borracha") com
+  // a.nome (nome do NÚCLEO/academia, ex: "Capoeira Team - Sede RJ") — quase
+  // nunca batia, então a foto cadastrada em "Foto/logo da minha academia"
+  // praticamente nunca aparecia aqui. Agora procura primeiro nos núcleos
+  // que cada conta realmente gerencia (nucleosGerenciados), e só depois
+  // tenta pelo nome do professor como reforço de compatibilidade.
+  const contaDaAcademia = academiasContas.find(c =>
+    (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) ||
+    c.nome === a.professor ||
+    c.nome === a.nome
+  );
+  let fotoAcademia = contaDaAcademia ? obterFotoAcademia(contaDaAcademia.user, contaDaAcademia) : '';
+  if(!fotoAcademia && !contaDaAcademia){
+    // Não achou conta de academia pra esse núcleo — provavelmente é o núcleo
+    // da própria matriz (ela não tem "conta de academia"), então usa a foto
+    // que a matriz cadastrou em "Foto/logo da minha academia".
+    const grupoMatriz = JSON.parse(localStorage.getItem('gingapass_grupo_matriz') || 'null');
+    if(grupoMatriz && grupoMatriz.foto) fotoAcademia = grupoMatriz.foto;
+  }
+  card.innerHTML = '<div class="academia-thumb">' + (fotoAcademia ? '' : (iniciais || 'CT')) + '</div>' +
+    '<div class="academia-info"><h4></h4><p></p><div class="academia-meta"><span></span><span>⭐ 4.8</span></div></div>';
+  if(fotoAcademia){
+    const thumb = card.querySelector('.academia-thumb');
+    thumb.style.backgroundImage = 'url(' + fotoAcademia + ')';
+    thumb.style.backgroundSize = 'cover';
+    thumb.style.backgroundPosition = 'center';
+  }
+  card.querySelector('h4').textContent = a.nome;
+  card.querySelector('p').textContent = a.endereco;
+  let distanciaTexto = a.distancia ? ('📍 ' + a.distancia) : '📍 —';
+  if(_distanciasCalculadas[a.nome] !== undefined){
+    const km = _distanciasCalculadas[a.nome];
+    distanciaTexto = '📍 ' + (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km') + ' de você';
+  } else if(_distanciasFalha[a.nome]){
+    distanciaTexto = '📍 endereço não localizado no mapa';
+  }
+  card.querySelector('.academia-meta span').textContent = distanciaTexto;
+  card.style.cursor = 'pointer';
+  card.onclick = () => abrirPerfilAcademiaPublico(a.nome);
+  return card;
 }
 
 function _normalizarTextoBusca(texto){
@@ -20209,6 +20232,10 @@ function abrirPerfilAcademiaPublico(nomeNucleo){
 let _academiasMapaInstancia = null;
 let _academiasMapaMarkers = null;
 let _academiasMapaGeocodificando = false;
+let _ultimaRedeFiltradaAcademias = [];
+let _academiasMapaExpandidoAberto = false;
+let _academiasMapaExpInstancia = null;
+let _academiasMapaExpMarkers = null;
 
 function _obterOuIniciarMapaAcademias(){
   const container = document.getElementById('academiasMapa');
@@ -20225,6 +20252,44 @@ function _obterOuIniciarMapaAcademias(){
     setTimeout(function(){ if(_academiasMapaInstancia) _academiasMapaInstancia.invalidateSize(); }, 300);
   }
   return _academiasMapaInstancia;
+}
+
+// Mesma ideia do mapa pequeno, mas pro mapa em tela cheia (botão ⛶) — mapa
+// próprio, maior e com zoom por scroll liberado (no card pequeno o scroll
+// da tela some fácil se o mapa "roubar" o gesto).
+function _obterOuIniciarMapaAcademiasExpandido(){
+  const container = document.getElementById('academiasMapaExpandido');
+  if(!container || typeof L === 'undefined') return null;
+  if(!_academiasMapaExpInstancia){
+    _academiasMapaExpInstancia = L.map(container, {scrollWheelZoom: true}).setView([-15.78, -47.93], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 18
+    }).addTo(_academiasMapaExpInstancia);
+    _academiasMapaExpMarkers = L.layerGroup().addTo(_academiasMapaExpInstancia);
+  }
+  return _academiasMapaExpInstancia;
+}
+
+function abrirMapaAcademiasExpandido(){
+  const overlay = document.getElementById('academiasMapaExpandidoOverlay');
+  if(!overlay) return;
+  overlay.style.display = 'flex';
+  _academiasMapaExpandidoAberto = true;
+  // Precisa nascer com o overlay já visível (senão o Leaflet mede o
+  // container com altura 0 e o mapa fica quebrado), por isso o pequeno
+  // atraso antes de iniciar e o invalidateSize logo depois.
+  setTimeout(function(){
+    _obterOuIniciarMapaAcademiasExpandido();
+    renderMapaAcademiasExpandido(_ultimaRedeFiltradaAcademias);
+    if(_academiasMapaExpInstancia) _academiasMapaExpInstancia.invalidateSize();
+  }, 50);
+}
+
+function fecharMapaAcademiasExpandido(){
+  const overlay = document.getElementById('academiasMapaExpandidoOverlay');
+  if(overlay) overlay.style.display = 'none';
+  _academiasMapaExpandidoAberto = false;
 }
 
 // Plota uma bolinha por academia com endereço já geocodificado (cidade,
@@ -20248,14 +20313,11 @@ function _obterLogoParaMarcadorAcademia(a){
   return obterFotoAcademia(contaProf.user, contaProf) || '';
 }
 
-function renderMapaAcademias(redeFiltrada){
-  const mapa = _obterOuIniciarMapaAcademias();
-  const vazioEl = document.getElementById('academiasMapaVazio');
-  if(!mapa || !_academiasMapaMarkers) return;
-
-  const rede = (redeFiltrada || []).filter(a => a.endereco);
-
-  _academiasMapaMarkers.clearLayers();
+// Cria as bolinhas/marcadores num layerGroup já existente. Compartilhado
+// entre o mapa pequeno da tela Academias e o mapa expandido em tela cheia,
+// pra não duplicar a lógica de popup/logo/link do WhatsApp nos dois lugares.
+function _popularMarcadoresMapa(layerGroup, rede){
+  layerGroup.clearLayers();
   const pontos = [];
   rede.forEach(a => {
     const geo = _geoCacheDeEndereco(a.endereco);
@@ -20281,10 +20343,20 @@ function renderMapaAcademias(redeFiltrada){
       marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') +
         '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>' +
         '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
-      marker.addTo(_academiasMapaMarkers);
+      marker.addTo(layerGroup);
       pontos.push([geo.lat, geo.lon]);
     }
   });
+  return pontos;
+}
+
+function renderMapaAcademias(redeFiltrada){
+  const mapa = _obterOuIniciarMapaAcademias();
+  const vazioEl = document.getElementById('academiasMapaVazio');
+  if(!mapa || !_academiasMapaMarkers) return;
+
+  const rede = (redeFiltrada || []).filter(a => a.endereco);
+  const pontos = _popularMarcadoresMapa(_academiasMapaMarkers, rede);
 
   if(vazioEl) vazioEl.style.display = pontos.length === 0 ? 'block' : 'none';
   if(pontos.length === 1){
@@ -20309,6 +20381,41 @@ function renderMapaAcademias(redeFiltrada){
         // digitado, ou o oposto.
         tentarChamar(function(){ renderAcademiasScreen(); });
       })();
+    }
+  }
+}
+
+// Versão do mapa pro modal em tela cheia (botão ⛶). Não dispara geocodificação
+// própria — quem cuida disso é sempre o mapa pequeno via renderMapaAcademias,
+// e o resultado chega aqui de qualquer forma porque renderAcademiasScreen()
+// também atualiza o mapa expandido (se estiver aberto) toda vez que re-renderiza.
+function renderMapaAcademiasExpandido(redeFiltrada){
+  const mapa = _obterOuIniciarMapaAcademiasExpandido();
+  const vazioEl = document.getElementById('academiasMapaExpandidoVazio');
+  if(!mapa || !_academiasMapaExpMarkers) return;
+
+  const rede = (redeFiltrada || []).filter(a => a.endereco);
+  const pontos = _popularMarcadoresMapa(_academiasMapaExpMarkers, rede);
+
+  if(vazioEl) vazioEl.style.display = pontos.length === 0 ? 'block' : 'none';
+  if(pontos.length === 1){
+    mapa.setView(pontos[0], 13);
+  } else if(pontos.length > 1){
+    mapa.fitBounds(pontos, {padding: [30, 30], maxZoom: 13});
+  }
+
+  // Lista de cards dos núcleos com endereço localizável (mesmo card usado na
+  // tela normal — foto do grupo, distância, clique abre o perfil).
+  const listaEl = document.getElementById('academiasMapaExpandidoLista');
+  if(listaEl){
+    listaEl.innerHTML = '';
+    const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    if(rede.length === 0){
+      listaEl.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;">Nenhum núcleo pra mostrar aqui.</p>';
+    } else {
+      rede.forEach(a => {
+        listaEl.appendChild(_criarCardAcademia(a, academiasContas));
+      });
     }
   }
 }
