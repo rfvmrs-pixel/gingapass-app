@@ -1009,6 +1009,11 @@
       <button class="btn" type="button" onclick="vincularAlunoAoGrupo()">Vincular como meu aluno</button>
     </div>
 
+    <div id="perfilSecaoHistoricoProfessor" style="display:none;margin-top:14px;">
+      <p class="section-title">📜 Minha trajetória (como aluno do meu mestre)</p>
+      <div id="perfilProfessorHistoricoBox"></div>
+    </div>
+
     <div id="perfilSecaoPlanoAula" style="display:none;">
       <p class="section-title">Plano de aula</p>
       <div class="card">
@@ -7247,15 +7252,51 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
   container.innerHTML = html;
 }
 
-// Único campo do histórico que o próprio aluno pode corrigir — a data que
-// ele começou a treinar é um dado pessoal que só ele sabe direito, sem
+// Professor vinculado (paga mensalidade como aluno de um mestre, mesmo
+// dando aula própria) tem um registro "sombra" em alunos_contas — sem
+// login próprio, só pra cobrança/trajetória. Sem isso ele nunca conseguia
+// ver a própria trajetória logado na PRÓPRIA conta (só quem olhasse pela
+// ficha dele, do login do mestre, conseguia).
+function obterMinhaContaSombraDeAluno(){
+  if(currentRole !== 'academia' || !currentUser) return null;
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const minhaConta = academiasContas.find(c => c.user === currentUser);
+  if(!minhaConta || !minhaConta.meuMestre) return null;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const minhaAcademia = rede.find(a => a.nome === minhaConta.nome);
+  const meuNomeReal = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : minhaConta.nome;
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  return alunosContas.find(c => mesmoProfessor(c.nome, meuNomeReal) && c.professor && mesmoProfessor(c.professor, minhaConta.meuMestre)) || null;
+}
+
+// Atualiza todas as caixas de "histórico completo" que possam estar na
+// tela agora (aluno: Estatísticas + Perfil; professor vinculado: só Perfil).
+function _atualizarCaixasHistoricoAluno(){
+  if(currentRole === 'aluno' && currentUser){
+    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox', true); });
+    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'perfilHistoricoCompletoBox', true); });
+  } else if(currentRole === 'academia' && currentUser){
+    const sombra = obterMinhaContaSombraDeAluno();
+    if(sombra) tentarChamar(function(){ renderHistoricoCompletoAluno(sombra.user, 'perfilProfessorHistoricoBox', true); });
+  }
+}
+
+// Único campo do histórico que a própria pessoa pode corrigir — a data que
+// ela começou a treinar é um dado pessoal que só ela sabe direito, sem
 // afetar graduação/professor/grupo (esses continuam só com o professor).
 function salvarMeuInicioTreinos(containerId){
-  if(currentRole !== 'aluno' || !currentUser) return;
+  let alunoUserAlvo = null;
+  if(currentRole === 'aluno' && currentUser){
+    alunoUserAlvo = currentUser;
+  } else if(currentRole === 'academia' && currentUser){
+    const sombra = obterMinhaContaSombraDeAluno();
+    alunoUserAlvo = sombra ? sombra.user : null;
+  }
+  if(!alunoUserAlvo) return;
   const input = document.getElementById('meuInicioTreinosInput_' + containerId);
   const novaData = input ? input.value : '';
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const idx = contas.findIndex(c => c.user === currentUser);
+  const idx = contas.findIndex(c => c.user === alunoUserAlvo);
   if(idx < 0) return;
   contas[idx].inicioTreinos = novaData;
   if(novaData) contas[idx].desde = new Date(novaData + 'T00:00:00').getFullYear().toString();
@@ -7265,10 +7306,7 @@ function salvarMeuInicioTreinos(containerId){
     } else {
       alert('Data atualizada!');
     }
-    // Atualiza as duas caixas (Estatísticas e Perfil), não só a que foi
-    // editada agora — pra não ficarem desatualizadas uma da outra.
-    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox', true); });
-    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'perfilHistoricoCompletoBox', true); });
+    _atualizarCaixasHistoricoAluno();
   });
 }
 
@@ -9157,6 +9195,21 @@ function renderPerfil(){
           grupoRow.style.display = '';
         } else {
           grupoRow.style.display = 'none';
+        }
+      }
+      // Professor vinculado (paga mensalidade como aluno de um mestre) tem um
+      // registro "sombra" em alunos_contas, só pra cobrança — é onde fica a
+      // trajetória dele como aluno. Sem isso, ele nunca via a própria
+      // trajetória logado na própria conta (só quem olhasse a ficha dele
+      // pelo login do mestre conseguia ver).
+      const secaoHistoricoProf = document.getElementById('perfilSecaoHistoricoProfessor');
+      if(secaoHistoricoProf){
+        const sombra = obterMinhaContaSombraDeAluno();
+        if(sombra){
+          secaoHistoricoProf.style.display = 'block';
+          tentarChamar(function(){ renderHistoricoCompletoAluno(sombra.user, 'perfilProfessorHistoricoBox', true); });
+        } else {
+          secaoHistoricoProf.style.display = 'none';
         }
       }
       const cardNucleos = document.getElementById('perfilCardMeusNucleos');
