@@ -10687,7 +10687,12 @@ function renderizarCertificadoCanvas(ev){
   const nomeAluno = obterMeuNomeCompletoParaCertificado();
   const grupo = _obterGrupoDoEvento(ev);
   const professor = _obterProfessorDoEvento(ev);
-  const nomeGrupo = grupo.nome || 'GingaPass';
+  // Cabeçalho mostra quem REALIZOU o evento (ex: Mestrando Borracha, ou
+  // Professor Raposa) — a logo/foto e o nome de cada um, não um nome
+  // genérico da rede. Só cai pro grupo/"GingaPass" se o evento não tiver
+  // professor identificado (ex: criado direto pela matriz sem nome cadastrado).
+  const nomeCabecalho = professor.nome || grupo.nome || 'GingaPass';
+  const logoCabecalhoSrc = professor.foto || grupo.foto || '';
   const posterSrc = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem || '';
 
   const CORES = {
@@ -10714,8 +10719,8 @@ function renderizarCertificadoCanvas(ev){
       ]).catch(() => null)
     : Promise.resolve(null);
 
-  Promise.all([carregarImagemOpcional(posterSrc), carregarImagemOpcional(grupo.foto), carregarFontes])
-    .then(([posterImg, logoGrupoImg]) => {
+  Promise.all([carregarImagemOpcional(posterSrc), carregarImagemOpcional(logoCabecalhoSrc), carregarFontes])
+    .then(([posterImg, logoCabecalhoImg]) => {
       // ---------- fundo: o post do próprio evento (todo evento tem um),
       // preenchendo o certificado inteiro, com um véu escuro por cima pra
       // garantir que o texto dourado/branco fique bem destacado por cima —
@@ -10786,18 +10791,18 @@ function renderizarCertificadoCanvas(ev){
       ctx.shadowBlur = 7;
       ctx.shadowOffsetY = 1;
 
-      // ---------- cabeçalho: logo/nome do grupo ----------
+      // ---------- cabeçalho: logo/foto e nome de quem realizou o evento ----------
       let cabecalhoY = 78;
-      if(logoGrupoImg){
+      if(logoCabecalhoImg){
         const r = 26;
         ctx.save();
         ctx.beginPath();
         ctx.arc(inicioTexto + r, cabecalhoY, r, 0, Math.PI * 2);
         ctx.closePath();
         ctx.clip();
-        const escalaLogo = Math.max((r * 2) / logoGrupoImg.width, (r * 2) / logoGrupoImg.height);
-        const wLogo = logoGrupoImg.width * escalaLogo, hLogo = logoGrupoImg.height * escalaLogo;
-        ctx.drawImage(logoGrupoImg, inicioTexto + r - wLogo / 2, cabecalhoY - hLogo / 2, wLogo, hLogo);
+        const escalaLogo = Math.max((r * 2) / logoCabecalhoImg.width, (r * 2) / logoCabecalhoImg.height);
+        const wLogo = logoCabecalhoImg.width * escalaLogo, hLogo = logoCabecalhoImg.height * escalaLogo;
+        ctx.drawImage(logoCabecalhoImg, inicioTexto + r - wLogo / 2, cabecalhoY - hLogo / 2, wLogo, hLogo);
         ctx.restore();
         ctx.strokeStyle = CORES.gold;
         ctx.lineWidth = 2;
@@ -10809,7 +10814,7 @@ function renderizarCertificadoCanvas(ev){
       ctx.textBaseline = 'middle';
       ctx.fillStyle = CORES.gold;
       ctx.font = '800 25px Poppins, Arial';
-      ctx.fillText(nomeGrupo.toUpperCase(), inicioTexto + (logoGrupoImg ? 66 : 0), cabecalhoY);
+      ctx.fillText(nomeCabecalho.toUpperCase(), inicioTexto + (logoCabecalhoImg ? 66 : 0), cabecalhoY);
       ctx.textBaseline = 'alphabetic';
 
       // ---------- título ----------
