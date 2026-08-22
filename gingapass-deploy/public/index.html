@@ -1771,11 +1771,13 @@
     <p class="section-title">🎉 Anunciar indicação de graduação</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Publica um aviso animado na tela Início do aluno, dando os parabéns. Diferente de "Registrar graduação" acima (que é o histórico oficial) — isso é só o anúncio/comunicado. Fica em destaque na tela dele até 23:59 do dia do evento — não some antes disso, mesmo que ele já tenha visto.</p>
+      <p id="fichaAlunoAnuncioStatus" style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;"></p>
       <input class="admin-input" id="fichaAlunoAnuncioGraduacao" placeholder="Nova graduação (ex: Corda Verde e Amarela)">
       <input class="admin-input" id="fichaAlunoAnuncioEvento" placeholder="Evento (ex: Batizado 2026)">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Data do evento (o aviso fica até 23:59 desse dia)</label>
       <input class="admin-input" id="fichaAlunoAnuncioEventoData" type="date">
       <button class="btn" type="button" style="background:linear-gradient(135deg,#EF9F27,#C22C75);" onclick="publicarAnuncioGraduacao()">Publicar parabéns pro aluno</button>
+      <button class="btn" type="button" id="fichaAlunoAnuncioCancelarBtn" style="display:none;margin-top:8px;background:var(--white);color:var(--danger);border:1.5px solid var(--danger);" onclick="cancelarAnuncioGraduacao()">Cancelar anúncio</button>
     </div>
 
     <p class="section-title">Mensalidades pagas</p>
@@ -7602,6 +7604,7 @@ function renderFichaAluno(){
   const user = _fichaAlunoUserAtual;
   if(!user) return;
   tentarChamar(function(){ renderHistoricoCompletoAluno(user, 'fichaAlunoHistoricoCompletoBox'); });
+  tentarChamar(function(){ renderAnuncioGraduacaoFicha(); });
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const aluno = contas.find(c => c.user === user);
   if(!aluno){
@@ -8030,6 +8033,7 @@ function publicarAnuncioGraduacao(){
     if(graduacaoInput) graduacaoInput.value = '';
     if(eventoInput) eventoInput.value = '';
     if(eventoDataInput) eventoDataInput.value = '';
+    renderAnuncioGraduacaoFicha();
     alert('Publicado! Vai ficar em destaque na tela Início de ' + (aluno ? aluno.nome : 'o aluno') + ' até 23:59 do dia ' + eventoData.split('-').reverse().join('/') + '.');
   });
 }
@@ -8062,6 +8066,55 @@ function renderAnuncioGraduacaoHome(){
   const confirmarBtn = document.getElementById('anuncioGraduacaoConfirmarBtn');
   if(confirmarBtn) confirmarBtn.textContent = anuncio.lido ? 'Confirmado ✓' : 'Show, obrigado! 🙌';
   banner.style.display = 'block';
+}
+
+// Mostra na ficha do aluno (lado do professor) se já existe um anúncio
+// ativo, pra ele saber que a indicação "pegou" — e deixa editar (os campos
+// vêm preenchidos com o anúncio atual; publicar de novo simplesmente
+// sobrescreve) ou cancelar de vez (o aviso some da tela Início do aluno).
+// Antes não tinha nenhuma dessas duas opções depois de publicado.
+function renderAnuncioGraduacaoFicha(){
+  const status = document.getElementById('fichaAlunoAnuncioStatus');
+  const cancelarBtn = document.getElementById('fichaAlunoAnuncioCancelarBtn');
+  if(!status || !_fichaAlunoUserAtual) return;
+  const anuncio = JSON.parse(localStorage.getItem(chaveAnuncioGraduacao(_fichaAlunoUserAtual)) || 'null');
+  if(!anuncio || _anuncioGraduacaoExpirado(anuncio)){
+    status.textContent = 'Nenhum anúncio ativo agora.';
+    if(cancelarBtn) cancelarBtn.style.display = 'none';
+    return;
+  }
+  const dataFmt = anuncio.eventoData ? anuncio.eventoData.split('-').reverse().join('/') : '';
+  status.innerHTML = '🎉 Anúncio ativo: <b>' + anuncio.graduacao + '</b>' +
+    (anuncio.evento ? (' no evento "' + anuncio.evento + '"') : '') +
+    (dataFmt ? (', em destaque até ' + dataFmt) : '') +
+    (anuncio.lido ? ' · aluno já confirmou' : ' · aluno ainda não confirmou') +
+    '. Pra editar, mude os campos abaixo e publique de novo (substitui o anúncio atual).';
+  const graduacaoInput = document.getElementById('fichaAlunoAnuncioGraduacao');
+  const eventoInput = document.getElementById('fichaAlunoAnuncioEvento');
+  const eventoDataInput = document.getElementById('fichaAlunoAnuncioEventoData');
+  if(graduacaoInput && !graduacaoInput.value) graduacaoInput.value = anuncio.graduacao || '';
+  if(eventoInput && !eventoInput.value) eventoInput.value = anuncio.evento || '';
+  if(eventoDataInput && !eventoDataInput.value) eventoDataInput.value = anuncio.eventoData || '';
+  if(cancelarBtn) cancelarBtn.style.display = 'block';
+}
+
+function cancelarAnuncioGraduacao(){
+  if(!_fichaAlunoUserAtual) return;
+  if(!confirm('Cancelar esse anúncio? Ele some da tela Início do aluno na hora.')) return;
+  const chave = chaveAnuncioGraduacao(_fichaAlunoUserAtual);
+  window._ultimaEscritaLocal = window._ultimaEscritaLocal || {};
+  window._ultimaEscritaLocal[chave] = Date.now();
+  localStorage.removeItem(chave);
+  _apagarDaNuvemComRetentativa(chave).then(function(ok){
+    if(!ok) alert('Cancelado aqui, mas não consegui confirmar com a nuvem agora (conexão instável). Se ele voltar a aparecer, tenta cancelar de novo com a internet mais estável.');
+  });
+  const graduacaoInput = document.getElementById('fichaAlunoAnuncioGraduacao');
+  const eventoInput = document.getElementById('fichaAlunoAnuncioEvento');
+  const eventoDataInput = document.getElementById('fichaAlunoAnuncioEventoData');
+  if(graduacaoInput) graduacaoInput.value = '';
+  if(eventoInput) eventoInput.value = '';
+  if(eventoDataInput) eventoDataInput.value = '';
+  renderAnuncioGraduacaoFicha();
 }
 
 // Só marca que o aluno já viu (o professor consegue ver isso na ficha dele,
