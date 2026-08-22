@@ -14484,7 +14484,13 @@ function renderAtividadesHomeSocial(){
   const meuMute = obterMuteSocial();
   const meuId = identificadorUsuarioAtual();
 
+  // Posts do tipo "foto" ficam de fora daqui — eles já aparecem no slideshow
+  // ali em cima, com a legenda (autor + comentários) trocando junto com a
+  // foto certa. Duplicar aqui embaixo, numa lista que NÃO troca junto com o
+  // slide, dava a impressão de "comentário fixo/errado" pra quem via os
+  // dois ao mesmo tempo.
   const posts = (window._socialPostsCache || [])
+    .filter(p => p.tipo !== 'foto')
     .filter(p => !(p.tipo === 'pensamento' && p.expiraEm && p.expiraEm <= agora))
     .filter(p => p.autorId === meuId || _postVisivelComMute(p, meuMute))
     .map(p => ({tipo: 'post', data: p.data, item: p}));
