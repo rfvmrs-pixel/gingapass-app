@@ -931,6 +931,31 @@
 
     <p class="section-title">Histórico de pagamentos</p>
     <div class="card" id="historicoPagamentos"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;padding:16px 0;">Nenhum pagamento registrado ainda.</p></div>
+
+    <div id="mensalidadeProfessorSecao" style="display:none;">
+      <p class="section-title">📋 Mensalidade dos meus alunos</p>
+      <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:130px;">
+            <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Mês</label>
+            <input class="admin-input" id="pagamentoMesInputProf" type="month" onchange="renderPagamentos(&#39;Prof&#39;)" style="margin-bottom:0;">
+          </div>
+          <div style="flex:1;min-width:130px;">
+            <label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Mostrar</label>
+            <select class="admin-input" id="pagamentoStatusFiltroProf" onchange="renderPagamentos(&#39;Prof&#39;)" style="margin-bottom:0;">
+              <option value="todos">Todos</option>
+              <option value="pagos">Só quem pagou</option>
+              <option value="pendentes">Só pendentes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="pagamentoResumoBoxProf" style="margin-top:10px;"></div>
+      <div class="card" id="pagamentoAlunosListProf" style="margin-top:10px;"></div>
+
+      <p class="section-title">📊 Mensalidades pagas por mês</p>
+      <div class="card" id="graficoMensalidadesMesProf"></div>
+    </div>
   </div>
 
   <!-- PERFIL -->
@@ -1173,6 +1198,11 @@
   <div class="screen" id="eventos">
     <p class="greeting" style="font-size:18px;">Eventos</p>
     <p class="subgreeting">Todos os eventos da rede, com cartazes e fotos</p>
+
+    <div class="card" style="margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por mês (deixe em branco pra ver tudo)</label>
+      <input class="admin-input" id="eventosFiltroMes" type="month" style="margin-bottom:0;" onchange="renderEventos(); tentarChamar(function(){ renderEventosGerenciar(); });">
+    </div>
 
     <div id="eventosCriarBoxAdmin" style="display:none;">
       <div class="card">
@@ -2452,12 +2482,14 @@
     <div class="card" id="estatisticasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado.</p>
 
+    <div id="estatMensalidadeSecaoAntiga">
     <p class="section-title">Mensalidade dos alunos</p>
     <div class="card">
       <input class="admin-input" id="pagamentoMesInputEstat" type="month" onchange="renderPagamentos(&#39;Estat&#39;)" style="margin-bottom:0;">
     </div>
     <div class="card" id="pagamentoResumoBoxEstat" style="margin-top:10px;"><p style="font-weight:700;font-size:15px;color:var(--navy-900);margin:0 0 8px;text-transform:capitalize;">agosto de 2026</p><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Confirmados</span><b style="color:#2E8B57;">0</b></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Pendentes</span><b style="color:#C0392B;">0</b></div><div style="display:flex;justify-content:space-between;font-size:13px;"><span>Adesão</span><b>0%</b></div></div>
     <div class="card" id="pagamentoAlunosListEstat" style="margin-top:10px;"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno seu cadastrado ainda.</p></div>
+    </div>
 
     <p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;">A correção de check-ins de um dia específico (presença e falta) agora fica na aba <b>Aulas</b> (menu ☰).</p>
 
@@ -7182,7 +7214,14 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
 
   const tempoPratica = _formatarTempoPratica(aluno.inicioTreinos);
   const graduacoesOrdenadas = (ficha.graduacoes || []).slice().sort((a, b) => b.data.localeCompare(a.data));
-  const mudancas = (ficha.historicoMudancas || []).slice().sort((a, b) => b.data - a.data);
+  // A linha do tempo só mostra mudança de GRADUAÇÃO se ela ainda está ativa
+  // (existe hoje em "Histórico de graduações") — senão, uma graduação
+  // editada ou removida ficava pra sempre na linha do tempo, mesmo depois
+  // de corrigida/apagada.
+  const cordasAtivas = new Set((ficha.graduacoes || []).map(g => g.corda));
+  const mudancas = (ficha.historicoMudancas || [])
+    .filter(m => m.tipo !== 'graduacao' || cordasAtivas.has(m.para))
+    .slice().sort((a, b) => b.data - a.data);
   const professoresAnteriores = [...new Set(mudancas.filter(m => m.tipo === 'professor').map(m => m.de).filter(d => d && d !== '(sem professor)'))];
   const gruposAnteriores = [...new Set(mudancas.filter(m => m.tipo === 'grupo').map(m => m.de).filter(d => d && d !== '(sem grupo)'))];
   const grupoAtual = obterGrupoCadastradoDaConta('academia', (obterAcademiaContaPorNucleoOuProfessor(aluno.professor || '') || {}).user);
@@ -9524,24 +9563,44 @@ function publicarEventoMatriz(){
   });
 }
 
+// Filtro por mês (YYYY-MM) pra "Eventos" não ficar gigante com o tempo —
+// deixando em branco, mostra tudo (comportamento de sempre).
+function _mesFiltroEventos(){
+  const input = document.getElementById('eventosFiltroMes');
+  return input ? input.value : '';
+}
+
+function _eventoBateFiltroMes(ev){
+  const filtro = _mesFiltroEventos();
+  if(!filtro) return true;
+  const iso = ev.dataISO || extrairIsoDeDataEventoTexto(ev.data);
+  if(!iso) return false;
+  return iso.slice(0, 7) === filtro;
+}
+
 function renderEventos(){
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const comIndice = todosEventos.map((ev, indiceReal) => ({ev, indiceReal}));
-  const doMeuGrupo = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv);
+  const doMeuGrupo = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && _eventoBateFiltroMes(x.ev));
   // Em destaque = ainda não passou da data programada. Eventos realizados =
   // já passou (ver eventoJaPassou). Sem data confiável, fica sempre em destaque.
   const destaque = doMeuGrupo.filter(x => !eventoJaPassou(x.ev));
   const realizados = doMeuGrupo.filter(x => eventoJaPassou(x.ev));
   // Evento Público: visível pra QUALQUER pessoa com acesso ao app, independente
   // do grupo/núcleo dela — por isso não filtra por meuGrupoEv aqui.
-  const publicos = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev));
+  const publicos = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev) && _eventoBateFiltroMes(x.ev));
 
   renderListaEventos('eventosFeedCompleto', destaque, 'Nenhum evento publicado ainda.');
   renderListaEventos('eventosFeedRealizados', realizados, 'Nenhum evento realizado ainda.');
   renderListaEventos('eventosFeedPublico', publicos, 'Nenhum evento público publicado ainda.');
 
-  renderEventosHome(destaque, publicos);
+  // O carrossel da tela Início sempre mostra os próximos eventos de verdade,
+  // sem o filtro de mês da aba Eventos (senão filtrar lá "escondia" eventos
+  // reais da Início também).
+  const destaqueParaHome = comIndice.filter(x => (x.ev.grupo || 'matriz') === meuGrupoEv && !eventoJaPassou(x.ev));
+  const publicosParaHome = comIndice.filter(x => x.ev.publico && !eventoJaPassou(x.ev));
+  renderEventosHome(destaqueParaHome, publicosParaHome);
   tentarChamar(function(){ renderAniversariantesMes(); });
 }
 
@@ -9877,7 +9936,7 @@ function renderEventosGerenciar(){
   const eventosCompletos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const eventos = eventosCompletos
     .map((ev, indiceReal) => ({ev, indiceReal}))
-    .filter(x => (x.ev.grupo || 'matriz') === meuGrupoEvGer);
+    .filter(x => (x.ev.grupo || 'matriz') === meuGrupoEvGer && _eventoBateFiltroMes(x.ev));
   ['eventosGerenciarAdmin', 'eventosGerenciarMatriz'].forEach(containerId => {
     const container = document.getElementById(containerId);
     if(!container) return;
@@ -14312,8 +14371,18 @@ function iniciarSlideshowSocial(){
   img.style.display = 'block';
   if(vazio) vazio.style.display = 'none';
 
+  // A legenda (autor + comentários) tem que trocar junto com a foto — antes
+  // só mostrava o autor; comentários nunca apareciam aqui (o que dava a
+  // impressão de "sempre os mesmos comentários" quando na verdade eram os
+  // do mini-feed embaixo, que não muda junto com o slide).
   const atualizarLegenda = (post) => {
-    if(legenda) legenda.textContent = (post.autorHandle || '') + (post.autorNome ? ' · ' + post.autorNome : '');
+    if(!legenda) return;
+    const totalComentarios = (post.comentarios || []).length;
+    let html = '<b>' + ((post.autorHandle || '') + (post.autorNome ? ' · ' + post.autorNome : '')) + '</b>';
+    if(totalComentarios > 0){
+      html += '<br><span style="font-weight:400;opacity:0.9;">💬 ' + totalComentarios + (totalComentarios === 1 ? ' comentário' : ' comentários') + '</span>';
+    }
+    legenda.innerHTML = html;
   };
 
   _socialSlideshowIndex = 0;
@@ -16596,12 +16665,29 @@ function renderPagamentos(sufixo){
   container.innerHTML = '';
   if(contas.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno seu cadastrado ainda.</p>';
+    tentarChamar(function(){ renderGraficoMensalidadesPorMes(sufixo, contas); });
+    return;
+  }
+
+  // Filtro opcional de "só pagos" / "só pendentes" — só existe na aba
+  // Mensalidade do professor (sufixo 'Prof'); nas outras telas esse select
+  // não existe no DOM, então o filtro fica sempre em "todos" (comportamento
+  // de sempre, sem mudar nada nelas).
+  const filtroStatusEl = document.getElementById('pagamentoStatusFiltro' + sufixo);
+  const filtroStatus = filtroStatusEl ? filtroStatusEl.value : 'todos';
+  let contasFiltradas = contas;
+  if(filtroStatus === 'pagos') contasFiltradas = contas.filter(c => registrosDoMes.has(c.user));
+  else if(filtroStatus === 'pendentes') contasFiltradas = contas.filter(c => !registrosDoMes.has(c.user));
+
+  if(contasFiltradas.length === 0){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno encontrado com esse filtro.</p>';
+    tentarChamar(function(){ renderGraficoMensalidadesPorMes(sufixo, contas); });
     return;
   }
 
   // Mostra quem já pagou primeiro (com a data), depois os pendentes — fica mais
   // fácil de bater o olho em quem falta cobrar.
-  const contasOrdenadas = [...contas].sort((a, b) => {
+  const contasOrdenadas = [...contasFiltradas].sort((a, b) => {
     const pagoA = registrosDoMes.has(a.user) ? 1 : 0;
     const pagoB = registrosDoMes.has(b.user) ? 1 : 0;
     if(pagoA !== pagoB) return pagoB - pagoA;
@@ -16632,6 +16718,7 @@ function renderPagamentos(sufixo){
     row.appendChild(btn);
     container.appendChild(row);
   });
+  tentarChamar(function(){ renderGraficoMensalidadesPorMes(sufixo, contas); });
 }
 
 function alternarPagamento(user, sufixo){
@@ -16657,10 +16744,42 @@ function alternarPagamento(user, sufixo){
     });
   }
   setDado('gingapass_pagamentos_log', JSON.stringify(log));
-  // Mantém as duas telas (Gestão de Aulas e Estatísticas) sincronizadas, já
-  // que as duas leem o mesmo log de pagamentos.
+  // Mantém as telas que leem o mesmo log de pagamentos sincronizadas (Gestão
+  // de Aulas, Estatísticas da matriz, e a aba Mensalidade do professor).
   renderPagamentos('');
   renderPagamentos('Estat');
+  renderPagamentos('Prof');
+}
+
+// Barrinhas simples (sem lib de gráfico) com quantos alunos pagaram em cada
+// um dos últimos 6 meses — pra dar uma visão rápida de mês a mês, não só o
+// mês selecionado no filtro.
+function renderGraficoMensalidadesPorMes(sufixo, contas){
+  const box = document.getElementById('graficoMensalidadesMes' + sufixo);
+  if(!box) return;
+  const log = JSON.parse(localStorage.getItem('gingapass_pagamentos_log') || '[]');
+  const meusUsers = new Set((contas || contasParaGestao()).map(c => c.user));
+  const agora = new Date();
+  const meses = [];
+  for(let i = 5; i >= 0; i--){
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    meses.push({
+      chave: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
+      label: d.toLocaleDateString('pt-BR', {month: 'short'}).replace('.', '')
+    });
+  }
+  const contagens = meses.map(m => log.filter(r => r.mes === m.chave && meusUsers.has(r.aluno)).length);
+  const maxValor = Math.max(1, ...contagens);
+  let html = '<div style="display:flex;align-items:flex-end;gap:8px;height:130px;">';
+  meses.forEach((m, i) => {
+    const alturaPct = Math.round((contagens[i] / maxValor) * 100);
+    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">' +
+      '<span style="font-size:11px;font-weight:700;color:var(--navy-900);margin-bottom:4px;">' + contagens[i] + '</span>' +
+      '<div style="width:100%;max-width:32px;background:linear-gradient(180deg,#6C3FA6,#C22C75);border-radius:6px 6px 0 0;height:' + Math.max(alturaPct, contagens[i] > 0 ? 4 : 2) + '%;"></div>' +
+      '<span style="font-size:10px;color:var(--ink-soft);margin-top:4px;text-transform:capitalize;">' + m.label + '</span></div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
 }
 
 // Apaga todos os check-ins (presença, falta e QR) de todos os alunos/datas —
@@ -17420,6 +17539,15 @@ function renderMensalidade(){
     if(valorInput && !valorInput.value) valorInput.value = dados.valor;
     if(vencInput && !vencInput.value) vencInput.value = dados.vencimento;
     if(statusInput && dados.status) statusInput.value = dados.status;
+  }
+
+  // Professor (dá aula própria, tem alunos): a gestão de mensalidade dos
+  // ALUNOS DELE agora fica concentrada aqui, junto com a própria mensalidade
+  // dele — antes ficava espalhada também na aba Estatísticas.
+  const secaoProf = document.getElementById('mensalidadeProfessorSecao');
+  if(secaoProf){
+    secaoProf.style.display = currentRole === 'academia' ? 'block' : 'none';
+    if(currentRole === 'academia') tentarChamar(function(){ renderPagamentos('Prof'); });
   }
 }
 
@@ -18579,7 +18707,12 @@ function renderEstatisticas(){
   }
   if(boxAluno) boxAluno.style.display = 'none';
   if(secoesProfessor) secoesProfessor.style.display = 'block';
-  if(subgreeting) subgreeting.textContent = 'Frequência, faltas e mensalidade dos alunos';
+  if(subgreeting) subgreeting.textContent = currentRole === 'academia' ? 'Frequência e faltas dos alunos' : 'Frequência, faltas e mensalidade dos alunos';
+  // Professor (dá aula própria, tem alunos): a parte de mensalidade saiu
+  // daqui e foi concentrada na aba Mensalidade — evita ter a mesma
+  // informação espalhada em duas telas. A matriz continua vendo aqui.
+  const secaoMensalidadeAntiga = document.getElementById('estatMensalidadeSecaoAntiga');
+  if(secaoMensalidadeAntiga) secaoMensalidadeAntiga.style.display = currentRole === 'academia' ? 'none' : 'block';
 
   const container = document.getElementById('estatisticasList');
   if(!container) return;
