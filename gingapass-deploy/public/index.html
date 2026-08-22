@@ -20211,7 +20211,15 @@ function renderMapaAcademias(redeFiltrada){
           })})
         : L.marker([geo.lat, geo.lon]);
       const nomeEscapado = a.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') + '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>');
+      // Link do WhatsApp já com o endereço + um link do Google Maps pronto
+      // pra traçar rota de carro — útil pra encaminhar pra alguém que vai
+      // até a academia, sem precisar digitar nada na hora.
+      const textoWhats = a.nome + ' — ' + a.endereco + (local ? ' (' + local + ')' : '') +
+        '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + geo.lat + ',' + geo.lon;
+      const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
+      marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') +
+        '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>' +
+        '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
       marker.addTo(_academiasMapaMarkers);
       pontos.push([geo.lat, geo.lon]);
     }
