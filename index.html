@@ -950,6 +950,11 @@
       <div class="info-row" id="perfilNascimentoRow" style="display:none;"><span>Data de nascimento</span><span id="perfilNascimentoView">—</span></div>
       <div class="info-row" id="perfilIdadeRow" style="display:none;"><span>Idade</span><span id="perfilIdadeView">—</span></div>
     </div>
+    <div id="perfilSecaoHistoricoCompleto" style="display:none;">
+      <p class="section-title">📜 Minha trajetória na capoeira</p>
+      <div id="perfilHistoricoCompletoBox"></div>
+    </div>
+
     <p class="section-title">Meu histórico por mês</p>
     <div class="card">
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Selecione um mês pra recordar tudo que rolou nele — aulas, visitas a outras academias, eventos e faltas.</p>
@@ -7192,10 +7197,14 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
   // coisa que o próprio aluno pode corrigir aqui é a data que começou a
   // treinar — um dado pessoal que só ele sabe direito.
   if(permitirEdicao){
+    // O id precisa incluir o containerId porque essa caixa aparece em mais
+    // de uma tela ao mesmo tempo (Estatísticas e Perfil) — sem isso os dois
+    // <input> ficariam com o mesmo id e só o primeiro do documento seria
+    // encontrado na hora de salvar.
     html += '<div style="border-top:1px solid #EFE6D2;margin-top:10px;padding-top:10px;">' +
       '<label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Data que comecei a treinar (você pode corrigir)</label>' +
-      '<input class="admin-input" id="meuInicioTreinosInput" type="date" value="' + (aluno.inicioTreinos || '') + '" style="margin-bottom:6px;">' +
-      '<button class="btn" type="button" onclick="salvarMeuInicioTreinos()" style="margin-top:0;width:auto;padding:8px 16px;">Salvar</button>' +
+      '<input class="admin-input" id="meuInicioTreinosInput_' + containerId + '" type="date" value="' + (aluno.inicioTreinos || '') + '" style="margin-bottom:6px;">' +
+      '<button class="btn" type="button" onclick="salvarMeuInicioTreinos(&quot;' + containerId + '&quot;)" style="margin-top:0;width:auto;padding:8px 16px;">Salvar</button>' +
       '</div>';
   }
   html += '</div>';
@@ -7241,9 +7250,9 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
 // Único campo do histórico que o próprio aluno pode corrigir — a data que
 // ele começou a treinar é um dado pessoal que só ele sabe direito, sem
 // afetar graduação/professor/grupo (esses continuam só com o professor).
-function salvarMeuInicioTreinos(){
+function salvarMeuInicioTreinos(containerId){
   if(currentRole !== 'aluno' || !currentUser) return;
-  const input = document.getElementById('meuInicioTreinosInput');
+  const input = document.getElementById('meuInicioTreinosInput_' + containerId);
   const novaData = input ? input.value : '';
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idx = contas.findIndex(c => c.user === currentUser);
@@ -7256,7 +7265,10 @@ function salvarMeuInicioTreinos(){
     } else {
       alert('Data atualizada!');
     }
+    // Atualiza as duas caixas (Estatísticas e Perfil), não só a que foi
+    // editada agora — pra não ficarem desatualizadas uma da outra.
     tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'meuHistoricoCompletoBox', true); });
+    tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'perfilHistoricoCompletoBox', true); });
   });
 }
 
@@ -8098,6 +8110,34 @@ function adicionarNucleoAProfessorExistente(userConta){
   renderAcademiasScreen();
   tentarChamar(function(){ renderPerfil(); });
   alert('Núcleo "' + nomeNucleo + '" adicionado! Esse professor agora gerencia esse núcleo também, com o mesmo login.');
+}
+
+// Editar/inserir o endereço de um núcleo já existente, direto no próprio
+// Perfil — antes só dava pra definir o endereço na hora de CRIAR o núcleo
+// (adicionarNucleoAProfessorExistente); os já cadastrados ficavam sem jeito
+// de corrigir o endereço depois.
+function editarEnderecoNucleoPerfil(nomeNucleo){
+  if(currentRole !== 'academia' && currentRole !== 'matriz') return;
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const idx = rede.findIndex(a => a.nome === nomeNucleo);
+  const enderecoAtual = idx >= 0 ? (rede[idx].endereco || '') : '';
+  const novoEndereco = prompt('Endereço de "' + nomeNucleo + '":', enderecoAtual);
+  if(novoEndereco === null) return;
+  if(idx >= 0){
+    rede[idx].endereco = novoEndereco.trim();
+  } else {
+    rede.push({nome: nomeNucleo, endereco: novoEndereco.trim(), professor: obterMeuNomeProfessor() || nomeNucleo, graduacao: '', distancia: '', diasAulas: '', pix: '', cartao: ''});
+  }
+  setDado('gingapass_rede_academias', JSON.stringify(rede)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    alert('Endereço atualizado!');
+    tentarChamar(function(){ renderPerfil(); });
+    tentarChamar(function(){ renderRedeAcademias(); });
+    tentarChamar(function(){ renderAcademiasScreen(); });
+  });
 }
 
 function confirmarSenhaMaster(){
@@ -9084,9 +9124,16 @@ function renderPerfil(){
         'Total de mensalidades pagas: ' + (minhaConta.pagamentosFeitos || 0) + '<br>' +
         (minhaConta.vencimentoMensalidade ? ('Vencimento: ' + new Date(minhaConta.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR')) : 'Vencimento ainda não definido');
     }
+    const secaoHistorico = document.getElementById('perfilSecaoHistoricoCompleto');
+    if(secaoHistorico){
+      secaoHistorico.style.display = 'block';
+      tentarChamar(function(){ renderHistoricoCompletoAluno(currentUser, 'perfilHistoricoCompletoBox', true); });
+    }
   } else {
     const mensalidadeBox2 = document.getElementById('perfilMensalidadeResumoBox');
     if(mensalidadeBox2) mensalidadeBox2.style.display = 'none';
+    const secaoHistoricoOculta = document.getElementById('perfilSecaoHistoricoCompleto');
+    if(secaoHistoricoOculta) secaoHistoricoOculta.style.display = 'none';
     if(currentRole === 'academia' && currentUser){
       const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
       const minhaContaAcademia = academiasContas.find(c => c.user === currentUser);
@@ -9120,7 +9167,28 @@ function renderPerfil(){
           const meusNucleos = (minhaContaAcademia && minhaContaAcademia.nucleosGerenciados && minhaContaAcademia.nucleosGerenciados.length > 0)
             ? minhaContaAcademia.nucleosGerenciados
             : (minhaContaAcademia ? [minhaContaAcademia.nome] : []);
-          listaNucleos.innerHTML = meusNucleos.map(n => '<div style="font-size:13px;color:var(--navy-900);padding:5px 0;border-bottom:1px solid #EFE6D2;">📍 ' + n + '</div>').join('') || '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum núcleo definido ainda.</p>';
+          listaNucleos.innerHTML = '';
+          if(meusNucleos.length === 0){
+            listaNucleos.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum núcleo definido ainda.</p>';
+          } else {
+            const redeParaEndereco = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+            meusNucleos.forEach(n => {
+              const entradaRede = redeParaEndereco.find(a => a.nome === n);
+              const row = document.createElement('div');
+              row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;';
+              const span = document.createElement('span');
+              span.style.cssText = 'font-size:13px;color:var(--navy-900);min-width:0;';
+              span.innerHTML = '📍 ' + n + '<br><span style="font-size:11px;color:var(--ink-soft);">' + ((entradaRede && entradaRede.endereco) ? entradaRede.endereco : 'Sem endereço cadastrado') + '</span>';
+              const btnEnd = document.createElement('button');
+              btnEnd.type = 'button';
+              btnEnd.textContent = (entradaRede && entradaRede.endereco) ? 'Editar endereço' : 'Inserir endereço';
+              btnEnd.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;';
+              btnEnd.onclick = () => editarEnderecoNucleoPerfil(n);
+              row.appendChild(span);
+              row.appendChild(btnEnd);
+              listaNucleos.appendChild(row);
+            });
+          }
         }
       }
       tentarChamar(function(){ renderVincularAlunoGrupoPerfil(); });
