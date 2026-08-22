@@ -2284,6 +2284,12 @@
       <button class="btn" type="button" onclick="vincularGrupoEmMassa()">Vincular selecionados a esse grupo</button>
     </div>
 
+    <p class="section-title">⚠️ Contas marcadas como "academia parceira" por engano</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Quando alguém é cadastrado pela tela de "academia parceira" (em vez de "vincular professor" comum), ele sai da rede compartilhada e vira uma rede isolada só dele — some do Mural, do chat e da lista de Professores pros outros. Se algum professor da sua rede normal aparece sumido/sozinho pros outros, provavelmente foi cadastrado assim por engano. Corrija aqui.</p>
+      <div id="contasGrupoParceiroIndevidoLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
+    </div>
+
     <p class="section-title">Mensalidades dos professores</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
@@ -5657,6 +5663,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderAcademiasContas(); });
   tentarChamar(function(){ renderLiberacaoEmMassa(); });
   tentarChamar(function(){ renderVinculacaoGrupoEmMassa(); });
+  tentarChamar(function(){ renderContasGrupoParceiroIndevido(); });
   tentarChamar(function(){ renderAlunosContas(); });
   tentarChamar(function(){ renderEnderecos(); });
   tentarChamar(function(){ renderCheckin(); });
@@ -5988,8 +5995,17 @@ function renderMeusProfessoresVinculados(){
   vinculados.forEach(c => {
     const row = document.createElement('div');
     row.className = 'aluno-row';
+    row.style.flexWrap = 'wrap';
     const span = document.createElement('span');
-    span.textContent = c.nome + ' (usuário: ' + c.user + ')';
+    const ehDaAula = c.daAula !== false;
+    span.innerHTML = c.nome + ' (usuário: ' + c.user + ')<br><span style="font-size:10.5px;color:' + (ehDaAula ? '#2E8B57' : 'var(--ink-soft)') + ';">' + (ehDaAula ? '✅ Dá aula própria' : '⬜ Não dá aula própria') + '</span>';
+    const acoes = document.createElement('div');
+    acoes.style.cssText = 'display:flex;gap:8px;align-items:center;flex-shrink:0;';
+    const daAulaBtn = document.createElement('button');
+    daAulaBtn.type = 'button';
+    daAulaBtn.textContent = ehDaAula ? 'Marcar que não dá aula' : 'Marcar que dá aula';
+    daAulaBtn.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;padding:0;';
+    daAulaBtn.onclick = () => alternarDaAulaAcademia(c.user);
     const btn = document.createElement('button');
     btn.className = 'aluno-del';
     btn.textContent = 'Revogar';
@@ -6001,8 +6017,10 @@ function renderMeusProfessoresVinculados(){
       renderMeusProfessoresVinculados();
       renderListaProfessoresPublica();
     };
+    acoes.appendChild(daAulaBtn);
+    acoes.appendChild(btn);
     row.appendChild(span);
-    row.appendChild(btn);
+    row.appendChild(acoes);
     container.appendChild(row);
   });
 }
@@ -7831,6 +7849,7 @@ function alternarDaAulaAcademia(userConta){
     if(!ok) alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora.');
   });
   renderAcademiasContas();
+  tentarChamar(function(){ renderMeusProfessoresVinculados(); });
   alert(!atual ? 'Marcado como "dá aula própria" — o login dele agora tem o perfil completo de professor (Alunos, Gestão de Aulas).' : 'Marcado como "não dá aula própria" — o login dele fica limitado (só como aluno pagante, sem cadastrar alunos).');
 }
 
@@ -8163,6 +8182,65 @@ function vincularGrupoEmMassa(){
     renderAcademiasContas();
     renderVinculacaoGrupoEmMassa();
     alert('Pronto! ' + usersSelecionados.length + ' professor(es) vinculado(s) ao grupo "' + (grupo ? grupo.nome : '') + '". Use "Recalcular @handles" no GingaSocial pra atualizar os apelidos.');
+  });
+}
+
+// Diagnóstico do bug real reportado: professor via só uma fração dos
+// colegas na lista de "Professores"/chat/mural. Causa: essas contas foram
+// cadastradas pela tela de "academia parceira" (que existe pra redes
+// realmente separadas) em vez de "vincular professor" comum — isso grava
+// grupoParceiroId, que isola a conta numa rede própria, sozinha, DIFERENTE
+// da rede principal (mesmo já tendo o grupoCadastroId certo, usado só pelo
+// GingaSocial). Detecta = tem grupoParceiroId mas nunca foi marcado como
+// "grupo: independente" de propósito.
+function _contasComGrupoParceiroIndevido(){
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  return contas.filter(c => c.grupoParceiroId && c.grupo !== 'independente');
+}
+
+function renderContasGrupoParceiroIndevido(){
+  const box = document.getElementById('contasGrupoParceiroIndevidoLista');
+  if(!box || currentRole !== 'matriz') return;
+  const suspeitas = _contasComGrupoParceiroIndevido();
+  if(suspeitas.length === 0){
+    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma conta suspeita encontrada — tudo certo.</p>';
+    return;
+  }
+  const grupos = listarTodosGruposParceirosCadastrados();
+  box.innerHTML = '';
+  suspeitas.forEach(c => {
+    const grupo = grupos.find(g => g.id === c.grupoParceiroId);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;';
+    const span = document.createElement('span');
+    span.style.cssText = 'font-size:12.5px;color:var(--ink);';
+    span.innerHTML = '<b>' + c.nome + '</b><br><span style="font-size:11px;color:var(--ink-soft);">isolado em: ' + (grupo ? grupo.nome : c.grupoParceiroId) + '</span>';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Corrigir (juntar de volta à rede)';
+    btn.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;';
+    btn.onclick = () => corrigirGrupoParceiroIndevido(c.user);
+    row.appendChild(span);
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
+}
+
+function corrigirGrupoParceiroIndevido(user){
+  if(currentRole !== 'matriz') return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === user);
+  if(idx < 0) return;
+  if(!confirm('Corrigir "' + contas[idx].nome + '"? Ele volta a aparecer no Mural, chat e lista de Professores junto com o resto da rede.')) return;
+  contas[idx].grupoParceiroId = '';
+  setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+    if(!ok){
+      alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
+      return;
+    }
+    renderAcademiasContas();
+    renderContasGrupoParceiroIndevido();
+    alert('Corrigido!');
   });
 }
 
