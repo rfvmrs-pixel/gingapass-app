@@ -10688,6 +10688,7 @@ function renderizarCertificadoCanvas(ev){
   const grupo = _obterGrupoDoEvento(ev);
   const professor = _obterProfessorDoEvento(ev);
   const nomeGrupo = grupo.nome || 'GingaPass';
+  const posterSrc = window._eventoImagensCache[ev.codigoCheckin] || ev.imagem || '';
 
   const CORES = {
     bg1: '#0A2620', bg2: '#123A30', bg3: '#08201A',
@@ -10713,52 +10714,61 @@ function renderizarCertificadoCanvas(ev){
       ]).catch(() => null)
     : Promise.resolve(null);
 
-  Promise.all([carregarImagemOpcional(professor.foto), carregarImagemOpcional(grupo.foto), carregarFontes])
-    .then(([fotoProfessorImg, logoGrupoImg]) => {
-      // ---------- fundo ----------
-      const gradBg = ctx.createLinearGradient(0, 0, LARGURA, ALTURA);
-      gradBg.addColorStop(0, CORES.bg3);
-      gradBg.addColorStop(0.55, CORES.bg1);
-      gradBg.addColorStop(1, CORES.bg2);
-      ctx.fillStyle = gradBg;
-      ctx.fillRect(0, 0, LARGURA, ALTURA);
-
-      // rodas douradas bem discretas ao fundo, remetendo à roda de capoeira
-      ctx.save();
-      ctx.globalAlpha = 0.07;
-      ctx.strokeStyle = CORES.gold;
-      ctx.lineWidth = 2;
-      [[LARGURA - 60, 90, 150], [LARGURA - 160, 620, 230], [960, 720, 90]].forEach(c => {
-        ctx.beginPath();
-        ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.restore();
-
-      // ---------- retrato do professor/mestre, sangrando na lateral esquerda ----------
-      let inicioTexto = 90;
-      if(fotoProfessorImg){
-        const painelW = 430;
-        const escalaCover = Math.max(painelW / fotoProfessorImg.width, ALTURA / fotoProfessorImg.height);
-        const wCover = fotoProfessorImg.width * escalaCover, hCover = fotoProfessorImg.height * escalaCover;
+  Promise.all([carregarImagemOpcional(posterSrc), carregarImagemOpcional(grupo.foto), carregarFontes])
+    .then(([posterImg, logoGrupoImg]) => {
+      // ---------- fundo: o post do próprio evento (todo evento tem um),
+      // preenchendo o certificado inteiro, com um véu escuro por cima pra
+      // garantir que o texto dourado/branco fique bem destacado por cima —
+      // sem véu, uma foto clara/colorida deixaria o texto ilegível.
+      if(posterImg){
         ctx.save();
         ctx.beginPath();
-        ctx.rect(0, 0, painelW, ALTURA);
+        ctx.rect(0, 0, LARGURA, ALTURA);
         ctx.clip();
-        ctx.drawImage(fotoProfessorImg, (painelW - wCover) / 2, (ALTURA - hCover) / 2, wCover, hCover);
-        ctx.fillStyle = 'rgba(8,32,26,0.18)';
-        ctx.fillRect(0, 0, painelW, ALTURA);
+        const escalaCover = Math.max(LARGURA / posterImg.width, ALTURA / posterImg.height);
+        const wCover = posterImg.width * escalaCover, hCover = posterImg.height * escalaCover;
+        ctx.drawImage(posterImg, (LARGURA - wCover) / 2, (ALTURA - hCover) / 2, wCover, hCover);
         ctx.restore();
 
-        // esmaecido suave até virar o fundo escuro — sem borda dura
-        const gradBlend = ctx.createLinearGradient(painelW - 170, 0, painelW + 50, 0);
-        gradBlend.addColorStop(0, 'rgba(10,38,32,0)');
-        gradBlend.addColorStop(1, CORES.bg1);
-        ctx.fillStyle = gradBlend;
-        ctx.fillRect(painelW - 170, 0, 220, ALTURA);
+        // véu escuro uniforme (garante contraste em qualquer foto)...
+        ctx.fillStyle = 'rgba(6,20,16,0.62)';
+        ctx.fillRect(0, 0, LARGURA, ALTURA);
+        // ...reforçado ainda mais onde o texto fica (esquerda) e no topo/rodapé
+        const gradH = ctx.createLinearGradient(0, 0, LARGURA, 0);
+        gradH.addColorStop(0, 'rgba(6,20,16,0.55)');
+        gradH.addColorStop(0.7, 'rgba(6,20,16,0.15)');
+        gradH.addColorStop(1, 'rgba(6,20,16,0)');
+        ctx.fillStyle = gradH;
+        ctx.fillRect(0, 0, LARGURA, ALTURA);
+        const gradV = ctx.createLinearGradient(0, 0, 0, ALTURA);
+        gradV.addColorStop(0, 'rgba(4,14,11,0.4)');
+        gradV.addColorStop(0.35, 'rgba(4,14,11,0.05)');
+        gradV.addColorStop(1, 'rgba(4,14,11,0.55)');
+        ctx.fillStyle = gradV;
+        ctx.fillRect(0, 0, LARGURA, ALTURA);
+      } else {
+        // sem post cadastrado: cai pro fundo degradê liso de antes.
+        const gradBg = ctx.createLinearGradient(0, 0, LARGURA, ALTURA);
+        gradBg.addColorStop(0, CORES.bg3);
+        gradBg.addColorStop(0.55, CORES.bg1);
+        gradBg.addColorStop(1, CORES.bg2);
+        ctx.fillStyle = gradBg;
+        ctx.fillRect(0, 0, LARGURA, ALTURA);
 
-        inicioTexto = 470;
+        // rodas douradas bem discretas ao fundo, remetendo à roda de capoeira
+        ctx.save();
+        ctx.globalAlpha = 0.07;
+        ctx.strokeStyle = CORES.gold;
+        ctx.lineWidth = 2;
+        [[LARGURA - 60, 90, 150], [LARGURA - 160, 620, 230], [960, 720, 90]].forEach(c => {
+          ctx.beginPath();
+          ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
       }
+
+      const inicioTexto = 90;
 
       // ---------- moldura dourada ----------
       ctx.strokeStyle = 'rgba(227,178,75,0.55)';
@@ -10768,6 +10778,13 @@ function renderizarCertificadoCanvas(ev){
       ctx.strokeRect(24, 24, LARGURA - 48, ALTURA - 48);
 
       const larguraTexto = LARGURA - inicioTexto - 80;
+
+      // sombra suave em todo o texto daqui pra frente — reforço extra de
+      // legibilidade por cima do post do evento, que pode ser bem claro
+      // ou colorido em algumas partes.
+      ctx.shadowColor = 'rgba(0,0,0,0.55)';
+      ctx.shadowBlur = 7;
+      ctx.shadowOffsetY = 1;
 
       // ---------- cabeçalho: logo/nome do grupo ----------
       let cabecalhoY = 78;
