@@ -1034,7 +1034,7 @@
       <p class="card-label" style="margin:0 0 8px;">Minhas academias/núcleos</p>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Dá aula em mais de um lugar? Cadastre aqui — continua com o mesmo login, só passa a gerenciar mais de um núcleo.</p>
       <div id="perfilMeusNucleosLista" style="margin-bottom:10px;"></div>
-      <button class="btn" type="button" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="adicionarNucleoAProfessorExistente(currentUser)">+ Cadastrar outra academia</button>
+      <button class="btn" type="button" id="btnCadastrarOutraAcademiaPerfil" style="background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);" onclick="adicionarNucleoAProfessorExistente(currentUser)">+ Cadastrar outra academia</button>
     </div>
 
     <div class="card" id="perfilCardVincularAlunoGrupo" style="display:none;margin-top:14px;">
@@ -8257,8 +8257,14 @@ function editarNomeNucleoPerfil(nomeAntigo){
     return;
   }
   const idxRede = rede.findIndex(a => a.nome === nomeAntigo);
-  if(idxRede < 0) return;
-  rede[idxRede].nome = nomeNovo;
+  if(idxRede >= 0){
+    rede[idxRede].nome = nomeNovo;
+  } else {
+    // Ainda não existe registro na rede pra esse núcleo (ex: matriz que só
+    // tinha o nome solto em "Configurações gerais") — cria um novo já com
+    // o nome certo, em vez de simplesmente desistir.
+    rede.push({nome: nomeNovo, endereco: '', professor: obterMeuNomeProfessor() || nomeNovo, graduacao: '', distancia: '', diasAulas: '', pix: '', cartao: ''});
+  }
 
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   contas.forEach(c => {
@@ -8274,11 +8280,19 @@ function editarNomeNucleoPerfil(nomeAntigo){
     if(mesmoNucleo(al.nucleo, nomeAntigo)) al.nucleo = nomeNovo;
   });
 
-  Promise.all([
+  const promessas = [
     setDado('gingapass_rede_academias', JSON.stringify(rede)),
     setDado('gingapass_academias_contas', JSON.stringify(contas)),
     setDado('gingapass_alunos_contas', JSON.stringify(alunosContas))
-  ]).then(function(resultados){
+  ];
+  if(currentRole === 'matriz'){
+    const cfgMatriz = JSON.parse(localStorage.getItem('gingapass_config_geral') || 'null');
+    if(cfgMatriz && cfgMatriz.nucleo === nomeAntigo){
+      cfgMatriz.nucleo = nomeNovo;
+      promessas.push(setDado('gingapass_config_geral', JSON.stringify(cfgMatriz)));
+    }
+  }
+  Promise.all(promessas).then(function(resultados){
     if(resultados.some(ok => !ok)){
       alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão.');
     } else {
@@ -9195,6 +9209,45 @@ function renderStatsInicio(){
   }
 }
 
+// Monta a lista de núcleos (nome + endereço, com "Editar nome"/"Editar
+// endereço") dentro de #perfilMeusNucleosLista — usada tanto pelo professor
+// quanto pela matriz (cada um com sua própria conta na aba Academias).
+function _renderListaNucleosEditavel(nomesNucleos){
+  const listaNucleos = document.getElementById('perfilMeusNucleosLista');
+  if(!listaNucleos) return;
+  listaNucleos.innerHTML = '';
+  if(!nomesNucleos || nomesNucleos.length === 0){
+    listaNucleos.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum núcleo definido ainda.</p>';
+    return;
+  }
+  const redeParaEndereco = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  nomesNucleos.forEach(n => {
+    const entradaRede = redeParaEndereco.find(a => a.nome === n);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;';
+    const span = document.createElement('span');
+    span.style.cssText = 'font-size:13px;color:var(--navy-900);min-width:0;';
+    span.innerHTML = '📍 ' + n + '<br><span style="font-size:11px;color:var(--ink-soft);">' + ((entradaRede && entradaRede.endereco) ? entradaRede.endereco : 'Sem endereço cadastrado') + '</span>';
+    const acoesNucleo = document.createElement('div');
+    acoesNucleo.style.cssText = 'display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;';
+    const btnEnd = document.createElement('button');
+    btnEnd.type = 'button';
+    btnEnd.textContent = (entradaRede && entradaRede.endereco) ? 'Editar endereço' : 'Inserir endereço';
+    btnEnd.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
+    btnEnd.onclick = () => editarEnderecoNucleoPerfil(n);
+    const btnNome = document.createElement('button');
+    btnNome.type = 'button';
+    btnNome.textContent = 'Editar nome';
+    btnNome.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
+    btnNome.onclick = () => editarNomeNucleoPerfil(n);
+    acoesNucleo.appendChild(btnEnd);
+    acoesNucleo.appendChild(btnNome);
+    row.appendChild(span);
+    row.appendChild(acoesNucleo);
+    listaNucleos.appendChild(row);
+  });
+}
+
 function renderPerfil(){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const minhaConta = (currentRole === 'aluno' && currentUser) ? contas.find(c => c.user === currentUser) : null;
@@ -9326,52 +9379,38 @@ function renderPerfil(){
         }
       }
       const cardNucleos = document.getElementById('perfilCardMeusNucleos');
-      const listaNucleos = document.getElementById('perfilMeusNucleosLista');
+      const btnAddNucleo = document.getElementById('btnCadastrarOutraAcademiaPerfil');
       if(cardNucleos){
         cardNucleos.style.display = 'block';
-        if(listaNucleos){
-          const meusNucleos = (minhaContaAcademia && minhaContaAcademia.nucleosGerenciados && minhaContaAcademia.nucleosGerenciados.length > 0)
-            ? minhaContaAcademia.nucleosGerenciados
-            : (minhaContaAcademia ? [minhaContaAcademia.nome] : []);
-          listaNucleos.innerHTML = '';
-          if(meusNucleos.length === 0){
-            listaNucleos.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum núcleo definido ainda.</p>';
-          } else {
-            const redeParaEndereco = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
-            meusNucleos.forEach(n => {
-              const entradaRede = redeParaEndereco.find(a => a.nome === n);
-              const row = document.createElement('div');
-              row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;';
-              const span = document.createElement('span');
-              span.style.cssText = 'font-size:13px;color:var(--navy-900);min-width:0;';
-              span.innerHTML = '📍 ' + n + '<br><span style="font-size:11px;color:var(--ink-soft);">' + ((entradaRede && entradaRede.endereco) ? entradaRede.endereco : 'Sem endereço cadastrado') + '</span>';
-              const acoesNucleo = document.createElement('div');
-              acoesNucleo.style.cssText = 'display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;';
-              const btnEnd = document.createElement('button');
-              btnEnd.type = 'button';
-              btnEnd.textContent = (entradaRede && entradaRede.endereco) ? 'Editar endereço' : 'Inserir endereço';
-              btnEnd.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
-              btnEnd.onclick = () => editarEnderecoNucleoPerfil(n);
-              const btnNome = document.createElement('button');
-              btnNome.type = 'button';
-              btnNome.textContent = 'Editar nome';
-              btnNome.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11px;font-weight:600;cursor:pointer;';
-              btnNome.onclick = () => editarNomeNucleoPerfil(n);
-              acoesNucleo.appendChild(btnEnd);
-              acoesNucleo.appendChild(btnNome);
-              row.appendChild(span);
-              row.appendChild(acoesNucleo);
-              listaNucleos.appendChild(row);
-            });
-          }
-        }
+        if(btnAddNucleo) btnAddNucleo.style.display = 'block';
+        const meusNucleos = (minhaContaAcademia && minhaContaAcademia.nucleosGerenciados && minhaContaAcademia.nucleosGerenciados.length > 0)
+          ? minhaContaAcademia.nucleosGerenciados
+          : (minhaContaAcademia ? [minhaContaAcademia.nome] : []);
+        _renderListaNucleosEditavel(meusNucleos);
       }
       tentarChamar(function(){ renderVincularAlunoGrupoPerfil(); });
     } else {
-      const cardNucleosOculto = document.getElementById('perfilCardMeusNucleos');
-      if(cardNucleosOculto) cardNucleosOculto.style.display = 'none';
       if(nucleoView) nucleoView.textContent = cfg.nucleo || 'Ainda não definido';
       if(profView) profView.textContent = cfg.professor || 'Ainda não definido';
+      const cardNucleosMatriz = document.getElementById('perfilCardMeusNucleos');
+      if(currentRole === 'matriz' && cardNucleosMatriz){
+        // A matriz também pode ter (ou criar) um núcleo próprio em "Academias
+        // da rede" — antes essa caixa ficava escondida pra ela, sem nenhum
+        // jeito de editar nome/endereço da própria academia por aqui. O botão
+        // "+ Cadastrar outra academia" fica escondido pra ela (é uma ação de
+        // conta de professor — gingapass_academias_contas —, que a matriz
+        // não tem).
+        cardNucleosMatriz.style.display = 'block';
+        const btnAddNucleoMatriz = document.getElementById('btnCadastrarOutraAcademiaPerfil');
+        if(btnAddNucleoMatriz) btnAddNucleoMatriz.style.display = 'none';
+        const meuNomeMatriz = obterMeuNomeProfessor();
+        const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+        let meusNucleosMatriz = meuNomeMatriz ? rede.filter(a => mesmoProfessor(a.professor, meuNomeMatriz)).map(a => a.nome) : [];
+        if(meusNucleosMatriz.length === 0 && cfg.nucleo) meusNucleosMatriz = [cfg.nucleo];
+        _renderListaNucleosEditavel(meusNucleosMatriz);
+      } else if(cardNucleosMatriz){
+        cardNucleosMatriz.style.display = 'none';
+      }
     }
     if(cordaView) cordaView.style.display = 'none';
     if(desdeView) desdeView.style.display = 'none';
