@@ -2659,6 +2659,22 @@
       <input class="admin-input" id="novaCordaGrupoNome" placeholder="Nome da graduação/corda (ex: Verde e Amarela)">
       <button class="btn" type="button" onclick="adicionarCordaGrupo()">Adicionar graduação/corda</button>
     </div>
+
+    <p class="section-title" style="margin-top:18px;">Graduações/cores das outras modalidades (GingaWay)</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Jiu-Jitsu, Muay Thai e as outras modalidades do GingaWay têm seu próprio sistema de graduação (faixas/cores), diferente das cordas da capoeira. Já vem com uma sugestão padrão pra Jiu-Jitsu e Muay Thai — ajuste como preferir.</p>
+      <select class="admin-input" id="gwGraduacaoModalidadeSelect" onchange="renderGraduacoesModalidadeLista()">
+        <option value="Jiu-Jitsu">Jiu-Jitsu</option>
+        <option value="Muay Thai">Muay Thai</option>
+        <option value="Boxe">Boxe</option>
+        <option value="Capoeira">Capoeira</option>
+        <option value="Ginástica">Ginástica</option>
+        <option value="Calistenia">Calistenia</option>
+      </select>
+      <div id="graduacoesModalidadeLista" style="margin-bottom:12px;"></div>
+      <input class="admin-input" id="novaGraduacaoModalidadeNome" placeholder="Nome da graduação/cor (ex: Faixa Azul)">
+      <button class="btn" type="button" onclick="adicionarGraduacaoModalidade()">Adicionar graduação/cor</button>
+    </div>
   </div>
 
   <datalist id="cordasGrupoDatalist"></datalist>
@@ -5747,6 +5763,88 @@ function _mesReferenciaAtual(){
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+// ---------- Graduações/cores de cada modalidade GingaWay ----------
+// Diferente da capoeira (onde cada grupo tem sua própria lista de cordas,
+// já coberta acima em "Cordas/graduações do grupo"), nas outras modalidades
+// a graduação costuma ser bem padronizada (ex: faixas do Jiu-Jitsu são as
+// mesmas em qualquer academia). Por isso aqui a lista é por NOME da
+// modalidade, compartilhada entre todos os professores que a oferecem — já
+// vem com um padrão sugerido, mas qualquer professor/matriz pode ajustar.
+const GINGAWAY_GRADUACOES_PADRAO = {
+  'jiu-jitsu': ['Branca', 'Cinza', 'Amarela', 'Laranja', 'Verde', 'Azul', 'Roxa', 'Marrom', 'Preta'],
+  'muay thai': ['Branco', 'Amarelo', 'Laranja', 'Verde', 'Azul', 'Marrom', 'Vermelho', 'Preto'],
+  'boxe': [],
+  'capoeira': [],
+  'ginástica': [],
+  'calistenia': []
+};
+
+function _chaveGraduacoesModalidade(nomeModalidade){
+  return 'gingapass_graduacoes_modalidade:' + (nomeModalidade || '').trim().toLowerCase();
+}
+
+function obterGraduacoesModalidade(nomeModalidade){
+  const salva = JSON.parse(localStorage.getItem(_chaveGraduacoesModalidade(nomeModalidade)) || 'null');
+  if(salva && salva.length > 0) return salva;
+  const padrao = GINGAWAY_GRADUACOES_PADRAO[(nomeModalidade || '').trim().toLowerCase()];
+  return padrao ? padrao.slice() : [];
+}
+
+function salvarGraduacoesModalidade(nomeModalidade, lista){
+  return setDado(_chaveGraduacoesModalidade(nomeModalidade), JSON.stringify(lista));
+}
+
+function adicionarGraduacaoModalidade(){
+  const selModalidade = document.getElementById('gwGraduacaoModalidadeSelect');
+  const input = document.getElementById('novaGraduacaoModalidadeNome');
+  const modalidade = selModalidade.value;
+  const nome = input.value.trim();
+  if(!modalidade){ alert('Escolha a modalidade.'); return; }
+  if(!nome){ alert('Digite o nome da graduação/cor.'); return; }
+  const lista = obterGraduacoesModalidade(modalidade);
+  if(lista.some(c => c.toLowerCase() === nome.toLowerCase())){ alert('Essa graduação já está na lista.'); return; }
+  lista.push(nome);
+  salvarGraduacoesModalidade(modalidade, lista).then(function(){
+    input.value = '';
+    renderGraduacoesModalidadeLista();
+  });
+}
+
+function removerGraduacaoModalidade(idx){
+  const modalidade = document.getElementById('gwGraduacaoModalidadeSelect').value;
+  const lista = obterGraduacoesModalidade(modalidade);
+  lista.splice(idx, 1);
+  salvarGraduacoesModalidade(modalidade, lista).then(renderGraduacoesModalidadeLista);
+}
+
+function renderGraduacoesModalidadeLista(){
+  const container = document.getElementById('graduacoesModalidadeLista');
+  const sel = document.getElementById('gwGraduacaoModalidadeSelect');
+  if(!container || !sel) return;
+  const modalidade = sel.value;
+  const lista = obterGraduacoesModalidade(modalidade);
+  if(lista.length === 0){
+    container.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma graduação/cor cadastrada ainda pra ' + escapeHtml(modalidade) + '.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  lista.forEach((cor, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const nomeSpan = document.createElement('span');
+    nomeSpan.style.cssText = 'flex:1;font-size:13.5px;color:var(--ink);';
+    nomeSpan.textContent = cor;
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.textContent = 'Remover';
+    btnDel.style.cssText = 'border:none;background:none;color:var(--danger);font-size:11.5px;font-weight:600;cursor:pointer;';
+    btnDel.onclick = () => removerGraduacaoModalidade(idx);
+    row.appendChild(nomeSpan);
+    row.appendChild(btnDel);
+    container.appendChild(row);
+  });
+}
+
 // ---------- Professor: cadastrar/gerenciar as modalidades que oferece ----------
 function alternarModalidadeOutraGingaWay(){
   const sel = document.getElementById('gwModalidadeSelect');
@@ -5882,7 +5980,7 @@ function renderAlunosGingaWayRede(){
     b.textContent = c.nome || c.user;
     const p = document.createElement('p');
     p.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;';
-    p.textContent = (c.gingawayModalidade || '—') + ' · Plano ' + plano.label + ' · ' + usadas + '/' + totalAulas + ' aulas usadas este mês';
+    p.textContent = (c.gingawayModalidade || '—') + (c.corda ? (' · ' + c.corda) : '') + ' · Plano ' + plano.label + ' · ' + usadas + '/' + totalAulas + ' aulas usadas este mês';
     row.appendChild(b);
     row.appendChild(p);
     box.appendChild(row);
@@ -6063,7 +6161,7 @@ function executarModoGingaWaySignup(){
       <div id="gwSignupForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
         ${campo('gwSignupApelido', 'Seu apelido', 'Como quer ser chamado(a)')}
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Modalidade que você quer treinar</label>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="gwSignupModalidade">
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="gwSignupModalidade" onchange="_atualizarDatalistGraduacaoSignup()">
           <option value="Jiu-Jitsu">Jiu-Jitsu</option>
           <option value="Muay Thai">Muay Thai</option>
           <option value="Boxe">Boxe</option>
@@ -6071,6 +6169,9 @@ function executarModoGingaWaySignup(){
           <option value="Ginástica">Ginástica</option>
           <option value="Calistenia">Calistenia</option>
         </select>
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Sua graduação/faixa atual (opcional)</label>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="gwSignupGraduacao" list="gwSignupGraduacaoDatalist" placeholder="Ex: Faixa Branca (deixe em branco se não souber)">
+        <datalist id="gwSignupGraduacaoDatalist"></datalist>
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:8px;font-weight:600;">Escolha seu plano</label>
         <div style="margin-bottom:6px;">${planosHtml}</div>
         ${campo('gwSignupUser', 'Usuário (pra entrar no app)', 'Escolha um usuário')}
@@ -6086,11 +6187,28 @@ function executarModoGingaWaySignup(){
       </div>
     </div>
   `;
+  _atualizarDatalistGraduacaoSignup();
+}
+
+// A lista de graduações/cores de cada modalidade é buscada fresca da nuvem
+// (quem abre este link público ainda não tem nada sincronizado no aparelho).
+function _atualizarDatalistGraduacaoSignup(){
+  const sel = document.getElementById('gwSignupModalidade');
+  const datalist = document.getElementById('gwSignupGraduacaoDatalist');
+  if(!sel || !datalist) return;
+  const modalidade = sel.value;
+  datalist.innerHTML = obterGraduacoesModalidade(modalidade).map(c => '<option value="' + escapeHtml(c) + '"></option>').join('');
+  buscarValorFresco(_chaveGraduacoesModalidade(modalidade)).then(function(){
+    if(document.getElementById('gwSignupModalidade') && document.getElementById('gwSignupModalidade').value === modalidade){
+      datalist.innerHTML = obterGraduacoesModalidade(modalidade).map(c => '<option value="' + escapeHtml(c) + '"></option>').join('');
+    }
+  });
 }
 
 function enviarSignupGingaWay(){
   const apelido = (document.getElementById('gwSignupApelido').value || '').trim();
   const modalidade = document.getElementById('gwSignupModalidade').value;
+  const graduacao = (document.getElementById('gwSignupGraduacao').value || '').trim();
   const planoEscolhido = (document.querySelector('input[name="gwPlano"]:checked') || {}).value || '60';
   const user = (document.getElementById('gwSignupUser').value || '').trim();
   const senha = (document.getElementById('gwSignupSenha').value || '').trim();
@@ -6121,7 +6239,7 @@ function enviarSignupGingaWay(){
     }
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
     contas.push({
-      nome: apelido, user, senha, corda: '', nucleo: '', professor: '',
+      nome: apelido, user, senha, corda: graduacao, nucleo: '', professor: '',
       tipoMensalidade: 'gingaway', nivelGraduacao: '', inicioTreinos: '', vencimentoMensalidade: '',
       desde: new Date().getFullYear().toString(),
       pergunta: '', resposta: '', semAcesso: false,
@@ -7438,6 +7556,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ popularSeletoresNivelGraduacao(); });
   tentarChamar(function(){ renderCordasGrupoLista(); });
   tentarChamar(function(){ popularDatalistCordasGrupo(); });
+  tentarChamar(function(){ renderGraduacoesModalidadeLista(); });
   if(currentRole === 'matriz'){
     tentarChamar(function(){ renderModalidadesGingaWayRede(); });
     tentarChamar(function(){ renderAlunosGingaWayRede(); });
