@@ -23972,17 +23972,29 @@ function renderAcademiasScreen(){
   });
 
   // Filtro por Grupo cadastrado (ex: "Capoeira Team") — só aparece se
-  // existir algum grupo cadastrado na rede, senão fica escondido igual
-  // antes (nada muda pra quem não usa essa organização).
-  const gruposCadastrados = listarTodosGruposParceirosCadastrados();
+  // existir algum grupo cadastrado ENTRE as academias que já aparecem
+  // aqui — listar todos os grupos cadastrados na rede toda (incluindo os
+  // de outras redes parceiras independentes, que essa tela nem mostra)
+  // fazia o filtro "achar" opções que sempre voltavam vazio.
+  const gruposDb = listarTodosGruposParceirosCadastrados();
+  const gruposEmUso = new Map();
+  rede.forEach(a => {
+    const conta = academiasContas.find(c => c.nome === a.nome || mesmoProfessor(c.nome, a.professor));
+    const gid = conta && (conta.grupoParceiroId || conta.grupoCadastroId);
+    if(gid && !gruposEmUso.has(gid)){
+      const g = gruposDb.find(x => x.id === gid);
+      if(g) gruposEmUso.set(gid, g.nome);
+    }
+  });
   const boxFiltroGrupo = document.getElementById('academiasFiltroGrupoBox');
   const selFiltroGrupo = document.getElementById('academiasFiltroGrupo');
   if(boxFiltroGrupo && selFiltroGrupo){
-    boxFiltroGrupo.style.display = gruposCadastrados.length > 0 ? 'block' : 'none';
-    if(gruposCadastrados.length > 0){
+    boxFiltroGrupo.style.display = gruposEmUso.size > 0 ? 'block' : 'none';
+    if(gruposEmUso.size > 0){
       const atualGrupo = selFiltroGrupo.value;
       selFiltroGrupo.innerHTML = '<option value="">Todos os grupos</option>' +
-        gruposCadastrados.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
+        [...gruposEmUso.entries()].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+          .map(([id, nome]) => '<option value="' + id + '">' + escapeHtml(nome) + '</option>').join('');
       if(atualGrupo && selFiltroGrupo.querySelector('option[value="' + atualGrupo + '"]')) selFiltroGrupo.value = atualGrupo;
     }
     const grupoEscolhido = selFiltroGrupo.value;
