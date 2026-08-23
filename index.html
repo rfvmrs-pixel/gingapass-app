@@ -2545,6 +2545,10 @@
 
     <p class="section-title">Mensalidades dos professores</p>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
+    <div id="mensalidadesProfessoresFiltroModalidadeBox" style="display:none;margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
+      <select class="admin-input" id="mensalidadesProfessoresFiltroModalidade" onchange="renderMensalidadesProfessores()" style="margin-bottom:0;"><option value="">Todas as modalidades</option></select>
+    </div>
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
 
     <p class="section-title">🥊 Aluno GingaWay</p>
@@ -2608,6 +2612,10 @@
       <input class="admin-input" id="redeProfessor" placeholder="Professor responsável">
       <input class="admin-input" id="redeDistancia" placeholder="Distância (ex: 0,8 km)">
       <button class="btn" onclick="adicionarAcademiaRede()">Adicionar academia à rede</button>
+    </div>
+    <div id="redeAcademiasFiltroModalidadeBox" style="display:none;margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
+      <select class="admin-input" id="redeAcademiasFiltroModalidade" onchange="renderRedeAcademias()" style="margin-bottom:0;"><option value="">Todas as modalidades</option></select>
     </div>
     <div class="card" id="redeAcademiasList"><div class="aluno-row"><span>Mestrando Borracha — Av. Pref. Isoldackson Cruz de Brito, 305 - Vila Margarida, Itaguaí - RJ, 23810-000 (Prof. Mestrando Borracha)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Nucléo Bairro Leandro - Itaguai — Est. do Mazomba, Nº 1 - Brisa Mar, Itaguaí - RJ, 23830-250 (Prof. Zangado / Grad. India / Grad. Dedé, Instrutor e Graduados)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Projeto Pingos Dourados — Rua Moreira, 27 - Santa Cruz RJ (Prof. Graduado Pelezinho, Graduado)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Polo Estrela do Céu — R. Eduardo de Oliveira Júnior, 154-200 - Estrela do Céu, Itaguaí - RJ, 23811-480 (Prof. Graduado Passaro)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>PROJETO SEMEAR CAPOEIRA TEAM MANGUARIBA — R. Nilton de Souza Filho, 657 - Paciência, Rio de Janeiro - RJ, 23065-270 (Prof. Grd Malhado)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Polo de Cosmos Santa Cruz-RJ — R. Itapaci, 103 - Cosmos (Prof. Instrutor Marreta, Roxa)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Sec. de Ordem Pública Itaguaí — Praça Vicente Cicarino, 122-198 - Centro, Itaguaí - RJ, 23815-270 (Prof. Mestrando Borracha)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Vila Olímpica Jardim Bangu — Rua Roque Barbosa, s/nº – Bangu, Rio de Janeiro - RJ (Prof. Raposa, Marrom- Professor)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Professor Tizil — Rua Soldado Pedro de Sousa (próximo à Estrada Urucânia), CEP 23580-110 (Prof. Tizil, Marrom)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Instflecha — Estarda Rj14 90 mangaratiba 23860-000 (Prof. Flecha, Roxa e Marrom)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Polo Angra — Rua Mário Natalino Jordão, S/N - Monsuaba, Angra dos Reis - RJ, CEP 23916-080 (Prof. Instrutor Lobo, Roxa e Marrom)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Vila Olímpica - Vidigal — Avenida Presidente João Goulart, s/n – Vidigal, Rio de Janeiro – RJ (Prof. Psyco, Roxa e Marrom)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Polo Cosmos RJ — Rua Afonso de Carvalho n58  Cosmos (Prof. Big big, Instrutor Roxa)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Psico Zone — Rua Santa Catarina, 74 - Bairro Santa Maria Goretti, CEP 91030-320 (Prof. Mestrando Psico, Mestrando)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Polo Parque Lagoa Mocambinho, Teresina PI — Q. Mocambinho St. A 27, 533-241 - Mocambinho, Teresina - Pl, 64010-060 (Prof. Mestrando Moreno, Mestrando)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div><div class="aluno-row"><span>Professor Grauna — Polo sepetiba (Prof. Grauna)</span><div style="display: flex; gap: 10px; flex-wrap: wrap;"><button class="aluno-del" style="color: var(--navy-700);">É meu núcleo</button><button class="aluno-del" style="color: var(--navy-700);">Editar</button><button class="aluno-del">Remover</button></div></div></div>
 
@@ -6285,6 +6293,49 @@ function _todasModalidadesGingaWayDaRede(){
   const modsProf = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]').map(m => m.modalidade);
   const modsAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway').map(c => c.gingawayModalidade);
   return [...new Set([...modsProf, ...modsAlunos].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+// Enquanto a rede é só capoeira, nenhum filtro de modalidade aparece em lugar
+// nenhum (nada muda pra quem não usa o GingaWay). Assim que alguém cadastra
+// uma modalidade diferente (Jiu-Jitsu, Muay Thai...), o filtro passa a
+// aparecer sozinho nas telas de gestão — Grupos, Mensalidades, Academias etc.
+function redeTemMultiplasModalidades(){
+  return _todasModalidadesGingaWayDaRede().length > 0;
+}
+
+// Lista de opções pro <select> de filtro: todas as modalidades cadastradas
+// + "Capoeira" sempre incluída (é o padrão implícito de quem não tem
+// modalidade GingaWay registrada).
+function _opcoesFiltroModalidadeComCapoeira(){
+  const outras = _todasModalidadesGingaWayDaRede();
+  return ['Capoeira', ...outras.filter(m => m.toLowerCase() !== 'capoeira')];
+}
+
+// A qual(is) modalidade(s) um professor pertence, pelo nome dele — usado pra
+// filtrar listas de núcleos/academias/mensalidades por modalidade. Quem não
+// tem nenhuma modalidade GingaWay cadastrada é considerado "Capoeira".
+function _modalidadesDoProfessorPorNome(nomeProfessor){
+  if(!nomeProfessor) return ['Capoeira'];
+  const mods = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]');
+  const doProf = mods.filter(m => mesmoProfessor(m.professorNome, nomeProfessor)).map(m => m.modalidade);
+  return doProf.length > 0 ? doProf : ['Capoeira'];
+}
+
+// Popula um <select> de filtro de modalidade genérico e mostra/esconde o box
+// que o envolve (só aparece se a rede tiver mais de uma modalidade).
+function _popularEExibirFiltroModalidade(idBox, idSelect){
+  const box = document.getElementById(idBox);
+  const sel = document.getElementById(idSelect);
+  if(!box || !sel) return false;
+  const mostrar = redeTemMultiplasModalidades() && currentRole === 'matriz';
+  box.style.display = mostrar ? 'block' : 'none';
+  if(mostrar){
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todas as modalidades</option>' +
+      _opcoesFiltroModalidadeComCapoeira().map(m => '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>').join('');
+    if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
+  }
+  return mostrar;
 }
 
 function popularFiltroModalidadeGingaWayRede(){
@@ -21571,16 +21622,28 @@ function alterarMensalidadeProfessor(userAcademia, novoStatus){
 function renderMensalidadesProfessores(){
   const container = document.getElementById('mensalidadesProfessoresMatriz');
   if(!container) return;
-  const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').filter(c => c.grupo !== 'independente');
+  let contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]').filter(c => c.grupo !== 'independente');
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   container.innerHTML = '';
   if(contas.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p>';
     return;
   }
-  contas.forEach(conta => {
+  const nomeProfessorDaConta = (conta) => {
     const minhaAcademia = rede.find(a => a.nome === conta.nome);
-    const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
+    return (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : conta.nome;
+  };
+  const filtroAtivo = _popularEExibirFiltroModalidade('mensalidadesProfessoresFiltroModalidadeBox', 'mensalidadesProfessoresFiltroModalidade');
+  if(filtroAtivo){
+    const modalidadeEscolhida = document.getElementById('mensalidadesProfessoresFiltroModalidade').value;
+    if(modalidadeEscolhida) contas = contas.filter(c => _modalidadesDoProfessorPorNome(nomeProfessorDaConta(c)).includes(modalidadeEscolhida));
+    if(contas.length === 0){
+      container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor encontrado com esse filtro.</p>';
+      return;
+    }
+  }
+  contas.forEach(conta => {
+    const nomeProfessor = nomeProfessorDaConta(conta);
 
     const wrap = document.createElement('div');
     wrap.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
@@ -23369,14 +23432,25 @@ function populaSelectsNucleoProfessor(){
 function renderRedeAcademias(){
   const container = document.getElementById('redeAcademiasList');
   if(!container) return;
-  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const redeCompleta = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   populaSelectsNucleoProfessor();
   container.innerHTML = '';
-  if(rede.length === 0){
+  if(redeCompleta.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma academia cadastrada na rede ainda.</p>';
     return;
   }
-  rede.forEach((a, i) => {
+  const filtroAtivo = _popularEExibirFiltroModalidade('redeAcademiasFiltroModalidadeBox', 'redeAcademiasFiltroModalidade');
+  let rede = redeCompleta;
+  if(filtroAtivo){
+    const modalidadeEscolhida = document.getElementById('redeAcademiasFiltroModalidade').value;
+    if(modalidadeEscolhida) rede = redeCompleta.filter(a => _modalidadesDoProfessorPorNome(a.professor).includes(modalidadeEscolhida));
+    if(rede.length === 0){
+      container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma academia encontrada com esse filtro.</p>';
+      return;
+    }
+  }
+  rede.forEach((a) => {
+    const i = redeCompleta.indexOf(a); // índice na lista COMPLETA — é o que Editar/Remover/É-meu-núcleo esperam
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
