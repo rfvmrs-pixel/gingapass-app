@@ -560,7 +560,7 @@
   .login-overlay{
     position:absolute;
     inset:0;
-    background:linear-gradient(180deg, #061A33 0%, var(--navy-900) 55%, #031D38 100%);
+    background:linear-gradient(180deg, #0A1B45 0%, #071230 55%, #030A1C 100%);
     z-index:1;
   }
   .login-content{
@@ -575,16 +575,23 @@
   .login-content .tagline{color:var(--amber-500);font-size:12.5px;font-weight:500;margin:0 0 18px;letter-spacing:0.3px;}
   .login-content h2{color:var(--cream);font-size:19px;margin:0 0 4px;font-family:'Poppins',sans-serif;}
   .login-content p{color:#B9CBDD;font-size:12.5px;margin:0 0 20px;}
+  .input-wrap{position:relative;width:100%;margin-bottom:10px;}
+  .input-wrap .input-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.75;pointer-events:none;}
   .login-content input{
-    width:100%;margin-bottom:10px;padding:12px 14px;
-    border-radius:12px;border:none;font-size:14px;font-family:'Inter',sans-serif;
+    width:100%;margin-bottom:0;padding:12px 14px 12px 40px;
+    border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;
+    background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.18);
+    color:var(--cream);
   }
+  .login-content input::placeholder{color:#8FA3B8;}
   .role-toggle{display:flex;gap:8px;margin-bottom:16px;width:100%;}
   .role-btn{
-    flex:1;padding:10px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.3);
-    background:transparent;color:#B9CBDD;font-size:12.5px;font-weight:600;cursor:pointer;
-    font-family:'Inter',sans-serif;
+    flex:1;padding:10px 6px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.3);
+    background:transparent;color:#B9CBDD;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;
+    white-space:nowrap;
   }
+  .role-btn .role-ic{font-size:13px;}
   .role-btn.active{background:var(--amber-500);color:var(--navy-900);border-color:var(--amber-500);}
   .login-content .btn{background:var(--amber-500);color:var(--navy-900);}
   .login-hint{margin-top:16px;font-size:10.5px;color:#7C93A8;}
@@ -793,12 +800,12 @@
       <div id="idiomaLoginSwatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
       <p id="loginEntrarTexto">Entre com seu usuário e senha</p>
       <div class="role-toggle">
-        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button">Aluno</button>
-        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button">Professor</button>
-        <button class="role-btn" id="rolePaiBtn" onclick="setRole(&#39;pai&#39;)" type="button">Pai/Responsável</button>
+        <button class="role-btn active" id="roleAlunoBtn" onclick="setRole(&#39;aluno&#39;)" type="button"><span class="role-ic">👤</span>Aluno</button>
+        <button class="role-btn" id="roleAcademiaBtn" onclick="setRole(&#39;academia&#39;)" type="button"><span class="role-ic">🎓</span>Professor</button>
+        <button class="role-btn" id="rolePaiBtn" onclick="setRole(&#39;pai&#39;)" type="button"><span class="role-ic">👥</span>Pai/Responsável</button>
       </div>
-      <input id="loginUser" placeholder="Usuário">
-      <input id="loginPass" type="password" placeholder="Senha">
+      <div class="input-wrap"><span class="input-ic">👤</span><input id="loginUser" placeholder="Usuário"></div>
+      <div class="input-wrap"><span class="input-ic">🔒</span><input id="loginPass" type="password" placeholder="Senha"></div>
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button" style="opacity: 1;">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
       <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
