@@ -1718,6 +1718,10 @@
     <button class="btn" type="button" onclick="fecharPresencaEvento()" style="width:auto;padding:8px 14px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">← Voltar</button>
     <p class="greeting" id="presencaEventoTitulo" style="font-size:17px;">Presença do evento</p>
     <p class="subgreeting">Marque quem participou. Só quem criou o evento (ou o admin) pode desmarcar.</p>
+    <div class="card" style="margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por grupo</label>
+      <select class="admin-input" id="presencaFiltroGrupo" onchange="renderPresencaEvento()" style="margin-bottom:0;"></select>
+    </div>
     <div class="card" id="presencaEventoLista"></div>
   </div>
 
@@ -10887,6 +10891,75 @@ function fecharPresencaEvento(){
   showScreen('eventos');
 }
 
+// Filtro de grupo da tela de Presença — mesmo padrão do diretório de
+// pessoas (_popularFiltrosPessoas), só que sozinho (sem filtro de
+// professor à parte, já que aqui a lista principal já vem agrupada por
+// professor).
+function _popularFiltroGrupoPresenca(){
+  const sel = document.getElementById('presencaFiltroGrupo');
+  if(!sel) return;
+  const jaPopulado = sel.dataset.populado === '1';
+  const valorAtual = sel.value;
+  const meuGrupoId = obterMeuGrupoId();
+  const grupos = listarTodosGruposParceirosCadastrados();
+  let opcoes = '<option value="' + meuGrupoId + '">Meu grupo</option>' +
+    '<option value="">Todos os grupos</option>';
+  if(meuGrupoId !== 'matriz') opcoes += '<option value="matriz">Rede principal (Matriz)</option>';
+  opcoes += grupos.filter(g => ('grp:' + g.id) !== meuGrupoId)
+    .map(g => '<option value="grp:' + g.id + '">' + (g.nome || '').replace(/</g, '&lt;') + '</option>').join('');
+  sel.innerHTML = opcoes;
+  if(!jaPopulado){
+    sel.value = meuGrupoId;
+    sel.dataset.populado = '1';
+  } else if(sel.querySelector('option[value="' + valorAtual.replace(/"/g, '&quot;') + '"]')){
+    sel.value = valorAtual;
+  }
+}
+
+// Acha o nome de exibição de quem fez check-in — cobre aluno cadastrado,
+// professor/mestre marcado como presente (ex: visita de outro núcleo), e
+// nomes adicionados manualmente (guardam o próprio nome no checkin, sem
+// precisar de cadastro nenhum).
+function _resolverNomeCheckin(checkin){
+  if(checkin.nomeManual) return checkin.nomeManual + ' (avulso)';
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const c = contas.find(x => x.user === checkin.aluno);
+  if(c) return c.nome || c.user;
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const ac = academiasContas.find(x => x.user === checkin.aluno);
+  if(ac) return (ac.nome || checkin.aluno) + ' · professor/mestre';
+  return checkin.aluno;
+}
+
+function _criarLinhaPresenca(userId, nomeExibicao, jaPresente, podeGerenciarPresenca, ev){
+  const row = document.createElement('label');
+  row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;';
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.checked = jaPresente;
+  chk.disabled = !podeGerenciarPresenca;
+  chk.style.cssText = 'width:18px;height:18px;flex-shrink:0;' + (podeGerenciarPresenca ? '' : 'opacity:0.5;cursor:not-allowed;');
+  chk.onchange = () => {
+    if(!podeGerenciarPresenca){
+      alert('Só quem criou este evento (ou a senha master/matriz) pode marcar ou desmarcar presença.');
+      chk.checked = jaPresente;
+      return;
+    }
+    if(chk.checked){
+      darPresencaEvento(ev.codigoCheckin, userId);
+    } else {
+      removerPresencaEvento(ev.codigoCheckin, userId);
+    }
+    renderPresencaEvento();
+  };
+  const span = document.createElement('span');
+  span.style.cssText = 'font-size:13.5px;color:var(--navy-900);';
+  span.textContent = nomeExibicao;
+  row.appendChild(chk);
+  row.appendChild(span);
+  return row;
+}
+
 function renderPresencaEvento(){
   const container = document.getElementById('presencaEventoLista');
   const tituloEl = document.getElementById('presencaEventoTitulo');
@@ -10906,18 +10979,24 @@ function renderPresencaEvento(){
   // qualquer professor da rede (abrirPresencaEvento já bloqueia a entrada
   // pra quem não pode, isso aqui é reforço/segunda trava).
   const podeGerenciarPresenca = currentRole === 'matriz' || souCriador;
-  const podeDesmarcar = podeGerenciarPresenca;
+
+  _popularFiltroGrupoPresenca();
+  const grupoEl = document.getElementById('presencaFiltroGrupo');
+  const grupoFiltro = grupoEl ? grupoEl.value : obterMeuGrupoId();
 
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
-  const alunosDoGrupo = contas.filter(c => estouNoMesmoGrupoQueAutor('aluno:' + c.user, 'aluno'))
-    .slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+  let alunosFiltrados = contas.filter(c => !c.semAcesso);
+  if(grupoFiltro) alunosFiltrados = alunosFiltrados.filter(c => obterGrupoIdPorNomeProfessor(c.professor || c.nucleo || '') === grupoFiltro);
+  alunosFiltrados = alunosFiltrados.slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+
   const checkins = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
-  const presentesSet = new Set(checkins.filter(c => c.eventoId === ev.codigoCheckin).map(c => c.aluno));
+  const checkinsDoEvento = checkins.filter(c => c.eventoId === ev.codigoCheckin);
+  const presentesSet = new Set(checkinsDoEvento.map(c => c.aluno));
 
   container.innerHTML = '';
   const resumo = document.createElement('p');
   resumo.style.cssText = 'font-weight:600;font-size:13.5px;color:var(--navy-900);margin:0 0 10px;';
-  resumo.textContent = presentesSet.size + ' de ' + alunosDoGrupo.length + ' participante(s) confirmado(s)';
+  resumo.textContent = checkinsDoEvento.length + ' presença(s) confirmada(s) no total';
   container.appendChild(resumo);
   if(!podeGerenciarPresenca){
     const aviso = document.createElement('p');
@@ -10925,54 +11004,87 @@ function renderPresencaEvento(){
     aviso.textContent = 'Só quem criou este evento (ou a senha master/matriz) pode marcar ou desmarcar presença.';
     container.appendChild(aviso);
   }
-  if(alunosDoGrupo.length === 0){
+
+  // Lista principal: alunos do grupo filtrado, separados por professor —
+  // pra não misturar turmas diferentes numa lista só.
+  if(alunosFiltrados.length === 0){
     const vazio = document.createElement('p');
     vazio.style.cssText = 'font-size:12.5px;color:var(--ink-soft);margin:0;';
-    vazio.textContent = 'Nenhum aluno cadastrado ainda.';
+    vazio.textContent = 'Nenhum aluno encontrado nesse filtro.';
     container.appendChild(vazio);
-    return;
+  } else {
+    const porProfessor = {};
+    alunosFiltrados.forEach(a => {
+      const prof = a.professor || '(sem professor definido)';
+      (porProfessor[prof] = porProfessor[prof] || []).push(a);
+    });
+    Object.keys(porProfessor).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(prof => {
+      const header = document.createElement('p');
+      header.style.cssText = 'font-size:11px;font-weight:700;color:var(--amber-700);text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 4px;';
+      header.textContent = '👨‍🏫 ' + prof;
+      container.appendChild(header);
+      porProfessor[prof].forEach(a => {
+        container.appendChild(_criarLinhaPresenca(a.user, a.nome || a.user, presentesSet.has(a.user), podeGerenciarPresenca, ev));
+      });
+    });
   }
-  alunosDoGrupo.forEach(a => {
-    const jaPresente = presentesSet.has(a.user);
-    const row = document.createElement('label');
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #EFE6D2;cursor:pointer;';
-    const chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.checked = jaPresente;
-    chk.disabled = !podeGerenciarPresenca;
-    chk.style.cssText = 'width:18px;height:18px;flex-shrink:0;' + (podeGerenciarPresenca ? '' : 'opacity:0.5;cursor:not-allowed;');
-    chk.onchange = () => {
-      if(!podeGerenciarPresenca){
-        alert('Só quem criou este evento (ou a senha master/matriz) pode marcar ou desmarcar presença.');
-        chk.checked = jaPresente;
-        return;
-      }
-      if(chk.checked){
-        darPresencaEvento(ev.codigoCheckin, a.user);
-      } else {
-        removerPresencaEvento(ev.codigoCheckin, a.user);
-      }
-      renderPresencaEvento();
-    };
-    const span = document.createElement('span');
-    span.style.cssText = 'font-size:13.5px;color:var(--navy-900);';
-    span.textContent = a.nome || a.user;
-    row.appendChild(chk);
-    row.appendChild(span);
-    container.appendChild(row);
-  });
+
+  // Seção separada: quem tem presença confirmada nesse evento mas NÃO está
+  // no filtro atual (visitante de outro grupo, ou nome adicionado à mão) —
+  // fica claramente separado da lista principal, sem misturar as turmas.
+  const idsFiltrados = new Set(alunosFiltrados.map(a => a.user));
+  const outros = checkinsDoEvento.filter(c => !idsFiltrados.has(c.aluno));
+  if(outros.length > 0){
+    const header2 = document.createElement('p');
+    header2.style.cssText = 'font-size:11px;font-weight:700;color:var(--navy-700);text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 4px;border-top:1px solid #EFE6D2;padding-top:14px;';
+    header2.textContent = '🌐 Presentes de outro grupo / avulsos';
+    container.appendChild(header2);
+    outros.forEach(c => {
+      container.appendChild(_criarLinhaPresenca(c.aluno, _resolverNomeCheckin(c), true, podeGerenciarPresenca, ev));
+    });
+  }
+
+  // Nome não está em nenhuma lista? Adiciona na mão — cai direto na seção
+  // "avulsos" acima assim que salvar.
+  if(podeGerenciarPresenca){
+    const addBox = document.createElement('div');
+    addBox.style.cssText = 'margin-top:18px;padding-top:14px;border-top:1px solid #EFE6D2;';
+    addBox.innerHTML = '<label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Nome não está na lista? Adicione manualmente</label>' +
+      '<input class="admin-input" id="presencaNomeManualInput" placeholder="Nome completo" style="margin-bottom:8px;">' +
+      '<button class="btn" type="button" onclick="adicionarPresencaManual()">+ Adicionar presença</button>';
+    container.appendChild(addBox);
+  }
 }
 
-function darPresencaEvento(eventoId, alunoUser){
+function darPresencaEvento(eventoId, alunoUser, nomeManual){
   const checkins = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
   if(checkins.some(c => c.eventoId === eventoId && c.aluno === alunoUser)) return;
-  checkins.push({eventoId, aluno: alunoUser, professor: obterNomeExibicaoAtual() || currentUser || '', data: Date.now()});
+  const registro = {eventoId, aluno: alunoUser, professor: obterNomeExibicaoAtual() || currentUser || '', data: Date.now()};
+  if(nomeManual) registro.nomeManual = nomeManual;
+  checkins.push(registro);
   setDado('gingapass_checkins_eventos', JSON.stringify(checkins));
 }
 
 function removerPresencaEvento(eventoId, alunoUser){
   const checkins = JSON.parse(localStorage.getItem('gingapass_checkins_eventos') || '[]');
   setDado('gingapass_checkins_eventos', JSON.stringify(checkins.filter(c => !(c.eventoId === eventoId && c.aluno === alunoUser))));
+}
+
+function adicionarPresencaManual(){
+  if(_presencaEventoIndice === null) return;
+  const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
+  const ev = eventos[_presencaEventoIndice];
+  if(!ev) return;
+  const input = document.getElementById('presencaNomeManualInput');
+  const nome = input ? input.value.trim() : '';
+  if(!nome){
+    alert('Digite o nome da pessoa.');
+    return;
+  }
+  const chave = 'manual:' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  darPresencaEvento(ev.codigoCheckin, chave, nome);
+  if(input) input.value = '';
+  renderPresencaEvento();
 }
 
 // ===================== Certificados de evento (aluno) =====================
