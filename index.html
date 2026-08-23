@@ -5564,14 +5564,16 @@ function executarModoCadastroLink(){
           <option value="Mestrando">Mestrando</option>
           <option value="Mestre">Mestre</option>
         </select>
+        ${campo('cadastroLinkCorGraduacao', 'Cor da graduação/corda', 'Ex: Verde e Amarela, Contra-Mestre...')}
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Você dá aula / tem seu próprio núcleo?</label>
         <div style="display:flex;gap:8px;margin-bottom:16px;">
           <button type="button" id="cadastroLinkDaAulaNaoBtn" onclick="alternarCadastroLinkDaAula(false)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#042C53;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Não, sou aluno(a)</button>
           <button type="button" id="cadastroLinkDaAulaSimBtn" onclick="alternarCadastroLinkDaAula(true)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#fff;color:#042C53;font-weight:700;font-size:13px;cursor:pointer;">Sim, dou aula</button>
         </div>
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu mestre/professor (se tiver um já cadastrado no app)</label>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;background:#fff;" id="cadastroLinkProfessor"><option value="">Carregando...</option></select>
-        <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">Achou seu professor na lista? Seu cadastro cai direto pra aprovação dele. Não achou (ou está começando um grupo novo)? Deixe em branco — cai pra aprovação da matriz.</p>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;" id="cadastroLinkProfessor" list="cadastroLinkProfessorLista" placeholder="Escolha da lista ou digite o nome" autocomplete="off">
+        <datalist id="cadastroLinkProfessorLista"></datalist>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">Escolha da lista quem já está no app — seu cadastro cai direto pra aprovação dele. Se seu professor ainda não está na lista (grupo novo por aqui), pode digitar o nome mesmo assim — nesse caso o pedido cai pra aprovação da matriz. Deixe em branco se não tiver professor.</p>
         ${campo('cadastroLinkGrupo', 'Nome do seu grupo de capoeira', 'Ex: Capoeira Team')}
         ${campo('cadastroLinkUser', 'Usuário (pra entrar no app)', 'Escolha um usuário')}
         ${campo('cadastroLinkSenha', 'Senha', 'Escolha uma senha', 'password')}
@@ -5607,15 +5609,17 @@ function alternarCadastroLinkDaAula(daAula){
 }
 
 function popularProfessoresCadastroLink(tentativas){
-  const select = document.getElementById('cadastroLinkProfessor');
-  if(!select) return;
+  const lista = document.getElementById('cadastroLinkProfessorLista');
+  const input = document.getElementById('cadastroLinkProfessor');
+  if(!lista || !input) return;
   const professores = obterProfessoresReais();
   if(professores.length > 0){
-    select.innerHTML = '<option value="">Não tenho / grupo novo</option>' + professores.map(p => '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>').join('');
+    lista.innerHTML = professores.map(p => '<option value="' + escapeHtml(p) + '"></option>').join('');
+    input.placeholder = 'Escolha da lista ou digite o nome';
     return;
   }
   if(tentativas < 6){
-    select.innerHTML = '<option value="">Carregando professores...</option>';
+    input.placeholder = 'Carregando professores...';
     Promise.all([
       buscarValorFresco('gingapass_rede_academias'),
       buscarValorFresco('gingapass_academias_contas'),
@@ -5626,7 +5630,7 @@ function popularProfessoresCadastroLink(tentativas){
     });
     return;
   }
-  select.innerHTML = '<option value="">Não tenho / grupo novo</option>';
+  input.placeholder = 'Digite o nome do seu professor';
 }
 
 function mostrarMsgCadastroLink(sucesso, titulo, texto){
@@ -5645,6 +5649,7 @@ function mostrarMsgCadastroLink(sucesso, titulo, texto){
 function enviarPedidoCadastroLink(){
   const apelido = (document.getElementById('cadastroLinkApelido').value || '').trim();
   const graduacao = document.getElementById('cadastroLinkGraduacao').value;
+  const corGraduacao = (document.getElementById('cadastroLinkCorGraduacao').value || '').trim();
   const daAula = !!window._cadastroLinkDaAula;
   const professorEscolhido = (document.getElementById('cadastroLinkProfessor').value || '').trim();
   const grupoCapoeira = (document.getElementById('cadastroLinkGrupo').value || '').trim();
@@ -5701,7 +5706,7 @@ function enviarPedidoCadastroLink(){
 
     const pedido = {
       id: 'pedido_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-      apelido, graduacao, daAula, professorEscolhido, grupoCapoeira,
+      apelido, graduacao, corGraduacao, daAula, professorEscolhido, grupoCapoeira,
       user, senha, pergunta, resposta,
       destinoAprovacao, status: 'pendente',
       data: Date.now(), respondidoEm: null
@@ -5758,6 +5763,7 @@ function renderPedidosCadastroPerfil(){
     const detalhes = document.createElement('p');
     detalhes.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;';
     let txtDetalhes = p.daAula ? 'Vai dar aula (professor/instrutor)' : 'Aluno(a)';
+    if(p.corGraduacao) txtDetalhes += ' · Corda: ' + p.corGraduacao;
     if(p.grupoCapoeira) txtDetalhes += ' · Grupo: ' + p.grupoCapoeira;
     if(p.professorEscolhido) txtDetalhes += ' · Professor indicado: ' + p.professorEscolhido;
     txtDetalhes += ' · Usuário: ' + p.user;
@@ -5829,17 +5835,18 @@ function aprovarPedidoCadastro(id){
       setDado('gingapass_academias_contas', JSON.stringify(academiasContas));
 
       const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      const tituloNucleo = [p.graduacao, p.corGraduacao].filter(Boolean).join(' - ');
       if(!rede.some(a => a.nome === nomeNucleo)){
-        rede.push({nome: nomeNucleo, endereco: '', professor: p.apelido, graduacao: p.graduacao || '', distancia: '', diasAulas: '', pix: '', cartao: ''});
+        rede.push({nome: nomeNucleo, endereco: '', professor: p.apelido, graduacao: tituloNucleo, distancia: '', diasAulas: '', pix: '', cartao: ''});
         setDado('gingapass_rede_academias', JSON.stringify(rede));
       }
-      if(p.professorEscolhido) garantirProfessorComoAlunoDoMestre(p.apelido, p.professorEscolhido, p.graduacao || '');
+      if(p.professorEscolhido) garantirProfessorComoAlunoDoMestre(p.apelido, p.professorEscolhido, p.corGraduacao || p.graduacao || '');
     } else {
       // Vira conta de aluno vinculada ao professor indicado (se houver).
       const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
       const nucleo = _resolverNucleoParaPedidoCadastro(p.professorEscolhido) || (p.grupoCapoeira || '');
       alunosContas.push({
-        nome: p.apelido, user: p.user, senha: p.senha, corda: p.graduacao || '', nucleo, professor: p.professorEscolhido || '',
+        nome: p.apelido, user: p.user, senha: p.senha, corda: p.corGraduacao || '', nucleo, professor: p.professorEscolhido || '',
         tipoMensalidade: 'mensalista', nivelGraduacao: '', inicioTreinos: '', vencimentoMensalidade: '',
         desde: new Date().getFullYear().toString(),
         pergunta: p.pergunta || '', resposta: p.resposta || '', semAcesso: false
