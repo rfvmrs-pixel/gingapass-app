@@ -880,7 +880,17 @@
       <button class="btn" type="button" onclick="showScreen('gingawayCheckin')" style="background:var(--amber-500);color:#2A1B04;margin:0;">📍 Fazer check-in numa aula</button>
     </div>
 
-    <div class="card">
+    <div class="card" id="painelAdminHomeCard" style="display:none;background:linear-gradient(135deg,#042C53,#0C447C);color:#fff;">
+      <div class="card-label" style="color:var(--amber-500);">⚙️ Painel rápido</div>
+      <div class="stat-grid" id="painelAdminHomeStats" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" type="button" onclick="selecionarMenuMais('estatisticas', null)" style="width:auto;flex:1;min-width:120px;margin:0;background:var(--amber-500);color:#2A1B04;">📊 Estatísticas</button>
+        <button class="btn" type="button" onclick="selecionarMenuMais('matriz', null)" style="width:auto;flex:1;min-width:120px;margin:0;background:rgba(255,255,255,0.12);color:#fff;">⚙️ Dados</button>
+        <button class="btn" type="button" onclick="selecionarMenuMais('gingawayGestao', null)" style="width:auto;flex:1;min-width:120px;margin:0;background:rgba(255,255,255,0.12);color:#fff;">🥊 Aluno GingaWay</button>
+      </div>
+    </div>
+
+    <div class="card" id="muralHomeCard">
       <div class="card-label">Mural em destaque</div>
       <div style="border-radius:14px;overflow:hidden;background:#EFE6D2;">
         <img id="muralSlideshowImg" style="width: 100%; height: 260px; object-fit: contain; display: block; transition: opacity 0.2s; cursor: pointer; opacity: 1;" onclick="abrirLightboxMural()">
@@ -909,7 +919,7 @@
       <div id="eventoPublicoHomeCarrossel"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="planoAulaHomeWrapCard">
       <div class="card-label">Plano de aula</div>
       <div id="planoAulaHomeCard" style="display:none;">
         <p id="planoAulaHomeTitulo" style="font-weight:700;font-size:14px;color:var(--navy-900);margin:0 0 4px;"></p>
@@ -919,7 +929,7 @@
       <p id="planoAulaHomeVazio" style="font-size:11.5px;color:var(--ink-soft);margin:0;">Seu professor ainda não publicou um plano de aula.</p>
     </div>
 
-    <div class="card">
+    <div class="card" id="proximaAulaHomeCard">
       <div class="card-label">Próxima aula</div>
       <div class="class-row">
         <div class="class-time"><span id="proximaAulaHora">19:00h</span><span id="proximaAulaLabel" class="sub-label">Terças e Quintas</span></div>
@@ -939,9 +949,11 @@
       <div class="stat" style="grid-column:1 / -1;"><b id="totalAlunosCadastradosView">0</b><span>Total de alunos cadastrados</span></div>
     </div>
 
-    <p class="section-title">Próximos eventos</p>
-    <div class="card">
-      <div id="eventsList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p></div>
+    <div id="proximosEventosHomeSecao">
+      <p class="section-title">Próximos eventos</p>
+      <div class="card">
+        <div id="eventsList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum evento publicado ainda.</p></div>
+      </div>
     </div>
   </div>
 
@@ -6450,6 +6462,40 @@ function renderAreaGingaWayHome(){
   if(aulasTxt) aulasTxt.textContent = usadas + ' de ' + totalAulas + ' aulas usadas este mês';
 }
 
+// ---------- Tela Início da matriz: painel de gestão em vez de mural/social ----------
+// A matriz não precisa ver fotos/posts na própria Início — isso continua
+// disponível normalmente quando ela visita o perfil de alguém (Fotos
+// publicadas). Aqui a Início vira um atalho rápido pra gestão + números,
+// no lugar do Mural, GingaSocial, aniversariantes, plano de aula etc.
+function renderPainelAdminHome(){
+  const painel = document.getElementById('painelAdminHomeCard');
+  if(!painel) return;
+  const souMatriz = currentRole === 'matriz';
+
+  ['muralHomeCard', 'socialHomeCard', 'aniversariantesHomeCard', 'eventoPublicoHomeCard', 'planoAulaHomeWrapCard', 'proximaAulaHomeCard', 'proximosEventosHomeSecao'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && souMatriz) el.style.display = 'none';
+  });
+
+  painel.style.display = souMatriz ? 'block' : 'none';
+  if(!souMatriz) return;
+
+  const alunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const professores = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+  const alunosGingaWay = alunos.filter(a => a.tipoConta === 'gingaway');
+  const atrasados = professores.filter(p => p.mensalidadeStatus === 'Atrasado').length;
+
+  const stats = document.getElementById('painelAdminHomeStats');
+  if(stats){
+    stats.innerHTML = [
+      {n: alunos.length, l: 'Alunos'},
+      {n: professores.length, l: 'Professores'},
+      {n: alunosGingaWay.length, l: '🥊 GingaWay'},
+      {n: atrasados, l: 'Profs. atrasados'}
+    ].map(it => '<div class="stat" style="background:rgba(255,255,255,0.1);"><b style="color:#fff;">' + it.n + '</b><span style="color:#DCE6F0;">' + it.l + '</span></div>').join('');
+  }
+}
+
 // ---------- Aluno GingaWay: telinha de check-in (escolhe modalidade + academia) ----------
 // Só quem paga o plano de R$120 (o maior) pode circular entre modalidades
 // diferentes — nos planos menores, o check-in fica travado na modalidade
@@ -8091,6 +8137,7 @@ function aplicarPermissoes(){
   }
   tentarChamar(function(){ aplicarIdiomaUI(); });
   tentarChamar(function(){ verificarPopupMensalidadeAtrasada(); });
+  tentarChamar(function(){ renderPainelAdminHome(); });
 }
 
 function abrirMenuMais(){
@@ -11639,6 +11686,10 @@ function renderStatsInicio(){
       const meusAlunos = meusNucleos.length > 0 ? contas.filter(c => nucleoEstaEmLista(c.nucleo, meusNucleos)) : [];
       totalEl.textContent = String(meusAlunos.length);
     }
+  } else if(currentRole === 'matriz'){
+    // Já tem os números dela no "Painel rápido" da Início — não repete aqui.
+    boxAluno.style.display = 'none';
+    boxProfessor.style.display = 'none';
   } else {
     boxAluno.style.display = 'grid';
     boxProfessor.style.display = 'none';
@@ -12680,8 +12731,10 @@ function abrirLightboxEventoCarrossel(containerId){
 // grupo), logo abaixo do mural.
 function renderEventosHome(destaqueDoMeuGrupo, publicos){
   renderCarrosselEventos('eventsList', destaqueDoMeuGrupo, 'Nenhum evento publicado ainda.');
+  const secaoProximos = document.getElementById('proximosEventosHomeSecao');
+  if(secaoProximos) secaoProximos.style.display = (currentRole === 'matriz') ? 'none' : 'block';
   const cardPublico = document.getElementById('eventoPublicoHomeCard');
-  if(cardPublico) cardPublico.style.display = (publicos && publicos.length > 0) ? 'block' : 'none';
+  if(cardPublico) cardPublico.style.display = (currentRole !== 'matriz' && publicos && publicos.length > 0) ? 'block' : 'none';
   renderCarrosselEventos('eventoPublicoHomeCarrossel', publicos || [], 'Nenhum evento público no momento.');
 }
 
@@ -16455,10 +16508,14 @@ function renderAniversariantesMes(){
     }
   }
 
+  // Tela Início da matriz não mostra esse card (vira o "Painel rápido" de
+  // gestão) — checa o papel aqui direto, em vez de confiar na ordem de quem
+  // chama essa função (tem mais de um lugar que chama, e o "esconder pra
+  // matriz" precisa vencer sempre, não só na primeira vez).
   const cardHome = document.getElementById('aniversariantesHomeCard');
   const listaHome = document.getElementById('aniversariantesHomeLista');
   if(cardHome && listaHome){
-    if(pessoas.length === 0){
+    if(pessoas.length === 0 || currentRole === 'matriz'){
       cardHome.style.display = 'none';
       listaHome.innerHTML = '';
     } else {
