@@ -24304,6 +24304,23 @@ function _obterLogoParaMarcadorAcademia(a){
 // Cria as bolinhas/marcadores de ACADEMIAS num layerGroup já existente.
 // Compartilhado entre o mapa pequeno da tela Academias e o mapa expandido em
 // tela cheia, pra não duplicar a lógica de popup/logo/link do WhatsApp.
+// Última vez que o professor/academia dona desse núcleo acessou o app —
+// usa o mesmo "sinal de vida" do chat (🟢/⚪ online), sem precisar de GPS
+// nem de nenhum compartilhamento extra: já roda sozinho pra todo mundo
+// logado, então dá pra mostrar sempre, sem pedir permissão nenhuma.
+function _textoUltimaConexaoAcademia(a){
+  const conta = obterAcademiaContaPorNucleoOuProfessor(a.professor || a.nome);
+  if(!conta || !conta.user) return '';
+  const id = 'academia:' + conta.user;
+  const cache = window._presencaCache || {};
+  const registro = cache[id];
+  if(!registro || !registro.ultimaAtividade) return '<br><span style="font-size:11px;color:#9AA7B4;">Última conexão: sem registro ainda</span>';
+  if(estaOnline(id)) return '<br><span style="font-size:11px;color:#25D366;font-weight:600;">🟢 Online agora</span>';
+  const dataFmt = new Date(registro.ultimaAtividade).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
+  const horaFmt = new Date(registro.ultimaAtividade).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+  return '<br><span style="font-size:11px;color:#6b7a89;">⚪ Última conexão: ' + dataFmt + ' às ' + horaFmt + '</span>';
+}
+
 function _popularMarcadoresAcademiasMapa(layerGroup, rede){
   const pontos = [];
   rede.forEach(a => {
@@ -24328,6 +24345,7 @@ function _popularMarcadoresAcademiasMapa(layerGroup, rede){
         '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + geo.lat + ',' + geo.lon;
       const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
       marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') +
+        _textoUltimaConexaoAcademia(a) +
         '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>' +
         '<br><a href="#" onclick="enviarPullAcademiaMapa(\'' + nomeEscapado + '\'); return false;">🖐️ Dar um toque</a>' +
         '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
@@ -24403,9 +24421,27 @@ function _popularMarcadoresEstaticosMapa(layerGroup, redeAcademias, alunosComEnd
   return pontosAcademias.concat(pontosAlunos);
 }
 
-// Alunos do MEU grupo que estão com "Compartilhar minha localização"
-// ativado agora (tela Perfil > Localização em tempo real), respeitando as
-// mesmas regras de visibilidade (todos / pessoa específica / pai vê o filho).
+// Acha o "professor/núcleo" de referência de quem compartilhou uma
+// localização, pra dar pra estaNoMeuGrupo() decidir se aparece pra mim —
+// funciona tanto pra aluno (professor/nucleo da própria conta) quanto pra
+// professor/academia (o núcleo é ele mesmo).
+function _professorNucleoDeLocalizacao(l, alunosContas, academiasContas){
+  const userChave = (l.autorId || '').split(':')[1];
+  if(l.autorRole === 'academia'){
+    const conta = academiasContas.find(c => c.user === userChave);
+    const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+    const minhaAcademia = conta ? rede.find(a => a.nome === conta.nome) : null;
+    const nomeProfessor = (minhaAcademia && minhaAcademia.professor) ? minhaAcademia.professor : (conta ? conta.nome : '');
+    return {professor: nomeProfessor, nucleo: conta ? conta.nome : ''};
+  }
+  const conta = alunosContas.find(c => c.user === userChave);
+  return {professor: conta ? conta.professor : '', nucleo: conta ? conta.nucleo : ''};
+}
+
+// Alunos E professores/academias do MEU grupo que estão com "Compartilhar
+// minha localização" ativado agora (tela Perfil > Localização em tempo
+// real), respeitando as mesmas regras de visibilidade (todos / pessoa
+// específica / pai vê o filho).
 function _alunosAoVivoNoMeuGrupo(){
   if(!currentRole || !currentUser) return [];
   const todas = window._localizacoesCache || [];
@@ -24413,13 +24449,10 @@ function _alunosAoVivoNoMeuGrupo(){
   const meuId = identificadorUsuarioAtual();
   const agora = Date.now();
   const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   return todas
-    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado && l.ativo !== false && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
-    .map(l => {
-      const userAluno = l.autorId.split(':')[1];
-      const conta = alunosContas.find(c => c.user === userAluno);
-      return {loc: l, professor: conta ? conta.professor : '', nucleo: conta ? conta.nucleo : ''};
-    })
+    .filter(l => l && l.autorId && (l.autorRole === 'aluno' || l.autorRole === 'academia') && l.lat && l.lon && l.atualizado && l.ativo !== false && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
+    .map(l => Object.assign({loc: l}, _professorNucleoDeLocalizacao(l, alunosContas, academiasContas)))
     .filter(item => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(item.professor || item.nucleo || '')));
 }
 
@@ -24433,15 +24466,12 @@ function _alunosUltimaVezVistosNoMeuGrupo(){
   const meuId = identificadorUsuarioAtual();
   const agora = Date.now();
   const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
   return todas
-    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado &&
+    .filter(l => l && l.autorId && (l.autorRole === 'aluno' || l.autorRole === 'academia') && l.lat && l.lon && l.atualizado &&
       (l.ativo === false || (agora - l.atualizado) >= LOCALIZACAO_EXPIRA_MS) &&
       (agora - l.atualizado) < LOCALIZACAO_ULTIMA_VEZ_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
-    .map(l => {
-      const userAluno = l.autorId.split(':')[1];
-      const conta = alunosContas.find(c => c.user === userAluno);
-      return {loc: l, professor: conta ? conta.professor : '', nucleo: conta ? conta.nucleo : ''};
-    })
+    .map(l => Object.assign({loc: l}, _professorNucleoDeLocalizacao(l, alunosContas, academiasContas)))
     .filter(item => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(item.professor || item.nucleo || '')));
 }
 
