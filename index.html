@@ -867,6 +867,12 @@
       <button class="btn" type="button" onclick="logout()" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;background:var(--white);color:#C0392B;border:1.5px solid #C0392B;">Sair</button>
     </div>
 
+    <div class="card" id="pullNotificacaoBanner" style="display:none;background:linear-gradient(135deg,#EF9F27,#BA7517);">
+      <div class="card-label" style="color:#2A1B04;">🖐️ Alguém te chamou!</div>
+      <p id="pullNotificacaoTexto" style="font-size:13.5px;margin:0 0 12px;font-weight:600;color:#2A1B04;"></p>
+      <button class="btn" type="button" onclick="responderPullHome()" style="background:var(--navy-900);color:#fff;margin:0;">💬 Ver e responder</button>
+    </div>
+
     <div class="card" id="gingawayPlanoCard" style="display:none;background:linear-gradient(135deg,#042C53,#0C447C);color:#fff;">
       <div class="card-label" style="color:var(--amber-500);">🥊 Meu plano GingaWay</div>
       <p id="gingawayPlanoResumo" style="font-size:13.5px;margin:0 0 4px;font-weight:700;"></p>
@@ -1973,7 +1979,10 @@
       <p class="greeting" id="perfilPublicoNome" style="font-size:18px;margin-bottom:2px;">Nome</p>
       <p class="subgreeting" id="perfilPublicoTag">Professor</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;" id="perfilPublicoInfo"></p>
-      <button class="btn" type="button" id="perfilPublicoMsgBtn" onclick="abrirChatDiretoDoPerfilPublico()" style="margin-top:14px;width:auto;padding:10px 22px;">💬 Mandar mensagem</button>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
+        <button class="btn" type="button" id="perfilPublicoMsgBtn" onclick="abrirChatDiretoDoPerfilPublico()" style="width:auto;padding:10px 22px;margin:0;">💬 Mandar mensagem</button>
+        <button class="btn" type="button" id="perfilPublicoPullBtn" onclick="enviarPullPerfilPublico()" style="width:auto;padding:10px 22px;margin:0;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">🖐️ Dar um toque</button>
+      </div>
     </div>
     <p class="section-title">📜 Trajetória</p>
     <div id="perfilPublicoHistoricoBox"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Carregando...</p></div>
@@ -7521,6 +7530,7 @@ function aplicarPermissoes(){
 
   tentarChamar(function(){ renderSaudacao(); });
   tentarChamar(function(){ sincronizarInputsDataVisuais(); });
+  tentarChamar(function(){ renderPullsHome(); });
   tentarChamar(function(){ renderAreaGingaWayHome(); });
   tentarChamar(function(){ renderAnuncioGraduacaoHome(); });
   tentarChamar(function(){ renderConviteEventoHome(); });
@@ -15392,6 +15402,98 @@ function enviarMensagemDireta(){
       if(!ok) alert('Mensagem salva neste aparelho, mas não sincronizou com a nuvem agora.');
     });
     renderChatDireto();
+  });
+}
+
+// ---------- "Dar um toque" (pull) — chama a atenção de alguém sem precisar escrever nada ----------
+// Clica no ícone/perfil de um aluno, professor ou academia (mesma tela de
+// perfil público usada em Professores, Alunos, Mural, Feed etc.) e manda um
+// toque. A pessoa vê um aviso na tela Início dela, e já cai uma mensagem
+// pronta na conversa dos dois, pra puxar assunto direto no bate-papo.
+function enviarPullPerfilPublico(){
+  if(!_perfilPublicoAlvo || !_perfilPublicoAlvo.id){
+    alert('Não consegui identificar essa pessoa (pode ser um nome cadastrado só como texto, sem conta própria).');
+    return;
+  }
+  enviarPull(_perfilPublicoAlvo.id, _perfilPublicoAlvo.nome);
+}
+
+function enviarPull(idAlvo, nomeAlvo){
+  const meuId = identificadorUsuarioAtual();
+  if(idAlvo === meuId){
+    alert('Essa é a sua própria conta — não dá pra chamar a atenção de si mesmo 😅');
+    return;
+  }
+  const meuNome = obterNomeExibicaoAtual() || currentUser;
+
+  buscarValorFresco('gingapass_pulls').then(function(valorFresco){
+    const pulls = JSON.parse(valorFresco || localStorage.getItem('gingapass_pulls') || '[]');
+    pulls.push({
+      id: 'pull_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      deId: meuId, deNome: meuNome, paraId: idAlvo, paraNome: nomeAlvo,
+      data: Date.now(), lido: false
+    });
+    setDado('gingapass_pulls', JSON.stringify(pulls)).then(function(ok){
+      alert(ok ? ('🖐️ Toque enviado pra ' + nomeAlvo + '!') : 'Não conseguiu mandar agora. Verifique sua internet e tente de novo.');
+    });
+  });
+
+  // Também já cai uma mensagem automática na conversa dos dois, pra quando
+  // a pessoa responder o toque já tenha um "oi" esperando por ela no chat.
+  const chaveDm = chaveChatDireto(meuId, idAlvo);
+  buscarValorFresco(chaveDm).then(function(valorFresco){
+    const mensagens = JSON.parse(valorFresco || localStorage.getItem(chaveDm) || '[]');
+    mensagens.push({de: meuId, deNome: meuNome, texto: '🖐️ Dei um toque em você! Bora trocar uma ideia?', data: Date.now()});
+    setDado(chaveDm, JSON.stringify(mensagens));
+  });
+}
+
+function renderPullsHome(){
+  const banner = document.getElementById('pullNotificacaoBanner');
+  if(!banner) return;
+  if(!currentRole || !currentUser){
+    banner.style.display = 'none';
+    return;
+  }
+  const meuId = identificadorUsuarioAtual();
+  const pulls = JSON.parse(localStorage.getItem('gingapass_pulls') || '[]');
+  const meusPullsNaoLidos = pulls.filter(p => p.paraId === meuId && !p.lido);
+  if(meusPullsNaoLidos.length === 0){
+    banner.style.display = 'none';
+    return;
+  }
+  const ultimo = meusPullsNaoLidos[meusPullsNaoLidos.length - 1];
+  const textoEl = document.getElementById('pullNotificacaoTexto');
+  if(textoEl){
+    textoEl.textContent = meusPullsNaoLidos.length === 1
+      ? (ultimo.deNome + ' te chamou! Que tal responder?')
+      : (meusPullsNaoLidos.length + ' pessoas te chamaram — a última foi ' + ultimo.deNome + '.');
+  }
+  banner.dataset.ultimoId = ultimo.deId;
+  banner.dataset.ultimoNome = ultimo.deNome;
+  banner.style.display = 'block';
+}
+
+function responderPullHome(){
+  const banner = document.getElementById('pullNotificacaoBanner');
+  if(!banner) return;
+  const idAlvo = banner.dataset.ultimoId;
+  const nomeAlvo = banner.dataset.ultimoNome;
+  marcarPullsComoLidos();
+  if(idAlvo) abrirChatDireto(idAlvo, nomeAlvo);
+}
+
+function marcarPullsComoLidos(){
+  if(!currentRole || !currentUser) return;
+  const meuId = identificadorUsuarioAtual();
+  buscarValorFresco('gingapass_pulls').then(function(valorFresco){
+    const pulls = JSON.parse(valorFresco || localStorage.getItem('gingapass_pulls') || '[]');
+    let mudou = false;
+    pulls.forEach(p => { if(p.paraId === meuId && !p.lido){ p.lido = true; mudou = true; } });
+    if(mudou){
+      setDado('gingapass_pulls', JSON.stringify(pulls));
+      tentarChamar(function(){ renderPullsHome(); });
+    }
   });
 }
 
