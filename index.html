@@ -2,7 +2,7 @@
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>GingaPass Capoeira Team — Protótipo</title>
+<title>GingaWay — App de treino</title>
 <link rel="manifest" href="https://rfvmrs-pixel.github.io/gingapass-app/manifest.json">
 <link rel="icon" href="https://rfvmrs-pixel.github.io/gingapass-app/icon-192.png">
 <link rel="apple-touch-icon" href="https://rfvmrs-pixel.github.io/gingapass-app/icon-192.png">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GingaPass">
+<meta name="apple-mobile-web-app-title" content="GingaWay">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
@@ -788,7 +788,7 @@
     <div class="login-overlay"></div>
     <div class="login-content">
       
-      <h2>GingaPass</h2>
+      <h2>GingaWay</h2>
       <p class="tagline" id="loginTagline">Seu app de treinos</p>
       <div id="idiomaLoginSwatches" style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px;"><button type="button" title="Português" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(4, 44, 83); background: rgb(4, 44, 83); color: rgb(251, 243, 228); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">PT</button><button type="button" title="English" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">EN</button><button type="button" title="Français" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">FR</button><button type="button" title="Deutsch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">DE</button><button type="button" title="Lëtzebuergesch" style="padding: 7px 12px; border-radius: 100px; border: 1.5px solid rgb(226, 216, 196); background: rgb(255, 255, 255); color: rgb(27, 39, 51); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">LU</button></div>
       <p id="loginEntrarTexto">Entre com seu usuário e senha</p>
@@ -802,7 +802,6 @@
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button" style="opacity: 1;">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
       <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
-      <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="resetarCadastroMaster();return false;" style="display:block;margin-top:10px;font-size:11px;color:#8FA3B8;text-decoration:underline;">Perdeu a senha master e a resposta de segurança? Recomeçar cadastro master</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
@@ -827,7 +826,7 @@
   <div class="app-content" id="appContent">
   <div class="topbar">
     
-    <div class="brand">GingaPass<small>SEU APP DE TREINOS</small></div>
+    <div class="brand">GingaWay<small>SEU APP DE TREINOS</small></div>
   </div>
   <div class="collage">
     <img class="collage-empty" data-slot="0" alt="Foto do topo (ainda não definida)" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7">
@@ -956,7 +955,7 @@
   <!-- MENSALIDADE -->
   <div class="screen" id="mensalidade">
     <p class="greeting" style="font-size:18px;">Mensalidade</p>
-    <p class="subgreeting">Seu plano associado GingaPass</p>
+    <p class="subgreeting">Seu plano associado GingaWay</p>
 
     <div class="pay-hero" id="mensalidadeHeroCard">
       <div class="status">Situação atual</div>
@@ -1151,7 +1150,7 @@
       <div class="gallery-grid" id="galeriaComunidadePreview"></div>
       <input class="admin-input" id="fotoLegendaComunidade" placeholder="Escreva uma legenda (opcional)">
       <button class="btn" onclick="publicarFotoComunidade()">Publicar no mural</button>
-      <p style="font-size:11px;color:var(--ink-soft);margin:8px 0 0;">Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaPass. Escolhendo mais de uma, elas viram um post só, deslizável (máximo 4 por post).</p>
+      <p style="font-size:11px;color:var(--ink-soft);margin:8px 0 0;">Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaWay. Escolhendo mais de uma, elas viram um post só, deslizável (máximo 4 por post).</p>
       <p id="fotoLimiteSemanalTexto" style="font-size:11px;color:var(--amber-700);margin:4px 0 0;font-weight:600;"></p>
     </div>
     <div class="card">
@@ -1249,9 +1248,9 @@
 
     <p class="section-title">Redes sociais</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 4px;">Compartilhe o GingaPass ou siga sua academia</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 4px;">Compartilhe o GingaWay ou siga sua academia</p>
       <div class="social-row">
-        <a class="social-btn" href="https://wa.me/?text=Conhece%20o%20GingaPass%20Capoeira%20Team%3F" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="social-btn" href="https://wa.me/?text=Conhece%20o%20GingaWay%20Capoeira%20Team%3F" target="_blank" rel="noopener">WhatsApp</a>
         <a class="social-btn" href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a>
       </div>
     </div>
@@ -1789,7 +1788,7 @@
   <!-- LOJA GINGAPASS: qualquer professor/matriz publica, todo mundo (qualquer papel, sem
        filtro de grupo) vê e pode mandar mensagem pra quem está vendendo -->
   <div class="screen" id="loja">
-    <p class="greeting" style="font-size:18px;">Loja GingaPass</p>
+    <p class="greeting" style="font-size:18px;">Loja GingaWay</p>
     <p class="subgreeting">Produtos e materiais à venda pelos professores da rede — visível pra todo mundo</p>
 
     <div id="lojaPublicarBox" style="display:none;">
@@ -2193,7 +2192,7 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
       <div>
         <p class="greeting" style="font-size:18px;" id="painelPaiSaudacao">Olá!</p>
-        <p class="subgreeting" id="painelPaiSubtitulo">Acompanhe seu filho(a) no GingaPass</p>
+        <p class="subgreeting" id="painelPaiSubtitulo">Acompanhe seu filho(a) no GingaWay</p>
       </div>
       <button class="btn" type="button" onclick="logout()" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;background:var(--white);color:#C0392B;border:1.5px solid #C0392B;">Sair</button>
     </div>
@@ -2777,7 +2776,7 @@
         </button>
         <button class="menu-mais-item" data-target="loja" onclick="selecionarMenuMais(&#39;loja&#39;, this)" style="display: flex;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9"></path><path d="M9 21v-6h6v6"></path></svg>
-          <span>Loja GingaPass</span>
+          <span>Loja GingaWay</span>
         </button>
         <button class="menu-mais-item tab" data-target="admin" onclick="selecionarMenuMais(&#39;admin&#39;, this)" style="display: none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"></path></svg>
@@ -5539,7 +5538,7 @@ function confirmarPresencaVisitanteLink(){
    antes de preencher o formulário. */
 const CADASTRO_LINK_I18N = {
   pt: {
-    title: '🥋 Cadastro no GingaPass',
+    title: '🥋 Cadastro no GingaWay',
     subtitle: 'Preencha seus dados — seu cadastro fica esperando aprovação antes de dar pra entrar.',
     labelApelido: 'Apelido de capoeira', placeholderApelido: 'Seu apelido',
     labelGraduacao: 'Graduação',
@@ -5572,7 +5571,7 @@ const CADASTRO_LINK_I18N = {
     enviando: 'Enviando...'
   },
   en: {
-    title: '🥋 Sign up for GingaPass',
+    title: '🥋 Sign up for GingaWay',
     subtitle: 'Fill in your details — your sign-up will wait for approval before you can log in.',
     labelApelido: 'Capoeira nickname', placeholderApelido: 'Your nickname',
     labelGraduacao: 'Rank',
@@ -5605,7 +5604,7 @@ const CADASTRO_LINK_I18N = {
     enviando: 'Submitting...'
   },
   fr: {
-    title: '🥋 Inscription à GingaPass',
+    title: '🥋 Inscription à GingaWay',
     subtitle: "Remplissez vos informations — votre inscription attendra une approbation avant de pouvoir vous connecter.",
     labelApelido: 'Surnom de capoeira', placeholderApelido: 'Votre surnom',
     labelGraduacao: 'Graduation',
@@ -5638,7 +5637,7 @@ const CADASTRO_LINK_I18N = {
     enviando: 'Envoi...'
   },
   de: {
-    title: '🥋 Anmeldung bei GingaPass',
+    title: '🥋 Anmeldung bei GingaWay',
     subtitle: 'Füllen Sie Ihre Daten aus — Ihre Anmeldung wartet auf Genehmigung, bevor Sie sich einloggen können.',
     labelApelido: 'Capoeira-Spitzname', placeholderApelido: 'Ihr Spitzname',
     labelGraduacao: 'Graduierung',
@@ -5671,7 +5670,7 @@ const CADASTRO_LINK_I18N = {
     enviando: 'Wird gesendet...'
   },
   lb: {
-    title: '🥋 Umeldung bei GingaPass',
+    title: '🥋 Umeldung bei GingaWay',
     subtitle: "Fëllt är Donnéeën aus — är Umeldung waart op eng Genehmegung ier Dir Iech kënnt aloggen.",
     labelApelido: 'Capoeira-Spëtznumm', placeholderApelido: 'Äre Spëtznumm',
     labelGraduacao: 'Graduatioun',
@@ -6159,9 +6158,9 @@ function linkConviteEvento(codigoCheckin){
 // (se for grupo novo) aprovar.
 function linkCadastroApp(){
   const url = location.origin + location.pathname + '?cadastro=1';
-  const texto = 'Vem treinar com a gente! Faz seu cadastro no GingaPass por aqui: ' + url;
+  const texto = 'Vem treinar com a gente! Faz seu cadastro no GingaWay por aqui: ' + url;
   if(navigator.share){
-    navigator.share({title: 'Cadastro no GingaPass', text: texto, url}).catch(function(){});
+    navigator.share({title: 'Cadastro no GingaWay', text: texto, url}).catch(function(){});
     return;
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -10313,7 +10312,7 @@ function compartilharFotoMural(){
   try{
     const arquivo = dataUrlParaArquivo(lightboxImg.src, 'gingapass-foto.jpg');
     if(navigator.canShare && navigator.canShare({files: [arquivo]})){
-      navigator.share({files: [arquivo], title: 'GingaPass', text: 'Foto do mural do GingaPass!'}).catch(function(){});
+      navigator.share({files: [arquivo], title: 'GingaWay', text: 'Foto do mural do GingaWay!'}).catch(function(){});
       return;
     }
   } catch(e){}
@@ -10326,11 +10325,11 @@ function compartilharFotoWhatsapp(){
   try{
     const arquivo = dataUrlParaArquivo(lightboxImg.src, 'gingapass-foto.jpg');
     if(navigator.canShare && navigator.canShare({files: [arquivo]})){
-      navigator.share({files: [arquivo], title: 'GingaPass', text: 'Foto do mural do GingaPass!'}).catch(function(){});
+      navigator.share({files: [arquivo], title: 'GingaWay', text: 'Foto do mural do GingaWay!'}).catch(function(){});
       return;
     }
   } catch(e){}
-  window.open('https://wa.me/?text=' + encodeURIComponent('Olha essa foto do mural do GingaPass! Abra o app pra ver: ' + location.href), '_blank');
+  window.open('https://wa.me/?text=' + encodeURIComponent('Olha essa foto do mural do GingaWay! Abra o app pra ver: ' + location.href), '_blank');
 }
 
 function iniciarSlideshowMural(){
@@ -11970,9 +11969,9 @@ function renderizarCertificadoCanvas(ev){
   const professor = _obterProfessorDoEvento(ev);
   // Cabeçalho mostra quem REALIZOU o evento (ex: Mestrando Borracha, ou
   // Professor Raposa) — a logo/foto e o nome de cada um, não um nome
-  // genérico da rede. Só cai pro grupo/"GingaPass" se o evento não tiver
+  // genérico da rede. Só cai pro grupo/"GingaWay" se o evento não tiver
   // professor identificado (ex: criado direto pela matriz sem nome cadastrado).
-  const nomeCabecalho = professor.nome || grupo.nome || 'GingaPass';
+  const nomeCabecalho = professor.nome || grupo.nome || 'GingaWay';
   const logoCabecalhoSrc = professor.foto || grupo.foto || '';
   // Arte personalizada pro certificado (se quem criou o evento cadastrou
   // uma em "🏆 Certificado" > "Arte personalizada") tem prioridade sobre o
@@ -12188,7 +12187,7 @@ function renderizarCertificadoCanvas(ev){
       ctx.fillText(infoRodape.join('     '), inicioTexto, rodapeY);
       ctx.font = '400 12px Inter, Arial';
       ctx.fillStyle = CORES.cinza;
-      ctx.fillText('Certificado gerado pelo GingaPass', inicioTexto, rodapeY + 22);
+      ctx.fillText('Certificado gerado pelo GingaWay', inicioTexto, rodapeY + 22);
 
       if(professor.nome){
         ctx.textAlign = 'right';
@@ -12589,7 +12588,7 @@ function renderAulas(){
 
 /* ===================== Aula ao vivo (chamada de vídeo) =====================
    Usa o Jitsi Meet (serviço gratuito de videochamada, código aberto) incorporado
-   direto na tela do app. A senha é conferida pelo GingaPass ANTES de mostrar a sala
+   direto na tela do app. A senha é conferida pelo GingaWay ANTES de mostrar a sala
    — só depois de acertar a senha é que o nome da sala é revelado e a chamada abre. */
 
 function _chaveProfessorAoVivo(nome){
@@ -24165,13 +24164,13 @@ const IDIOMAS = {
     'Segunda-feira, 20 de julho':'Monday, July 20','Próxima aula':'Next class','Turma ainda não definida':'Class not set yet','Professor e núcleo ainda não definidos':'Teacher and school not set yet','Confirmar':'Confirm',
     'Frequência no mês':'Attendance this month','Em dia':'Up to date','Atrasado':'Late','Próximos eventos':'Upcoming events','Nenhum evento publicado ainda.':'No events published yet.',
     'Academias da rede':'Network schools','Encontre um núcleo perto de você':'Find a school near you','Buscar por bairro ou cidade':'Search by neighborhood or city','Nenhuma academia cadastrada na rede ainda.':'No schools registered in the network yet.',
-    'Seu plano associado GingaPass':'Your GingaPass membership plan','Situação atual':'Current status','Pagar com Pix':'Pay with Pix','Pagar com cartão':'Pay with card','Seu professor ainda não cadastrou a forma de pagamento.':'Your teacher hasn\'t set up a payment method yet.','Histórico de pagamentos':'Payment history',
+    'Seu plano associado GingaWay':'Your GingaWay membership plan','Situação atual':'Current status','Pagar com Pix':'Pay with Pix','Pagar com cartão':'Pay with card','Seu professor ainda não cadastrou a forma de pagamento.':'Your teacher hasn\'t set up a payment method yet.','Histórico de pagamentos':'Payment history',
     'Carregando...':'Loading...','Associado desde —':'Member since —','Corda ainda não definida':'Belt not set yet','Núcleo principal':'Main school','Ainda não definido':'Not set yet','E-mail':'Email','Telefone':'Phone','Editar perfil':'Edit profile','Editar dados':'Edit info','Nome completo':'Full name','Foto de perfil':'Profile photo',
     'Padrão da rede (só a matriz edita)':'Network default (only headquarters edits)','Selecione o núcleo...':'Select school...','Selecione o professor...':'Select teacher...',
-    'Redes sociais':'Social media','Compartilhe o GingaPass ou siga sua academia':'Share GingaPass or follow your school','WhatsApp':'WhatsApp','Instagram':'Instagram',
+    'Redes sociais':'Social media','Compartilhe o GingaWay ou siga sua academia':'Share GingaWay or follow your school','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Appearance','Escolha a cor do seu app. Só muda no seu aparelho.':'Choose your app color. Only changes on your device.','Escolha até 3 fotos pra aparecerem no topo do app, no lugar das fotos padrão.':'Choose up to 3 photos to show at the top of the app, instead of the default ones.','Salvar fotos do topo':'Save top photos','Restaurar padrão':'Restore default',
     'Idioma / Language / Langue / Sprache':'Language',
-    'Mural de fotos':'Photo wall','Fotos de todos os alunos e professores da rede — curta e comente':'Photos from all students and teachers in the network — like and comment','Publicar uma foto':'Post a photo','Escreva uma legenda (opcional)':'Write a caption (optional)','Publicar no mural':'Post to the wall','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaPass.':'Your photos are visible to all network members with a GingaPass account.','Mural':'Wall','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'No photos posted yet. Be the first!',
+    'Mural de fotos':'Photo wall','Fotos de todos os alunos e professores da rede — curta e comente':'Photos from all students and teachers in the network — like and comment','Publicar uma foto':'Post a photo','Escreva uma legenda (opcional)':'Write a caption (optional)','Publicar no mural':'Post to the wall','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaWay.':'Your photos are visible to all network members with a GingaWay account.','Mural':'Wall','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'No photos posted yet. Be the first!',
     'Painel do professor':'Teacher panel','Publique eventos e fotos da sua unidade':'Post events and photos for your school','Novo evento':'New event','Nome do evento':'Event name','Data (ex: 10 de setembro)':'Date (e.g. September 10)','Local':'Location','Link de pagamento da inscrição (opcional)':'Registration payment link (optional)','Publicar evento':'Post event','QR de check-in do evento':'Event check-in QR',
     'Aulas online (link do YouTube/Vimeo)':'Online classes (YouTube/Vimeo link)','Título da aula (ex: Ginga básica)':'Class title (e.g. Basic Ginga)','Link do YouTube ou Vimeo':'YouTube or Vimeo link','Enviar para aprovação':'Send for approval',
     'Fotos da academia':'School photos','Publicar fotos':'Post photos','Contato da academia':'School contact','Telefone / WhatsApp':'Phone / WhatsApp','Link do Instagram':'Instagram link','Salvar contato':'Save contact',
@@ -24202,13 +24201,13 @@ const IDIOMAS = {
     'Próxima aula':'Prochain cours','Turma ainda não definida':'Classe pas encore définie','Professor e núcleo ainda não definidos':'Professeur et école pas encore définis','Confirmar':'Confirmer',
     'Frequência no mês':'Assiduité du mois','Em dia':'À jour','Atrasado':'En retard','Próximos eventos':'Prochains événements','Nenhum evento publicado ainda.':'Aucun événement publié pour le moment.',
     'Academias da rede':'Écoles du réseau','Encontre um núcleo perto de você':'Trouvez une école près de chez vous','Buscar por bairro ou cidade':'Rechercher par quartier ou ville','Nenhuma academia cadastrada na rede ainda.':'Aucune école enregistrée dans le réseau pour le moment.',
-    'Seu plano associado GingaPass':'Votre abonnement GingaPass','Situação atual':'Statut actuel','Pagar com Pix':'Payer avec Pix','Pagar com cartão':'Payer par carte','Seu professor ainda não cadastrou a forma de pagamento.':"Votre professeur n'a pas encore configuré de moyen de paiement.",'Histórico de pagamentos':'Historique des paiements',
+    'Seu plano associado GingaWay':'Votre abonnement GingaWay','Situação atual':'Statut actuel','Pagar com Pix':'Payer avec Pix','Pagar com cartão':'Payer par carte','Seu professor ainda não cadastrou a forma de pagamento.':"Votre professeur n'a pas encore configuré de moyen de paiement.",'Histórico de pagamentos':'Historique des paiements',
     'Carregando...':'Chargement...','Associado desde —':'Membre depuis —','Corda ainda não definida':'Ceinture pas encore définie','Núcleo principal':'École principale','Ainda não definido':'Pas encore défini','E-mail':'E-mail','Telefone':'Téléphone','Editar perfil':'Modifier le profil','Editar dados':'Modifier les infos','Nome completo':'Nom complet','Foto de perfil':'Photo de profil',
     'Padrão da rede (só a matriz edita)':"Réglage réseau (modifiable par le siège uniquement)",'Selecione o núcleo...':"Sélectionnez l'école...",'Selecione o professor...':'Sélectionnez le professeur...',
-    'Redes sociais':'Réseaux sociaux','Compartilhe o GingaPass ou siga sua academia':'Partagez GingaPass ou suivez votre école','WhatsApp':'WhatsApp','Instagram':'Instagram',
+    'Redes sociais':'Réseaux sociaux','Compartilhe o GingaWay ou siga sua academia':'Partagez GingaWay ou suivez votre école','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Apparence','Escolha a cor do seu app. Só muda no seu aparelho.':'Choisissez la couleur de votre appli. Ne change que sur votre appareil.','Escolha até 3 fotos pra aparecerem no topo do app, no lugar das fotos padrão.':"Choisissez jusqu'à 3 photos à afficher en haut de l'appli, à la place des photos par défaut.",'Salvar fotos do topo':'Enregistrer les photos du haut','Restaurar padrão':'Rétablir par défaut',
     'Idioma / Language / Langue / Sprache':'Langue',
-    'Mural de fotos':'Mur de photos','Fotos de todos os alunos e professores da rede — curta e comente':'Photos de tous les élèves et professeurs du réseau — aimez et commentez','Publicar uma foto':'Publier une photo','Escreva uma legenda (opcional)':'Écrivez une légende (facultatif)','Publicar no mural':'Publier sur le mur','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaPass.':'Vos photos sont visibles par tous les membres du réseau ayant un compte GingaPass.','Mural':'Mur','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'Aucune photo publiée pour le moment. Soyez le premier !',
+    'Mural de fotos':'Mur de photos','Fotos de todos os alunos e professores da rede — curta e comente':'Photos de tous les élèves et professeurs du réseau — aimez et commentez','Publicar uma foto':'Publier une photo','Escreva uma legenda (opcional)':'Écrivez une légende (facultatif)','Publicar no mural':'Publier sur le mur','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaWay.':'Vos photos sont visibles par tous les membres du réseau ayant un compte GingaWay.','Mural':'Mur','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'Aucune photo publiée pour le moment. Soyez le premier !',
     'Painel do professor':'Panneau du professeur','Publique eventos e fotos da sua unidade':'Publiez des événements et des photos de votre école','Novo evento':'Nouvel événement','Nome do evento':"Nom de l'événement",'Data (ex: 10 de setembro)':'Date (ex. 10 septembre)','Local':'Lieu','Link de pagamento da inscrição (opcional)':"Lien de paiement d'inscription (facultatif)",'Publicar evento':"Publier l'événement",'QR de check-in do evento':"QR de présence de l'événement",
     'Aulas online (link do YouTube/Vimeo)':'Cours en ligne (lien YouTube/Vimeo)','Título da aula (ex: Ginga básica)':'Titre du cours (ex. Ginga de base)','Link do YouTube ou Vimeo':'Lien YouTube ou Vimeo','Enviar para aprovação':'Envoyer pour approbation',
     'Fotos da academia':"Photos de l'école",'Publicar fotos':'Publier des photos','Contato da academia':"Contact de l'école",'Telefone / WhatsApp':'Téléphone / WhatsApp','Link do Instagram':'Lien Instagram','Salvar contato':'Enregistrer le contact',
@@ -24239,13 +24238,13 @@ const IDIOMAS = {
     'Próxima aula':'Nächster Kurs','Turma ainda não definida':'Klasse noch nicht festgelegt','Professor e núcleo ainda não definidos':'Lehrer und Schule noch nicht festgelegt','Confirmar':'Bestätigen',
     'Frequência no mês':'Anwesenheit diesen Monat','Em dia':'Aktuell','Atrasado':'Überfällig','Próximos eventos':'Nächste Events','Nenhum evento publicado ainda.':'Noch keine Events veröffentlicht.',
     'Academias da rede':'Netzwerk-Schulen','Encontre um núcleo perto de você':'Finde eine Schule in deiner Nähe','Buscar por bairro ou cidade':'Nach Stadtteil oder Stadt suchen','Nenhuma academia cadastrada na rede ainda.':'Noch keine Schule im Netzwerk registriert.',
-    'Seu plano associado GingaPass':'Dein GingaPass-Mitgliedschaftsplan','Situação atual':'Aktueller Status','Pagar com Pix':'Mit Pix bezahlen','Pagar com cartão':'Mit Karte bezahlen','Seu professor ainda não cadastrou a forma de pagamento.':'Dein Lehrer hat noch keine Zahlungsmethode eingerichtet.','Histórico de pagamentos':'Zahlungsverlauf',
+    'Seu plano associado GingaWay':'Dein GingaWay-Mitgliedschaftsplan','Situação atual':'Aktueller Status','Pagar com Pix':'Mit Pix bezahlen','Pagar com cartão':'Mit Karte bezahlen','Seu professor ainda não cadastrou a forma de pagamento.':'Dein Lehrer hat noch keine Zahlungsmethode eingerichtet.','Histórico de pagamentos':'Zahlungsverlauf',
     'Carregando...':'Lädt...','Associado desde —':'Mitglied seit —','Corda ainda não definida':'Gürtel noch nicht festgelegt','Núcleo principal':'Hauptschule','Ainda não definido':'Noch nicht festgelegt','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil bearbeiten','Editar dados':'Daten bearbeiten','Nome completo':'Vollständiger Name','Foto de perfil':'Profilfoto',
     'Padrão da rede (só a matriz edita)':'Netzwerk-Standard (nur von der Zentrale bearbeitbar)','Selecione o núcleo...':'Schule auswählen...','Selecione o professor...':'Lehrer auswählen...',
-    'Redes sociais':'Soziale Medien','Compartilhe o GingaPass ou siga sua academia':'Teile GingaPass oder folge deiner Schule','WhatsApp':'WhatsApp','Instagram':'Instagram',
+    'Redes sociais':'Soziale Medien','Compartilhe o GingaWay ou siga sua academia':'Teile GingaWay oder folge deiner Schule','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Erscheinungsbild','Escolha a cor do seu app. Só muda no seu aparelho.':'Wähle die Farbe deiner App. Ändert sich nur auf deinem Gerät.','Escolha até 3 fotos pra aparecerem no topo do app, no lugar das fotos padrão.':'Wähle bis zu 3 Fotos, die oben in der App statt der Standardfotos angezeigt werden.','Salvar fotos do topo':'Titelfotos speichern','Restaurar padrão':'Standard wiederherstellen',
     'Idioma / Language / Langue / Sprache':'Sprache',
-    'Mural de fotos':'Fotowand','Fotos de todos os alunos e professores da rede — curta e comente':'Fotos von allen Schülern und Lehrern im Netzwerk — liken und kommentieren','Publicar uma foto':'Foto posten','Escreva uma legenda (opcional)':'Bildunterschrift schreiben (optional)','Publicar no mural':'An der Wand posten','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaPass.':'Deine Fotos sind für alle Netzwerkmitglieder mit GingaPass-Konto sichtbar.','Mural':'Wand','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'Noch keine Fotos gepostet. Sei der Erste!',
+    'Mural de fotos':'Fotowand','Fotos de todos os alunos e professores da rede — curta e comente':'Fotos von allen Schülern und Lehrern im Netzwerk — liken und kommentieren','Publicar uma foto':'Foto posten','Escreva uma legenda (opcional)':'Bildunterschrift schreiben (optional)','Publicar no mural':'An der Wand posten','Suas fotos ficam visíveis pra todos os associados da rede com conta no GingaWay.':'Deine Fotos sind für alle Netzwerkmitglieder mit GingaWay-Konto sichtbar.','Mural':'Wand','Nenhuma foto publicada ainda. Seja o primeiro a postar!':'Noch keine Fotos gepostet. Sei der Erste!',
     'Painel do professor':'Lehrer-Bereich','Publique eventos e fotos da sua unidade':'Veröffentliche Events und Fotos deiner Schule','Novo evento':'Neues Event','Nome do evento':'Eventname','Data (ex: 10 de setembro)':'Datum (z. B. 10. September)','Local':'Ort','Link de pagamento da inscrição (opcional)':'Zahlungslink für die Anmeldung (optional)','Publicar evento':'Event veröffentlichen','QR de check-in do evento':'Event-Check-in-QR',
     'Aulas online (link do YouTube/Vimeo)':'Online-Kurse (YouTube/Vimeo-Link)','Título da aula (ex: Ginga básica)':'Kurstitel (z. B. Grundlegendes Ginga)','Link do YouTube ou Vimeo':'YouTube- oder Vimeo-Link','Enviar para aprovação':'Zur Freigabe senden',
     'Fotos da academia':'Schulfotos','Publicar fotos':'Fotos posten','Contato da academia':'Schulkontakt','Telefone / WhatsApp':'Telefon / WhatsApp','Link do Instagram':'Instagram-Link','Salvar contato':'Kontakt speichern',
@@ -24274,7 +24273,7 @@ const IDIOMAS = {
     'Início':'Start','Academias':'Schoulen','Mensalidade':'Bäitrag','Perfil':'Profil','Fotos':'Fotoen','Professor':'Enseignant','Chat':'Chat','Check-in':'Präsenz','Aulas':'Coursen','Dados':'Daten','Estatísticas':'Statistike',
     'Seu app de treinos':'Deng Training-App','Entre com seu usuário e senha':'Mell dech mat Benotzernumm a Passwuert un','Aluno':'Schüler','Usuário':'Benotzernumm','Senha':'Passwuert','Entrar':'Aloggen','Sair':'Ausloggen',
     'Próxima aula':'Nächste Coursen','Confirmar':'Bestätegen','Frequência no mês':'Präsenz dëse Mount','Em dia':'Um Dag','Atrasado':'Zeréck','Próximos eventos':'Nächst Evenementer',
-    'Academias da rede':'Netzwierk-Schoulen','Seu plano associado GingaPass':'Däin GingaPass-Abo','Situação atual':'Aktuelle Situatioun','Pagar com Pix':'Mat Pix bezuelen','Pagar com cartão':'Mat Kaart bezuelen','Histórico de pagamentos':'Bezuelungshistorique',
+    'Academias da rede':'Netzwierk-Schoulen','Seu plano associado GingaWay':'Däin GingaWay-Abo','Situação atual':'Aktuelle Situatioun','Pagar com Pix':'Mat Pix bezuelen','Pagar com cartão':'Mat Kaart bezuelen','Histórico de pagamentos':'Bezuelungshistorique',
     'Carregando...':'Lueden...','E-mail':'E-Mail','Telefone':'Telefon','Editar perfil':'Profil änneren','Redes sociais':'Sozial Medien','WhatsApp':'WhatsApp','Instagram':'Instagram',
     'Aparência':'Optik','Salvar fotos do topo':'Fotoe späicheren','Restaurar padrão':'Standard erëmhuelen','Idioma / Language / Langue / Sprache':'Sprooch',
     'Mural de fotos':'Fotoswand','Publicar uma foto':'Foto posten','Publicar no mural':'Op der Wand posten','Mural':'Wand',

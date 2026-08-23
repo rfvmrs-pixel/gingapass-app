@@ -1,6 +1,6 @@
 {
-  "name": "GingaPass",
-  "short_name": "GingaPass",
+  "name": "GingaWay",
+  "short_name": "GingaWay",
   "description": "Seu app de treinos de capoeira",
   "start_url": "./index.html",
   "display": "standalone",
