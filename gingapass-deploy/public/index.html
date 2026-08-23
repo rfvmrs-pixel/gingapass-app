@@ -23617,6 +23617,29 @@ function abrirPerfilAcademiaPublico(nomeNucleo){
   abrirPerfilPublico('professor', nomeProfessor);
 }
 
+// "Dar um toque" direto do marcador do mapa (academia ou aluno), sem precisar
+// abrir o perfil público primeiro — clica no ícone, manda o toque na hora.
+function enviarPullAcademiaMapa(nomeNucleo){
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const entrada = rede.find(a => a.nome === nomeNucleo);
+  const nomeProfessor = entrada ? (entrada.professor || '').trim() : '';
+  if(!nomeProfessor){
+    alert('Essa academia ainda não tem professor/mestre responsável cadastrado.');
+    return;
+  }
+  const contaProf = obterAcademiaContaPorNucleoOuProfessor(nomeProfessor);
+  if(!contaProf){
+    alert('Não consegui identificar o login dessa academia.');
+    return;
+  }
+  enviarPull('academia:' + contaProf.user, nomeProfessor);
+}
+
+function enviarPullAlunoMapa(user, nome){
+  if(!user) return;
+  enviarPull('aluno:' + user, nome);
+}
+
 let _academiasMapaInstancia = null;
 let _academiasMapaMarkers = null;
 let _academiasMapaGeocodificando = false;
@@ -23749,6 +23772,7 @@ function _popularMarcadoresAcademiasMapa(layerGroup, rede){
       const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
       marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') +
         '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>' +
+        '<br><a href="#" onclick="enviarPullAcademiaMapa(\'' + nomeEscapado + '\'); return false;">🖐️ Dar um toque</a>' +
         '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
       marker.addTo(layerGroup);
       pontos.push([geo.lat, geo.lon]);
@@ -23799,8 +23823,11 @@ function _popularMarcadoresAlunosMapa(layerGroup, alunos){
       const textoWhats = al.nome + (local ? ' (' + local + ')' : '') +
         '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + geo.lat + ',' + geo.lon;
       const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
+      const userEscapado = (al.user || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const nomeAlunoEscapado = (al.nome || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       marker.bindPopup('<b>🧍 ' + al.nome + '</b>' + (local ? '<br>' + local : '') +
         '<br><span style="font-size:11px;color:#6b7a89;">Endereço cadastrado pelo aluno</span>' +
+        (userEscapado ? ('<br><a href="#" onclick="enviarPullAlunoMapa(\'' + userEscapado + '\', \'' + nomeAlunoEscapado + '\'); return false;">🖐️ Dar um toque</a>') : '') +
         '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar endereço no WhatsApp</a>');
       marker.addTo(layerGroup);
       pontos.push([geo.lat, geo.lon]);
@@ -25773,6 +25800,19 @@ document.addEventListener('DOMContentLoaded', function(){
 
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+});
+
+// No PWA instalado (ícone na tela de início), reabrir o app às vezes só
+// "acorda" a página de onde ela parou (o navegador restaura tudo da memória,
+// sem baixar nada de novo) em vez de carregar do zero — quem atualizou o app
+// então continua vendo a versão antiga até fechar o app na força (arrastar
+// pra cima no seletor de apps) e abrir de novo. O evento "pageshow" com
+// persisted=true é exatamente esse caso — força um recarregamento de
+// verdade quando isso acontece, pra sempre pegar a versão mais nova sozinho.
+window.addEventListener('pageshow', function(event){
+  if(event.persisted){
+    location.reload();
   }
 });
 </script>
