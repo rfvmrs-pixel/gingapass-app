@@ -517,7 +517,7 @@
     padding:10px 12px;
     border-radius:10px;
     border:1px solid #E2D8C4;
-    font-size:13px;
+    font-size:16px; /* nunca abaixo de 16px — senão o Safari do iPhone dá zoom sozinho ao focar o campo */
     font-family:'Inter',sans-serif;
     background:var(--white);
   }
@@ -579,7 +579,7 @@
   .input-wrap .input-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.75;pointer-events:none;}
   .login-content input{
     width:100%;margin-bottom:0;padding:12px 14px 12px 40px;
-    border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;
+    border-radius:12px;font-size:16px;font-family:'Inter',sans-serif;
     background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.18);
     color:var(--cream);
   }
@@ -617,7 +617,7 @@
   .chat-bubble.user{background:var(--navy-900);color:var(--cream);margin-left:auto;border-bottom-right-radius:4px;}
   .chat-bubble.bot{background:var(--white);color:var(--ink);margin-right:auto;border-bottom-left-radius:4px;box-shadow:0 2px 8px rgba(4,44,83,0.06);}
   .chat-input-row{display:flex;gap:8px;}
-  .chat-input-row input{flex:1;padding:11px 14px;border-radius:100px;border:1px solid #E2D8C4;font-size:13px;font-family:'Inter',sans-serif;}
+  .chat-input-row input{flex:1;padding:11px 14px;border-radius:100px;border:1px solid #E2D8C4;font-size:16px;font-family:'Inter',sans-serif;}
   .chat-send{
     background:var(--navy-900);color:var(--cream);border:none;border-radius:50%;
     width:42px;height:42px;flex-shrink:0;cursor:pointer;font-size:16px;
@@ -811,20 +811,20 @@
       <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
       <a href="?gingaway=1" style="display:block;margin-top:10px;font-size:11.5px;color:var(--amber-500);text-decoration:underline;">🥊 Quer treinar sem vínculo com um grupo? Vire Aluno GingaWay</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
-        <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
-        <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
-        <input id="setupMasterSenha" type="password" placeholder="Senha que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
-        <input id="setupMasterPergunta" placeholder="Pergunta de segurança (ex: nome do seu primeiro cachorro)" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
-        <input id="setupMasterResposta" placeholder="Resposta da pergunta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
+        <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
+        <input id="setupMasterSenha" type="password" placeholder="Senha que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
+        <input id="setupMasterPergunta" placeholder="Pergunta de segurança (ex: nome do seu primeiro cachorro)" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
+        <input id="setupMasterResposta" placeholder="Resposta da pergunta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
         <button class="btn" onclick="criarMaster()" type="button" style="background:var(--amber-500);color:var(--navy-900);">Criar cadastro master</button>
       </div>
       <div id="recuperarSenhaBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
-        <input id="recSenhaUser" placeholder="Seu usuário" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+        <input id="recSenhaUser" placeholder="Seu usuário" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
         <button class="btn" onclick="buscarPerguntaRecuperacao()" type="button" style="background:var(--white);color:var(--navy-900);">Buscar pergunta de segurança</button>
         <div id="recSenhaPerguntaBox" style="display:none;margin-top:10px;">
           <p id="recSenhaPerguntaTexto" style="font-size:12.5px;color:#E7EEF6;margin:0 0 8px;"></p>
-          <input id="recSenhaResposta" placeholder="Sua resposta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
-          <input id="recSenhaNova" type="password" placeholder="Nova senha" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
+          <input id="recSenhaResposta" placeholder="Sua resposta" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
+          <input id="recSenhaNova" type="password" placeholder="Nova senha" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
           <button class="btn" onclick="confirmarRecuperacaoSenha()" type="button" style="background:var(--amber-500);color:var(--navy-900);">Confirmar e trocar senha</button>
         </div>
       </div>
@@ -966,7 +966,7 @@
       <button class="btn" type="button" onclick="showScreen('gingawayCheckin')" style="background:var(--amber-500);color:#2A1B04;margin:0;">📍 Ver academias parceiras por modalidade</button>
     </div>
     <div class="search-bar" style="padding:0;">
-      <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por bairro, cidade, estado ou país" oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:14px;padding:12px 14px;color:var(--ink);">
+      <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por bairro, cidade, estado ou país" oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:16px;padding:12px 14px;color:var(--ink);">
     </div>
     <button class="btn" type="button" onclick="calcularDistanciasAcademias(this)" style="margin-bottom:14px;">📍 Ver distância até você</button>
     <p id="distanciaStatus" style="font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;"></p>
@@ -5532,11 +5532,11 @@ function executarModoCheckinRapido(){
       <p id="checkinRapidoSub" style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">Confirme sua presença na aula de hoje</p>
       <div id="checkinRapidoForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu nome completo</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoNome" placeholder="Nome completo">
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoNome" placeholder="Nome completo">
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Graduação / corda</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoGraduacao" placeholder="Ex: Corda Verde e Amarela">
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoGraduacao" placeholder="Ex: Corda Verde e Amarela">
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">De qual professor você é aluno?</label>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoProfessor"><option value="">Carregando professores...</option></select>
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="checkinRapidoProfessor"><option value="">Carregando professores...</option></select>
         <p id="checkinRapidoErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
         <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#EF9F27;color:#042C53;font-weight:700;font-size:15px;cursor:pointer;" id="checkinRapidoBtn" onclick="confirmarCheckinRapido()">Confirmar presença</button>
       </div>
@@ -5698,9 +5698,9 @@ function executarModoConviteEvento(){
         <button style="width:100%;padding:14px;border:1.5px solid #042C53;border-radius:100px;background:#fff;color:#042C53;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:16px;" onclick="location.href = location.pathname;">Já tenho conta — Entrar com login e senha</button>
         <p style="text-align:center;font-size:11.5px;color:#8FA3B8;margin:0 0 16px;">— ou confirme sem conta —</p>
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu nome completo</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkNome" placeholder="Nome completo">
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkNome" placeholder="Nome completo">
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu grupo/academia (opcional)</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkGrupo" placeholder="Ex: Capoeira Team">
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="conviteEventoLinkGrupo" placeholder="Ex: Capoeira Team">
         <p id="conviteEventoLinkErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
         <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="conviteEventoLinkBtn" onclick="confirmarPresencaVisitanteLink()">✅ Confirmar minha presença</button>
         <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">Isso só confirma sua presença nesse evento — não cria uma conta no app.</p>
@@ -6407,7 +6407,7 @@ function executarModoGingaWaySignup(){
   if(params.get('gingaway') !== '1') return;
 
   const campo = (id, label, placeholder, tipo) => '<label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">' + label + '</label>' +
-    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
+    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
 
   const planosHtml = Object.keys(GINGAWAY_PLANOS).map(function(chave){
     const p = GINGAWAY_PLANOS[chave];
@@ -6423,7 +6423,7 @@ function executarModoGingaWaySignup(){
       <div id="gwSignupForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
         ${campo('gwSignupApelido', 'Seu apelido', 'Como quer ser chamado(a)')}
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Modalidade que você quer treinar</label>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="gwSignupModalidade" onchange="_atualizarDatalistGraduacaoSignup()">
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="gwSignupModalidade" onchange="_atualizarDatalistGraduacaoSignup()">
           <option value="Jiu-Jitsu">Jiu-Jitsu</option>
           <option value="Muay Thai">Muay Thai</option>
           <option value="Boxe">Boxe</option>
@@ -6432,7 +6432,7 @@ function executarModoGingaWaySignup(){
           <option value="Calistenia">Calistenia</option>
         </select>
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Sua graduação/faixa atual (opcional)</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="gwSignupGraduacao" list="gwSignupGraduacaoDatalist" placeholder="Ex: Faixa Branca (deixe em branco se não souber)">
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="gwSignupGraduacao" list="gwSignupGraduacaoDatalist" placeholder="Ex: Faixa Branca (deixe em branco se não souber)">
         <datalist id="gwSignupGraduacaoDatalist"></datalist>
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:8px;font-weight:600;">Escolha seu plano</label>
         <div style="margin-bottom:6px;">${planosHtml}</div>
@@ -6747,7 +6747,7 @@ function executarModoCadastroLink(camposAnteriores){
   const codigosCurtos = {pt:'PT', en:'EN', fr:'FR', de:'DE', lb:'LU'};
 
   const campo = (id, label, placeholder, tipo) => '<label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">' + label + '</label>' +
-    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
+    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
 
   const idiomaBtns = Object.keys(codigosCurtos).map(cod => {
     const ativo = cod === idiomaAtual;
@@ -6762,7 +6762,7 @@ function executarModoCadastroLink(camposAnteriores){
       <div id="cadastroLinkForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
         ${campo('cadastroLinkApelido', t.labelApelido, t.placeholderApelido)}
         <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">${t.labelGraduacao}</label>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="cadastroLinkGraduacao">
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="cadastroLinkGraduacao">
           <option value="Aluno">${t.optAluno}</option>
           <option value="Graduado">${t.optGraduado}</option>
           <option value="Instrutor">${t.optInstrutor}</option>
@@ -6781,8 +6781,8 @@ function executarModoCadastroLink(camposAnteriores){
           <button type="button" id="cadastroLinkProfModoListaBtn" onclick="alternarCadastroLinkProfessorModo('lista')" style="flex:1;padding:10px;border-radius:100px;border:1.5px solid #042C53;background:#042C53;color:#fff;font-weight:700;font-size:12px;cursor:pointer;">${t.btnProfLista}</button>
           <button type="button" id="cadastroLinkProfModoDigitarBtn" onclick="alternarCadastroLinkProfessorModo('digitar')" style="flex:1;padding:10px;border-radius:100px;border:1.5px solid #042C53;background:#fff;color:#042C53;font-weight:700;font-size:12px;cursor:pointer;">${t.btnProfDigitar}</button>
         </div>
-        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;background:#fff;" id="cadastroLinkProfessorSelect"><option value="">${t.optSelecioneProfessor}</option></select>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;display:none;" id="cadastroLinkProfessorManual" placeholder="${t.placeholderProfessorDigite}" autocomplete="off">
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:8px;box-sizing:border-box;background:#fff;" id="cadastroLinkProfessorSelect"><option value="">${t.optSelecioneProfessor}</option></select>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:16px;margin-bottom:8px;box-sizing:border-box;display:none;" id="cadastroLinkProfessorManual" placeholder="${t.placeholderProfessorDigite}" autocomplete="off">
         <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">${t.helpProfessor}</p>
         ${campo('cadastroLinkGrupo', t.labelGrupo, t.placeholderGrupo)}
         ${campo('cadastroLinkUser', t.labelUser, t.placeholderUser)}
