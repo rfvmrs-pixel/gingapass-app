@@ -895,6 +895,11 @@
       </div>
     </div>
 
+    <div class="card" id="painelAcessosHomeCard" style="display:none;background:var(--white);border:1px solid var(--line);">
+      <div class="card-label">📶 Acessos à rede</div>
+      <div class="stat-grid" id="painelAcessosHomeStats"></div>
+    </div>
+
     <div class="card" id="muralHomeCard">
       <div class="card-label">Mural em destaque</div>
       <div style="border-radius:14px;overflow:hidden;background:#EFE6D2;">
@@ -1076,6 +1081,7 @@
       <div class="info-row" id="perfilGrupoRow" style="display:none;"><span>Grupo</span><span id="perfilGrupoView">—</span></div>
       <div class="info-row"><span>Núcleo principal</span><span id="perfilNucleoView">IIGD - Sede</span></div>
       <div class="info-row"><span>Professor</span><span id="perfilProfessorView">Mestrando Borracha</span></div>
+      <div class="info-row" id="perfilTotalAlunosRow" style="display:none;"><span>👥 Total de alunos</span><span id="perfilTotalAlunosView">0</span></div>
       <div class="info-row"><span>E-mail</span><span id="perfilEmailView">cristianoborracha2024@hotmail.com</span></div>
       <div class="info-row"><span>Telefone</span><span id="perfilTelView">+55 21 99192-4296</span></div>
       <div class="info-row" id="perfilNascimentoRow" style="display:none;"><span>Data de nascimento</span><span id="perfilNascimentoView">—</span></div>
@@ -1124,11 +1130,13 @@
 
     <div class="card" id="perfilCardCredenciaisMaster" style="display:none;margin-top:14px;background:#F6EFDD;">
       <p class="card-label" style="margin:0 0 6px;">Usuário e senha master</p>
-      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">É o login usado pra entrar como matriz (o mais alto da rede). Pra trocar, confirme a senha master atual.</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">É o login usado pra entrar como matriz (o mais alto da rede). Pra trocar, confirme a senha master atual e a resposta da pergunta de segurança.</p>
       <input class="admin-input" id="masterSenhaAtualInput" type="password" placeholder="Senha master atual (obrigatório pra confirmar)">
+      <input class="admin-input" id="masterRespostaSegurancaInput" placeholder="Resposta da pergunta de segurança (confirmação extra)">
       <input class="admin-input" id="masterNovoUserInput" placeholder="Novo usuário (deixe em branco pra manter o atual)">
       <input class="admin-input" id="masterNovaSenhaInput" type="password" placeholder="Nova senha (deixe em branco pra manter a atual)" style="margin-bottom:0;">
       <button class="btn" type="button" style="margin-top:12px;" onclick="atualizarCredenciaisMaster()">Atualizar login master</button>
+      <p id="masterUltimaAlteracaoTexto" style="font-size:10.5px;color:var(--ink-soft);margin:10px 0 0;"></p>
     </div>
 
     <div class="card" id="perfilCardMeusNucleos" style="display:none;margin-top:14px;">
@@ -2017,6 +2025,7 @@
       <p class="greeting" id="perfilPublicoNome" style="font-size:18px;margin-bottom:2px;">Nome</p>
       <p class="subgreeting" id="perfilPublicoTag">Professor</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:10px 0 0;" id="perfilPublicoInfo"></p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 0;display:none;" id="perfilPublicoAlunosInfo"></p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
         <button class="btn" type="button" id="perfilPublicoMsgBtn" onclick="abrirChatDiretoDoPerfilPublico()" style="width:auto;padding:10px 22px;margin:0;">💬 Mandar mensagem</button>
         <button class="btn" type="button" id="perfilPublicoPullBtn" onclick="enviarPullPerfilPublico()" style="width:auto;padding:10px 22px;margin:0;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">🖐️ Dar um toque</button>
@@ -7643,8 +7652,10 @@ function alternarSetupMaster(){
 }
 
 // Troca o usuário e/ou a senha do login master (matriz) — exige a senha
-// master ATUAL como confirmação, pra ninguém trocar por acidente ou sem ser
-// o dono de verdade. Mantém nome/pergunta/resposta de segurança como estavam.
+// master ATUAL E a resposta da pergunta de segurança como dupla confirmação,
+// pra ninguém trocar só porque viu/adivinhou a senha uma vez (foi exatamente
+// assim que o login master trocou sem o dono saber, uma vez). Mantém
+// nome/pergunta/resposta como estavam e registra um log de auditoria.
 function atualizarCredenciaisMaster(){
   if(currentRole !== 'matriz'){
     alert('Só quem está logado como matriz pode trocar o login master.');
@@ -7656,9 +7667,11 @@ function atualizarCredenciaisMaster(){
     return;
   }
   const senhaAtualInput = document.getElementById('masterSenhaAtualInput');
+  const respostaInput = document.getElementById('masterRespostaSegurancaInput');
   const novoUserInput = document.getElementById('masterNovoUserInput');
   const novaSenhaInput = document.getElementById('masterNovaSenhaInput');
   const senhaAtual = senhaAtualInput.value.trim();
+  const respostaDigitada = (respostaInput.value || '').trim().toLowerCase();
   const novoUser = novoUserInput.value.trim();
   const novaSenha = novaSenhaInput.value.trim();
 
@@ -7670,6 +7683,16 @@ function atualizarCredenciaisMaster(){
     alert('Senha atual incorreta. Não é possível trocar o login master sem confirmar a senha certa.');
     return;
   }
+  if(master.pergunta && master.resposta){
+    if(!respostaDigitada){
+      alert('Digite também a resposta da pergunta de segurança ("' + master.pergunta + '") — é a segunda confirmação obrigatória pra trocar o login master.');
+      return;
+    }
+    if(respostaDigitada !== master.resposta){
+      alert('Resposta da pergunta de segurança incorreta. Não é possível trocar o login master sem essa confirmação.');
+      return;
+    }
+  }
   if(!novoUser && !novaSenha){
     alert('Preencha o novo usuário e/ou a nova senha (pelo menos um dos dois) — se deixar tudo em branco, não muda nada.');
     return;
@@ -7679,6 +7702,7 @@ function atualizarCredenciaisMaster(){
     return;
   }
 
+  const userAntigo = master.user;
   const masterAtualizado = Object.assign({}, master, {
     user: novoUser || master.user,
     senha: novaSenha || master.senha
@@ -7688,11 +7712,64 @@ function atualizarCredenciaisMaster(){
       alert('Salvo neste aparelho, mas não sincronizou com a nuvem agora — verifique a conexão e tente de novo, senão o login master fica diferente em cada aparelho.');
       return;
     }
+    registrarAlteracaoLoginMaster(userAntigo, masterAtualizado.user);
     senhaAtualInput.value = '';
+    respostaInput.value = '';
     novoUserInput.value = '';
     novaSenhaInput.value = '';
     alert('Login master atualizado! Da próxima vez que entrar, use o usuário "' + masterAtualizado.user + '" com a nova senha.');
   });
+}
+
+// Registra em log (quem trocou de qual usuário pra qual, quando, e um
+// resumo do navegador/aparelho) toda vez que o login master muda — pra dar
+// pra rastrear depois se a troca não foi o dono de verdade que fez.
+function registrarAlteracaoLoginMaster(userAntigo, userNovo){
+  buscarValorFresco('gingapass_master_log').then(function(valorFresco){
+    const log = JSON.parse(valorFresco || '[]');
+    log.push({
+      quando: Date.now(),
+      userAntigo: userAntigo,
+      userNovo: userNovo,
+      dispositivo: (navigator.userAgent || '').slice(0, 140)
+    });
+    if(log.length > 50) log.splice(0, log.length - 50);
+    setDado('gingapass_master_log', JSON.stringify(log));
+  });
+}
+
+// Mostra pro matriz, ao entrar, um aviso se o login master foi trocado
+// recentemente (últimos 14 dias) e esse aparelho ainda não confirmou ciência
+// dessa troca específica — assim, se não foi o dono que trocou, ele percebe rápido.
+function verificarAvisoAlteracaoMaster(){
+  if(currentRole !== 'matriz') return;
+  buscarValorFresco('gingapass_master_log').then(function(valorFresco){
+    const log = JSON.parse(valorFresco || '[]');
+    if(!log.length) return;
+    const ultima = log[log.length - 1];
+    const QUINZE_DIAS_MS = 14 * 24 * 60 * 60 * 1000;
+    if((Date.now() - ultima.quando) > QUINZE_DIAS_MS) return;
+    const jaVisto = localStorage.getItem('gingapass_master_aviso_visto');
+    if(jaVisto === String(ultima.quando)) return;
+    const dataTexto = new Date(ultima.quando).toLocaleString('pt-BR');
+    alert('⚠️ Aviso de segurança: o login master foi alterado em ' + dataTexto + ' (de "' + ultima.userAntigo + '" para "' + ultima.userNovo + '"). Se não foi você, troque a senha e a pergunta de segurança agora em Perfil.');
+    localStorage.setItem('gingapass_master_aviso_visto', String(ultima.quando));
+  }).catch(function(){});
+}
+
+// Mostra, na tela de Editar perfil, quando foi a última troca do login master.
+function renderUltimaAlteracaoMaster(){
+  const el = document.getElementById('masterUltimaAlteracaoTexto');
+  if(!el) return;
+  buscarValorFresco('gingapass_master_log').then(function(valorFresco){
+    const log = JSON.parse(valorFresco || '[]');
+    if(!log.length){
+      el.textContent = '';
+      return;
+    }
+    const ultima = log[log.length - 1];
+    el.textContent = 'Última troca: ' + new Date(ultima.quando).toLocaleString('pt-BR') + ' (de "' + ultima.userAntigo + '" para "' + ultima.userNovo + '").';
+  }).catch(function(){});
 }
 
 function criarMaster(){
@@ -7803,11 +7880,73 @@ function registrarAcessoConta(role, user){
     mapa[chaveConta] = (mapa[chaveConta] || 0) + 1;
     setDado('gingapass_contagem_acessos', JSON.stringify(mapa));
   });
+  registrarAcessoPorDia(chaveConta);
 }
 
 function obterContagemAcessos(chaveConta){
   const mapa = JSON.parse(localStorage.getItem('gingapass_contagem_acessos') || '{}');
   return mapa[chaveConta] || 0;
+}
+
+// Guarda quantos acessos cada conta teve, dia a dia — {"AAAA-MM-DD": {chaveConta:
+// quantidade}}. Alimenta o card "Acessos à rede" (só matriz vê) na tela Início,
+// que mostra total de hoje/mês e em quantas contas diferentes distintas.
+// Mantém só os últimos ~65 dias pra não crescer sem limite.
+function registrarAcessoPorDia(chaveConta){
+  const hoje = new Date();
+  const diaChave = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+  buscarValorFresco('gingapass_acessos_por_dia').then(function(valorFresco){
+    const porDia = JSON.parse(valorFresco || '{}');
+    if(!porDia[diaChave]) porDia[diaChave] = {};
+    porDia[diaChave][chaveConta] = (porDia[diaChave][chaveConta] || 0) + 1;
+    const dias = Object.keys(porDia).sort();
+    if(dias.length > 65){
+      dias.slice(0, dias.length - 65).forEach(d => delete porDia[d]);
+    }
+    setDado('gingapass_acessos_por_dia', JSON.stringify(porDia));
+  });
+}
+
+// Soma os acessos guardados dia a dia dentro de um período (hoje / mês atual)
+// e devolve {total, contasDiferentes} pra exibir no painel da matriz.
+function _resumoAcessosPeriodo(filtroDiaChave){
+  const porDia = JSON.parse(localStorage.getItem('gingapass_acessos_por_dia') || '{}');
+  let total = 0;
+  const contas = new Set();
+  Object.keys(porDia).forEach(function(dia){
+    if(!filtroDiaChave(dia)) return;
+    const mapa = porDia[dia];
+    Object.keys(mapa).forEach(function(chaveConta){
+      total += mapa[chaveConta];
+      contas.add(chaveConta);
+    });
+  });
+  return {total: total, contasDiferentes: contas.size};
+}
+
+function renderPainelAcessosHome(){
+  const painel = document.getElementById('painelAcessosHomeCard');
+  if(!painel) return;
+  const souMatriz = currentRole === 'matriz';
+  painel.style.display = souMatriz ? 'block' : 'none';
+  if(!souMatriz) return;
+
+  const agora = new Date();
+  const hojeChave = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+  const mesChave = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0');
+
+  const hoje = _resumoAcessosPeriodo(function(d){ return d === hojeChave; });
+  const mes = _resumoAcessosPeriodo(function(d){ return d.startsWith(mesChave); });
+
+  const stats = document.getElementById('painelAcessosHomeStats');
+  if(stats){
+    stats.innerHTML = [
+      {n: hoje.total, l: 'Acessos hoje'},
+      {n: hoje.contasDiferentes, l: 'Contas hoje'},
+      {n: mes.total, l: 'Acessos no mês'},
+      {n: mes.contasDiferentes, l: 'Contas no mês'}
+    ].map(it => '<div class="stat"><b>' + it.n + '</b><span>' + it.l + '</span></div>').join('');
+  }
 }
 
 function entrar(role){
@@ -7822,6 +7961,7 @@ function entrar(role){
   registrarAcessoConta(role, currentUser);
   aplicarPermissoes();
   iniciarPresencaOnline();
+  if(role === 'matriz') tentarChamar(function(){ verificarAvisoAlteracaoMaster(); });
   if(role === 'pai'){
     const homeBtn = document.querySelector('.tab[data-target="home"]');
     showScreen('painelPai', homeBtn);
@@ -8187,6 +8327,7 @@ function aplicarPermissoes(){
   tentarChamar(function(){ aplicarIdiomaUI(); });
   tentarChamar(function(){ verificarPopupMensalidadeAtrasada(); });
   tentarChamar(function(){ renderPainelAdminHome(); });
+  tentarChamar(function(){ renderPainelAcessosHome(); });
 }
 
 function abrirMenuMais(){
@@ -11809,10 +11950,13 @@ function renderPerfil(){
 
   const cardCredenciaisMaster = document.getElementById('perfilCardCredenciaisMaster');
   if(cardCredenciaisMaster) cardCredenciaisMaster.style.display = (currentRole === 'matriz') ? 'block' : 'none';
+  if(currentRole === 'matriz') tentarChamar(function(){ renderUltimaAlteracaoMaster(); });
 
   // "Plano de aula" e "Aulas do professor" só existem no perfil de quem dá
   // aula (professor/matriz) — aluno nunca vê essas seções no próprio perfil.
   const souProfessorOuMatriz = currentRole === 'academia' || currentRole === 'matriz';
+  const totalAlunosRow = document.getElementById('perfilTotalAlunosRow');
+  if(totalAlunosRow) totalAlunosRow.style.display = souProfessorOuMatriz ? '' : 'none';
   const cardLinkCadastro = document.getElementById('perfilCardLinkCadastro');
   if(cardLinkCadastro) cardLinkCadastro.style.display = souProfessorOuMatriz ? 'block' : 'none';
   const cardModalidadesGingaWay = document.getElementById('perfilCardModalidadesGingaWay');
@@ -11906,6 +12050,13 @@ function renderPerfil(){
       const minhaContaAcademia = academiasContas.find(c => c.user === currentUser);
       if(nucleoView) nucleoView.textContent = (minhaContaAcademia && minhaContaAcademia.nucleosGerenciados && minhaContaAcademia.nucleosGerenciados[0]) || (minhaContaAcademia && minhaContaAcademia.nome) || 'Ainda não definido';
       if(profView) profView.textContent = obterMeuNomeProfessor() || 'Ainda não definido';
+      const alunosCountView = document.getElementById('perfilTotalAlunosView');
+      if(alunosCountView){
+        const meuNomeProf = obterMeuNomeProfessor();
+        const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+        const totalMeusAlunos = meuNomeProf ? alunosContas.filter(c => c.professor && mesmoProfessor(c.professor, meuNomeProf)).length : 0;
+        alunosCountView.textContent = totalMeusAlunos + (totalMeusAlunos === 1 ? ' aluno' : ' alunos');
+      }
       const grupoRow = document.getElementById('perfilGrupoRow');
       const grupoView = document.getElementById('perfilGrupoView');
       if(grupoRow && grupoView){
@@ -11955,6 +12106,17 @@ function renderPerfil(){
     } else {
       if(nucleoView) nucleoView.textContent = cfg.nucleo || 'Ainda não definido';
       if(profView) profView.textContent = cfg.professor || 'Ainda não definido';
+      const alunosCountViewMatriz = document.getElementById('perfilTotalAlunosView');
+      if(alunosCountViewMatriz){
+        const meuNomeProfMatriz = obterMeuNomeProfessor();
+        const alunosContasMatriz = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+        // Matriz que também dá aula vê os alunos dela; sem professor próprio
+        // definido, mostra o total da rede inteira (é a visão dela mesmo).
+        const totalAlunosMatriz = meuNomeProfMatriz
+          ? alunosContasMatriz.filter(c => c.professor && mesmoProfessor(c.professor, meuNomeProfMatriz)).length
+          : alunosContasMatriz.length;
+        alunosCountViewMatriz.textContent = totalAlunosMatriz + (totalAlunosMatriz === 1 ? ' aluno' : ' alunos') + (meuNomeProfMatriz ? '' : ' (toda a rede)');
+      }
       const cardNucleosMatriz = document.getElementById('perfilCardMeusNucleos');
       if(currentRole === 'matriz' && cardNucleosMatriz){
         // A matriz também pode ter (ou criar) um núcleo próprio em "Academias
@@ -15856,6 +16018,7 @@ function abrirPerfilPublico(tipo, identificador){
   const nomeEl = document.getElementById('perfilPublicoNome');
   const tagEl = document.getElementById('perfilPublicoTag');
   const infoEl = document.getElementById('perfilPublicoInfo');
+  const alunosInfoEl = document.getElementById('perfilPublicoAlunosInfo');
   const fotosEl = document.getElementById('perfilPublicoFotos');
   if(!avatar || !nomeEl) return;
 
@@ -15877,7 +16040,14 @@ function abrirPerfilPublico(tipo, identificador){
       infoEl.textContent = '';
     }
     autorNomeAlvo = nome;
+    if(alunosInfoEl){
+      const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+      const totalAlunos = alunosContas.filter(c => c.professor && mesmoProfessor(c.professor, nome)).length;
+      alunosInfoEl.textContent = '👥 ' + totalAlunos + (totalAlunos === 1 ? ' aluno' : ' alunos');
+      alunosInfoEl.style.display = 'block';
+    }
   } else {
+    if(alunosInfoEl) alunosInfoEl.style.display = 'none';
     const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
     const aluno = contas.find(c => c.user === identificador);
     nome = aluno ? aluno.nome : identificador;
