@@ -2115,7 +2115,8 @@
         <button class="btn" onclick="criarAcessoAluno()">Adicionar aluno</button>
       </div>
       <p class="section-title">Alunos com acesso</p>
-      <div class="card" id="alunosContasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno com acesso ainda.</p></div>
+      <input class="admin-input" id="alunosContasFiltro" placeholder="🔍 Buscar por nome, usuário, núcleo ou professor" oninput="renderAlunosContas()">
+      <div class="card" id="alunosContasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Digite algo acima pra buscar um aluno.</p></div>
       <p class="section-title">Mensalidades e check-in (seus alunos)</p>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Só aparecem aqui seus próprios alunos e os que ainda não têm professor definido — os alunos dos demais professores ficam na área de cada um deles. Início, vencimento, situação e se o aluno pode fazer check-in na próxima aula. Com 10 dias de atraso, o check-in é bloqueado automaticamente.</p>
       <div class="card" id="mensalidadesAlunosMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno seu (ou sem professor definido) por aqui — os alunos dos demais professores ficam na tela de cada um deles.</p></div>
@@ -2941,6 +2942,10 @@
         <button class="menu-mais-item tab" data-target="matriz" onclick="selecionarMenuMais(&#39;matriz&#39;, this)" style="display: flex;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>
           <span data-i18n="tabDados">Dados</span>
+        </button>
+        <button class="menu-mais-item tab" data-target="gingawayGestao" onclick="selecionarMenuMais(&#39;gingawayGestao&#39;, this)" style="display: none;">
+          <span style="font-size:22px;line-height:1;">🥊</span>
+          <span>Aluno GingaWay</span>
         </button>
         <button class="menu-mais-item tab" data-target="graduacoes" onclick="selecionarMenuMais(&#39;graduacoes&#39;, this)" style="display: none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M5 10v5c0 2 3 4 7 4s7-2 7-4v-5"></path></svg>
@@ -7772,6 +7777,8 @@ function aplicarPermissoes(){
   if(graduacoesTab) graduacoesTab.style.display = (currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
   const certificadosTab = document.querySelector('.tab[data-target="meusCertificados"]');
   if(certificadosTab) certificadosTab.style.display = (currentRole === 'aluno' || currentRole === 'academia' || currentRole === 'matriz') ? 'flex' : 'none';
+  const gingawayGestaoTab = document.querySelector('.tab[data-target="gingawayGestao"]');
+  if(gingawayGestaoTab) gingawayGestaoTab.style.display = (currentRole === 'matriz') ? 'flex' : 'none';
 
   const alunosCriarAdmin = document.getElementById('alunosCriarBoxAdmin');
   const alunosCriarMatriz = document.getElementById('alunosCriarBoxMatriz');
@@ -10971,21 +10978,40 @@ function criarAcessoAluno(){
 function renderAlunosContas(){
   const container = document.getElementById('alunosContasList');
   if(!container) return;
-  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const contasCompletas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   container.innerHTML = '';
-  if(contas.length === 0){
+  if(contasCompletas.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno com acesso ainda.</p>';
     return;
   }
-  const indices = contas.map((c, i) => i);
+  // Rede grande vira uma lista enorme sempre visível — em vez disso, só
+  // mostra depois que a matriz busca por algo (nome, usuário, núcleo ou
+  // professor), igual já funciona na tela Academias.
+  let contas = contasCompletas;
+  const filtroInput = document.getElementById('alunosContasFiltro');
+  if(filtroInput){
+    const termo = _normalizarTextoBusca(filtroInput.value);
+    if(!termo){
+      container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Digite algo acima pra buscar um aluno (' + contasCompletas.length + ' cadastrados no total).</p>';
+      return;
+    }
+    contas = contasCompletas.filter(c => _normalizarTextoBusca([c.nome, c.user, c.nucleo, c.professor].filter(Boolean).join(' ')).indexOf(termo) !== -1);
+    if(contas.length === 0){
+      container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno encontrado com esse filtro.</p>';
+      return;
+    }
+  }
+  // Os índices usados em Editar/Revogar são sempre da lista COMPLETA (não da
+  // filtrada) — é por posição nela que essas funções acham o aluno certo.
+  const indices = contas.map(c => contasCompletas.indexOf(c));
   indices.sort((a, b) => {
-    const pa = obterPrioridadeGraduacao(contas[a].nome, contas[a].user, contas[a].nivelGraduacao);
-    const pb = obterPrioridadeGraduacao(contas[b].nome, contas[b].user, contas[b].nivelGraduacao);
+    const pa = obterPrioridadeGraduacao(contasCompletas[a].nome, contasCompletas[a].user, contasCompletas[a].nivelGraduacao);
+    const pb = obterPrioridadeGraduacao(contasCompletas[b].nome, contasCompletas[b].user, contasCompletas[b].nivelGraduacao);
     if(pa !== pb) return pa - pb;
-    return (contas[a].nome || '').localeCompare(contas[b].nome || '');
+    return (contasCompletas[a].nome || '').localeCompare(contasCompletas[b].nome || '');
   });
   indices.forEach(i => {
-    const c = contas[i];
+    const c = contasCompletas[i];
     const row = document.createElement('div');
     row.className = 'aluno-row';
     const span = document.createElement('span');
@@ -11293,7 +11319,7 @@ function obterNomeExibicaoAtual(){
     if(perfil && perfil.nome) return perfil.nome.split(' ')[0];
     const nomeProfessor = obterMeuNomeProfessor();
     if(nomeProfessor) return nomeProfessor.split(' ')[0];
-    return minhaConta ? minhaConta.nome.split(' ')[0] : 'Academia';
+    return (minhaConta && minhaConta.nome) ? minhaConta.nome.split(' ')[0] : 'Academia';
   }
   if(currentRole === 'matriz'){
     const meuProf = JSON.parse(localStorage.getItem('gingapass_professor_matriz') || 'null');
@@ -15710,7 +15736,7 @@ function enviarPull(idAlvo, nomeAlvo){
     alert('Essa é a sua própria conta — não dá pra chamar a atenção de si mesmo 😅');
     return;
   }
-  const meuNome = obterNomeExibicaoAtual() || currentUser;
+  const meuNome = obterNomeExibicaoAtual() || currentUser || 'Alguém';
 
   buscarValorFresco('gingapass_pulls').then(function(valorFresco){
     const pulls = JSON.parse(valorFresco || localStorage.getItem('gingapass_pulls') || '[]');
@@ -15749,11 +15775,12 @@ function renderPullsHome(){
     return;
   }
   const ultimo = meusPullsNaoLidos[meusPullsNaoLidos.length - 1];
+  const nomeQuemChamou = ultimo.deNome || 'Alguém';
   const textoEl = document.getElementById('pullNotificacaoTexto');
   if(textoEl){
     textoEl.textContent = meusPullsNaoLidos.length === 1
-      ? (ultimo.deNome + ' te chamou! Que tal responder?')
-      : (meusPullsNaoLidos.length + ' pessoas te chamaram — a última foi ' + ultimo.deNome + '.');
+      ? (nomeQuemChamou + ' te chamou! Que tal responder?')
+      : (meusPullsNaoLidos.length + ' pessoas te chamaram — a última foi ' + nomeQuemChamou + '.');
   }
   banner.dataset.ultimoId = ultimo.deId;
   banner.dataset.ultimoNome = ultimo.deNome;
@@ -23479,6 +23506,17 @@ function renderAcademiasScreen(){
   _ultimaListaAlunosComEndereco = alunosComEndereco;
 
   container.innerHTML = '';
+
+  // Pra matriz (rede grande, muitos núcleos), a lista inteira sempre visível
+  // vira poluição — só mostra depois que ela busca por algo específico.
+  if(currentRole === 'matriz' && !termoBusca){
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Use a busca acima pra encontrar uma academia (' + rede.length + ' cadastradas na rede).</p>';
+    _ultimaRedeFiltradaAcademias = [];
+    tentarChamar(function(){ renderMapaAcademias([], []); });
+    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido([], []); });
+    return;
+  }
+
   if(rede.length === 0){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">' + (termoBusca ? 'Nenhuma academia encontrada com essa busca.' : 'Nenhuma academia cadastrada na rede ainda.') + '</p>';
     _ultimaRedeFiltradaAcademias = rede;
