@@ -5517,6 +5517,7 @@ function seedContas(nuvemConfirmada){
   verificarModoCadastroLink();
   verificarModoGingaWaySignup();
   verificarModoDemo();
+  tentarChamar(function(){ verificarPreenchimentoPosSignupGw(); });
   if(!localStorage.getItem('gingapass_academias_contas')){
     _setLocal('gingapass_academias_contas', JSON.stringify([]));
   }
@@ -6681,6 +6682,7 @@ function executarModoGingaWaySignup(){
         <div style="font-size:48px;margin-bottom:14px;">✅</div>
         <h2 style="color:#042C53;margin:0 0 8px;">Prontinho!</h2>
         <p id="gwSignupMsgTexto" style="color:#5B6B7A;font-size:14px;word-break:break-word;"></p>
+        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#EF9F27;color:#2A1B04;font-weight:700;font-size:15px;cursor:pointer;margin-top:10px;" id="gwSignupEntrarBtn" onclick="entrarDireitoAposSignupGingaWay()">Entrar agora</button>
       </div>
     </div>
   `;
@@ -6754,6 +6756,9 @@ function enviarSignupGingaWay(){
         if(msg) msg.style.display = 'block';
         const txt = document.getElementById('gwSignupMsgTexto');
         if(txt) txt.textContent = 'Já pode entrar como "Aluno" com o usuário "' + user + '" e a senha que você escolheu.';
+        // Deixa pronto pro botão "Entrar agora" preencher sozinho o login,
+        // sem precisar abrir outra aba nem digitar tudo de novo.
+        try{ sessionStorage.setItem('gingapass_pos_signup_gw', JSON.stringify({user, senha})); }catch(e){}
       } else {
         btn.disabled = false;
         btn.textContent = 'Virar Aluno GingaWay';
@@ -6761,6 +6766,32 @@ function enviarSignupGingaWay(){
       }
     });
   });
+}
+
+// Sai do modo cadastro público e volta pra tela de login normal, já com o
+// usuário/senha prontos pra entrar (ver verificarPreenchimentoPosSignupGw).
+function entrarDireitoAposSignupGingaWay(){
+  location.href = location.pathname;
+}
+
+// Roda no carregamento normal do app (fora do modo cadastro): se acabou de
+// vir do "Entrar agora" do cadastro GingaWay, preenche usuário/senha
+// sozinho e clica em Entrar, pra não precisar digitar tudo de novo.
+function verificarPreenchimentoPosSignupGw(){
+  let dados = null;
+  try{ dados = JSON.parse(sessionStorage.getItem('gingapass_pos_signup_gw') || 'null'); }catch(e){}
+  if(!dados || !dados.user) return;
+  sessionStorage.removeItem('gingapass_pos_signup_gw');
+  const userInput = document.getElementById('loginUser');
+  const passInput = document.getElementById('loginPass');
+  if(!userInput || !passInput) return;
+  userInput.value = dados.user;
+  passInput.value = dados.senha || '';
+  const tentar = function(){
+    if(!firebaseSynced){ setTimeout(tentar, 400); return; }
+    fazerLogin();
+  };
+  tentar();
 }
 
 /* ===================== Cadastro por link (sem estar logado) =====================
