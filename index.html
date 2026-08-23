@@ -5531,7 +5531,170 @@ function confirmarPresencaVisitanteLink(){
    preenche os próprios dados e o cadastro fica PENDENTE — só vira conta de
    verdade depois que um professor (se ela indicou um mestre/professor já
    cadastrado) ou a matriz (se for um grupo novo, sem professor indicado)
-   aprovar, na tela "Pedidos de cadastro". */
+   aprovar, na tela "Pedidos de cadastro".
+
+   Essa telinha é isolada do app inteiro (não passa pelo aplicarIdiomaUI()
+   normal, que só existe depois de logado), então tem seu próprio dicionário
+   pequeno de tradução — dá pra quem não fala português escolher o idioma
+   antes de preencher o formulário. */
+const CADASTRO_LINK_I18N = {
+  pt: {
+    title: '🥋 Cadastro no GingaPass',
+    subtitle: 'Preencha seus dados — seu cadastro fica esperando aprovação antes de dar pra entrar.',
+    labelApelido: 'Apelido de capoeira', placeholderApelido: 'Seu apelido',
+    labelGraduacao: 'Graduação',
+    optAluno: 'Aluno', optGraduado: 'Graduado', optInstrutor: 'Instrutor', optProfessor: 'Professor', optMestrando: 'Mestrando', optMestre: 'Mestre',
+    labelCorGraduacao: 'Cor da graduação/corda', placeholderCorGraduacao: 'Ex: Verde e Amarela, Contra-Mestre...',
+    labelDaAula: 'Você dá aula / tem seu próprio núcleo?',
+    btnNao: 'Não, sou aluno(a)', btnSim: 'Sim, dou aula',
+    labelProfessor: 'Seu mestre/professor (se tiver um já cadastrado no app)',
+    placeholderProfessor: 'Escolha da lista ou digite o nome',
+    placeholderProfessorCarregando: 'Carregando professores...',
+    placeholderProfessorDigite: 'Digite o nome do seu professor',
+    helpProfessor: 'Escolha da lista quem já está no app — seu cadastro cai direto pra aprovação dele. Se seu professor ainda não está na lista (grupo novo por aqui), pode digitar o nome mesmo assim — nesse caso o pedido cai pra aprovação da matriz. Deixe em branco se não tiver professor.',
+    labelGrupo: 'Nome do seu grupo de capoeira', placeholderGrupo: 'Ex: Capoeira Team',
+    labelUser: 'Usuário (pra entrar no app)', placeholderUser: 'Escolha um usuário',
+    labelSenha: 'Senha', placeholderSenha: 'Escolha uma senha',
+    labelPergunta: 'Pergunta de segurança (opcional, pra recuperar a senha)', placeholderPergunta: 'Ex: nome do seu primeiro cachorro',
+    labelResposta: 'Resposta da pergunta', placeholderResposta: 'Resposta',
+    btnEnviar: 'Enviar cadastro', jaTemConta: 'Já tem conta? ', linkEntrar: 'Entrar',
+    msgTitulo: 'Cadastro enviado!',
+    msgTexto: (nome, user) => 'Assim que ' + nome + ' aprovar, você já pode entrar com o usuário "' + user + '" e a senha que você escolheu.',
+    destinoMatriz: 'a matriz',
+    errUserExiste: 'Esse usuário já existe. Escolha outro.',
+    errPedidoPendente: 'Já existe um pedido de cadastro pendente com esse usuário.',
+    errApelido: 'Digite seu apelido de capoeira.',
+    errUserSenha: 'Escolha um usuário e uma senha.',
+    errSenhaCurta: 'A senha precisa ter pelo menos 4 caracteres.',
+    errFalhaEnvio: 'Não conseguimos enviar agora. Verifique sua internet e tente de novo.',
+    enviando: 'Enviando...'
+  },
+  en: {
+    title: '🥋 Sign up for GingaPass',
+    subtitle: 'Fill in your details — your sign-up will wait for approval before you can log in.',
+    labelApelido: 'Capoeira nickname', placeholderApelido: 'Your nickname',
+    labelGraduacao: 'Rank',
+    optAluno: 'Student', optGraduado: 'Graduate', optInstrutor: 'Instructor', optProfessor: 'Teacher', optMestrando: 'Mestrando', optMestre: 'Mestre',
+    labelCorGraduacao: 'Belt color / rank', placeholderCorGraduacao: 'E.g. Green and Yellow, Contra-Mestre...',
+    labelDaAula: 'Do you teach classes / have your own school?',
+    btnNao: "No, I'm a student", btnSim: 'Yes, I teach',
+    labelProfessor: 'Your master/teacher (if already registered in the app)',
+    placeholderProfessor: 'Pick from the list or type the name',
+    placeholderProfessorCarregando: 'Loading teachers...',
+    placeholderProfessorDigite: "Type your teacher's name",
+    helpProfessor: "Pick from the list whoever is already in the app — your sign-up goes straight to them for approval. If your teacher isn't on the list yet (a new group here), you can still type the name — in that case the request goes to headquarters. Leave it blank if you have no teacher.",
+    labelGrupo: 'Name of your capoeira group', placeholderGrupo: 'E.g. Capoeira Team',
+    labelUser: 'Username (to log into the app)', placeholderUser: 'Choose a username',
+    labelSenha: 'Password', placeholderSenha: 'Choose a password',
+    labelPergunta: 'Security question (optional, to recover your password)', placeholderPergunta: "E.g. your first dog's name",
+    labelResposta: 'Answer to the question', placeholderResposta: 'Answer',
+    btnEnviar: 'Submit sign-up', jaTemConta: 'Already have an account? ', linkEntrar: 'Log in',
+    msgTitulo: 'Sign-up submitted!',
+    msgTexto: (nome, user) => 'As soon as ' + nome + ' approves it, you can log in with the username "' + user + '" and the password you chose.',
+    destinoMatriz: 'headquarters',
+    errUserExiste: 'That username is already taken. Choose another one.',
+    errPedidoPendente: 'There is already a pending sign-up request with this username.',
+    errApelido: 'Enter your capoeira nickname.',
+    errUserSenha: 'Choose a username and a password.',
+    errSenhaCurta: 'The password needs at least 4 characters.',
+    errFalhaEnvio: "Couldn't submit right now. Check your connection and try again.",
+    enviando: 'Submitting...'
+  },
+  fr: {
+    title: '🥋 Inscription à GingaPass',
+    subtitle: "Remplissez vos informations — votre inscription attendra une approbation avant de pouvoir vous connecter.",
+    labelApelido: 'Surnom de capoeira', placeholderApelido: 'Votre surnom',
+    labelGraduacao: 'Graduation',
+    optAluno: 'Élève', optGraduado: 'Gradué', optInstrutor: 'Instructeur', optProfessor: 'Professeur', optMestrando: 'Mestrando', optMestre: 'Mestre',
+    labelCorGraduacao: 'Couleur de la graduation/corde', placeholderCorGraduacao: 'Ex: Verte et Jaune, Contra-Mestre...',
+    labelDaAula: 'Donnez-vous des cours / avez-vous votre propre groupe ?',
+    btnNao: 'Non, je suis élève', btnSim: 'Oui, je donne des cours',
+    labelProfessor: "Votre maître/professeur (s'il est déjà inscrit dans l'app)",
+    placeholderProfessor: 'Choisissez dans la liste ou tapez le nom',
+    placeholderProfessorCarregando: 'Chargement des professeurs...',
+    placeholderProfessorDigite: 'Tapez le nom de votre professeur',
+    helpProfessor: "Choisissez dans la liste quelqu'un déjà présent dans l'app — votre inscription ira directement à son approbation. Si votre professeur n'est pas encore dans la liste (nouveau groupe ici), vous pouvez quand même taper le nom — dans ce cas, la demande ira à la direction. Laissez vide si vous n'avez pas de professeur.",
+    labelGrupo: 'Nom de votre groupe de capoeira', placeholderGrupo: 'Ex: Capoeira Team',
+    labelUser: "Identifiant (pour vous connecter à l'app)", placeholderUser: 'Choisissez un identifiant',
+    labelSenha: 'Mot de passe', placeholderSenha: 'Choisissez un mot de passe',
+    labelPergunta: 'Question de sécurité (facultatif, pour récupérer votre mot de passe)', placeholderPergunta: 'Ex: le nom de votre premier chien',
+    labelResposta: 'Réponse à la question', placeholderResposta: 'Réponse',
+    btnEnviar: "Envoyer l'inscription", jaTemConta: 'Vous avez déjà un compte ? ', linkEntrar: 'Se connecter',
+    msgTitulo: 'Inscription envoyée !',
+    msgTexto: (nome, user) => "Dès que " + nome + " l'approuvera, vous pourrez vous connecter avec l'identifiant \"" + user + '" et le mot de passe choisi.',
+    destinoMatriz: 'la direction',
+    errUserExiste: "Cet identifiant est déjà utilisé. Choisissez-en un autre.",
+    errPedidoPendente: "Il existe déjà une demande d'inscription en attente avec cet identifiant.",
+    errApelido: 'Indiquez votre surnom de capoeira.',
+    errUserSenha: 'Choisissez un identifiant et un mot de passe.',
+    errSenhaCurta: 'Le mot de passe doit contenir au moins 4 caractères.',
+    errFalhaEnvio: 'Impossible d\'envoyer pour le moment. Vérifiez votre connexion et réessayez.',
+    enviando: 'Envoi...'
+  },
+  de: {
+    title: '🥋 Anmeldung bei GingaPass',
+    subtitle: 'Füllen Sie Ihre Daten aus — Ihre Anmeldung wartet auf Genehmigung, bevor Sie sich einloggen können.',
+    labelApelido: 'Capoeira-Spitzname', placeholderApelido: 'Ihr Spitzname',
+    labelGraduacao: 'Graduierung',
+    optAluno: 'Schüler', optGraduado: 'Graduiert', optInstrutor: 'Instrutor', optProfessor: 'Lehrer', optMestrando: 'Mestrando', optMestre: 'Mestre',
+    labelCorGraduacao: 'Gürtel-/Graduierungsfarbe', placeholderCorGraduacao: 'Z.B. Grün und Gelb, Contra-Mestre...',
+    labelDaAula: 'Unterrichten Sie / haben Sie eine eigene Schule?',
+    btnNao: 'Nein, ich bin Schüler', btnSim: 'Ja, ich unterrichte',
+    labelProfessor: 'Ihr Meister/Lehrer (falls bereits in der App registriert)',
+    placeholderProfessor: 'Aus der Liste wählen oder Namen eingeben',
+    placeholderProfessorCarregando: 'Lehrer werden geladen...',
+    placeholderProfessorDigite: 'Namen Ihres Lehrers eingeben',
+    helpProfessor: 'Wählen Sie aus der Liste, wer bereits in der App ist — Ihre Anmeldung geht direkt an diese Person zur Genehmigung. Ist Ihr Lehrer noch nicht in der Liste (neue Gruppe hier), können Sie den Namen trotzdem eingeben — dann geht die Anfrage an die Zentrale. Leer lassen, wenn Sie keinen Lehrer haben.',
+    labelGrupo: 'Name Ihrer Capoeira-Gruppe', placeholderGrupo: 'Z.B. Capoeira Team',
+    labelUser: 'Benutzername (zum Einloggen in die App)', placeholderUser: 'Benutzernamen wählen',
+    labelSenha: 'Passwort', placeholderSenha: 'Passwort wählen',
+    labelPergunta: 'Sicherheitsfrage (optional, zur Passwort-Wiederherstellung)', placeholderPergunta: 'Z.B. der Name Ihres ersten Hundes',
+    labelResposta: 'Antwort auf die Frage', placeholderResposta: 'Antwort',
+    btnEnviar: 'Anmeldung senden', jaTemConta: 'Schon ein Konto? ', linkEntrar: 'Einloggen',
+    msgTitulo: 'Anmeldung gesendet!',
+    msgTexto: (nome, user) => 'Sobald ' + nome + ' zustimmt, können Sie sich mit dem Benutzernamen "' + user + '" und dem gewählten Passwort einloggen.',
+    destinoMatriz: 'die Zentrale',
+    errUserExiste: 'Dieser Benutzername ist bereits vergeben. Wählen Sie einen anderen.',
+    errPedidoPendente: 'Es gibt bereits eine ausstehende Anmeldung mit diesem Benutzernamen.',
+    errApelido: 'Geben Sie Ihren Capoeira-Spitznamen ein.',
+    errUserSenha: 'Wählen Sie einen Benutzernamen und ein Passwort.',
+    errSenhaCurta: 'Das Passwort muss mindestens 4 Zeichen haben.',
+    errFalhaEnvio: 'Senden gerade nicht möglich. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    enviando: 'Wird gesendet...'
+  },
+  lb: {
+    title: '🥋 Umeldung bei GingaPass',
+    subtitle: "Fëllt är Donnéeën aus — är Umeldung waart op eng Genehmegung ier Dir Iech kënnt aloggen.",
+    labelApelido: 'Capoeira-Spëtznumm', placeholderApelido: 'Äre Spëtznumm',
+    labelGraduacao: 'Graduatioun',
+    optAluno: 'Schüler', optGraduado: 'Graduéiert', optInstrutor: 'Instrutor', optProfessor: 'Enseignant', optMestrando: 'Mestrando', optMestre: 'Mestre',
+    labelCorGraduacao: 'Faarf vun der Graduatioun/Kordel', placeholderCorGraduacao: 'Z.B. Gréng a Giel, Contra-Mestre...',
+    labelDaAula: 'Gitt Dir Coursen / hutt Dir Äre eegene Schoul?',
+    btnNao: 'Nee, ech sinn e Schüler', btnSim: 'Jo, ech ginn Coursen',
+    labelProfessor: "Äre Mestre/Enseignant (wann e schonn an der App registréiert ass)",
+    placeholderProfessor: "Aus der Lëscht wielen oder den Numm aginn",
+    placeholderProfessorCarregando: 'Enseignanten ginn gelueden...',
+    placeholderProfessorDigite: 'Numm vun Ärem Enseignant aginn',
+    helpProfessor: "Wielt aus der Lëscht wien schonn an der App ass — är Umeldung geet direkt un déi Persoun fir ze genehmegen. Ass Äre Enseignant nach net op der Lëscht (nei Grupp hei), kënnt Dir den Numm trotzdem aginn — an deem Fall geet d'Ufro un d'Zentral. Loosst et eidel wann Dir kee Enseignant hutt.",
+    labelGrupo: 'Numm vun Ärer Capoeira-Grupp', placeholderGrupo: 'Z.B. Capoeira Team',
+    labelUser: "Benotzernumm (fir an d'App anzeloggen)", placeholderUser: 'Wielt e Benotzernumm',
+    labelSenha: 'Passwuert', placeholderSenha: 'Wielt e Passwuert',
+    labelPergunta: "Sécherheetsfro (optional, fir d'Passwuert erëmzefannen)", placeholderPergunta: 'Z.B. den Numm vun Ärem éischte Hond',
+    labelResposta: "Äntwert op d'Fro", placeholderResposta: 'Äntwert',
+    btnEnviar: 'Umeldung schécken', jaTemConta: 'Hutt Dir schonn e Konto? ', linkEntrar: 'Aloggen',
+    msgTitulo: 'Umeldung geschéckt!',
+    msgTexto: (nome, user) => 'Soubal ' + nome + ' averstan ass, kënnt Dir Iech mam Benotzernumm "' + user + '" an dem Passwuert dat Dir gewielt hutt aloggen.',
+    destinoMatriz: "d'Zentral",
+    errUserExiste: 'Dëse Benotzernumm gëtt et scho. Wielt en aneren.',
+    errPedidoPendente: 'Et gëtt scho eng Umeldung um Waarden mat dësem Benotzernumm.',
+    errApelido: 'Gitt Äre Capoeira-Spëtznumm an.',
+    errUserSenha: 'Wielt e Benotzernumm an e Passwuert.',
+    errSenhaCurta: "D'Passwuert muss op d'mannst 4 Zeeche laang sinn.",
+    errFalhaEnvio: 'Konnt de Moment net geschéckt ginn. Kontrolléiert Är Internetverbindung a probéiert nach eng Kéier.',
+    enviando: 'Gëtt geschéckt...'
+  }
+};
+
 function verificarModoCadastroLink(){
   if(window._cadastroLinkJaVerificado) return;
   window._cadastroLinkJaVerificado = true;
@@ -5542,55 +5705,96 @@ function verificarModoCadastroLink(){
   }
 }
 
-function executarModoCadastroLink(){
+function _capturarCamposCadastroLink(){
+  const pegar = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const form = document.getElementById('cadastroLinkForm');
+  if(!form) return null;
+  return {
+    apelido: pegar('cadastroLinkApelido'), graduacao: pegar('cadastroLinkGraduacao'),
+    corGraduacao: pegar('cadastroLinkCorGraduacao'), daAula: !!window._cadastroLinkDaAula,
+    professor: pegar('cadastroLinkProfessor'), grupo: pegar('cadastroLinkGrupo'),
+    user: pegar('cadastroLinkUser'), senha: pegar('cadastroLinkSenha'),
+    pergunta: pegar('cadastroLinkPergunta'), resposta: pegar('cadastroLinkResposta')
+  };
+}
+
+function trocarIdiomaCadastroLink(cod){
+  idiomaAtual = cod;
+  localStorage.setItem('gingapass_idioma', cod);
+  executarModoCadastroLink(_capturarCamposCadastroLink());
+}
+
+function executarModoCadastroLink(camposAnteriores){
   const params = new URLSearchParams(location.search);
   if(params.get('cadastro') !== '1') return;
+
+  const t = CADASTRO_LINK_I18N[idiomaAtual] || CADASTRO_LINK_I18N.pt;
+  const codigosCurtos = {pt:'PT', en:'EN', fr:'FR', de:'DE', lb:'LU'};
 
   const campo = (id, label, placeholder, tipo) => '<label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">' + label + '</label>' +
     '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
 
+  const idiomaBtns = Object.keys(codigosCurtos).map(cod => {
+    const ativo = cod === idiomaAtual;
+    return '<button type="button" onclick="trocarIdiomaCadastroLink(\'' + cod + '\')" style="padding:5px 11px;border-radius:100px;border:1.5px solid ' + (ativo ? '#042C53' : '#E2D8C4') + ';background:' + (ativo ? '#042C53' : '#fff') + ';color:' + (ativo ? '#FBF3E4' : '#1B2733') + ';font-size:11px;font-weight:600;cursor:pointer;">' + codigosCurtos[cod] + '</button>';
+  }).join(' ');
+
   document.body.innerHTML = `
     <div style="max-width:420px;margin:0 auto;min-height:100vh;background:var(--cream, #FBF3E4);padding:28px 20px;font-family:'Poppins','Inter',sans-serif;">
-      <h2 style="color:#042C53;font-size:20px;margin:0 0 4px;">🥋 Cadastro no GingaPass</h2>
-      <p style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">Preencha seus dados — seu cadastro fica esperando aprovação antes de dar pra entrar.</p>
+      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px;">${idiomaBtns}</div>
+      <h2 style="color:#042C53;font-size:20px;margin:0 0 4px;">${t.title}</h2>
+      <p style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">${t.subtitle}</p>
       <div id="cadastroLinkForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
-        ${campo('cadastroLinkApelido', 'Apelido de capoeira', 'Seu apelido')}
-        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Graduação</label>
+        ${campo('cadastroLinkApelido', t.labelApelido, t.placeholderApelido)}
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">${t.labelGraduacao}</label>
         <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="cadastroLinkGraduacao">
-          <option value="Aluno">Aluno</option>
-          <option value="Graduado">Graduado</option>
-          <option value="Instrutor">Instrutor</option>
-          <option value="Professor">Professor</option>
-          <option value="Mestrando">Mestrando</option>
-          <option value="Mestre">Mestre</option>
+          <option value="Aluno">${t.optAluno}</option>
+          <option value="Graduado">${t.optGraduado}</option>
+          <option value="Instrutor">${t.optInstrutor}</option>
+          <option value="Professor">${t.optProfessor}</option>
+          <option value="Mestrando">${t.optMestrando}</option>
+          <option value="Mestre">${t.optMestre}</option>
         </select>
-        ${campo('cadastroLinkCorGraduacao', 'Cor da graduação/corda', 'Ex: Verde e Amarela, Contra-Mestre...')}
-        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Você dá aula / tem seu próprio núcleo?</label>
+        ${campo('cadastroLinkCorGraduacao', t.labelCorGraduacao, t.placeholderCorGraduacao)}
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">${t.labelDaAula}</label>
         <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <button type="button" id="cadastroLinkDaAulaNaoBtn" onclick="alternarCadastroLinkDaAula(false)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#042C53;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Não, sou aluno(a)</button>
-          <button type="button" id="cadastroLinkDaAulaSimBtn" onclick="alternarCadastroLinkDaAula(true)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#fff;color:#042C53;font-weight:700;font-size:13px;cursor:pointer;">Sim, dou aula</button>
+          <button type="button" id="cadastroLinkDaAulaNaoBtn" onclick="alternarCadastroLinkDaAula(false)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#042C53;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">${t.btnNao}</button>
+          <button type="button" id="cadastroLinkDaAulaSimBtn" onclick="alternarCadastroLinkDaAula(true)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#fff;color:#042C53;font-weight:700;font-size:13px;cursor:pointer;">${t.btnSim}</button>
         </div>
-        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu mestre/professor (se tiver um já cadastrado no app)</label>
-        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;" id="cadastroLinkProfessor" list="cadastroLinkProfessorLista" placeholder="Escolha da lista ou digite o nome" autocomplete="off">
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">${t.labelProfessor}</label>
+        <input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;" id="cadastroLinkProfessor" list="cadastroLinkProfessorLista" placeholder="${t.placeholderProfessor}" autocomplete="off">
         <datalist id="cadastroLinkProfessorLista"></datalist>
-        <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">Escolha da lista quem já está no app — seu cadastro cai direto pra aprovação dele. Se seu professor ainda não está na lista (grupo novo por aqui), pode digitar o nome mesmo assim — nesse caso o pedido cai pra aprovação da matriz. Deixe em branco se não tiver professor.</p>
-        ${campo('cadastroLinkGrupo', 'Nome do seu grupo de capoeira', 'Ex: Capoeira Team')}
-        ${campo('cadastroLinkUser', 'Usuário (pra entrar no app)', 'Escolha um usuário')}
-        ${campo('cadastroLinkSenha', 'Senha', 'Escolha uma senha', 'password')}
-        ${campo('cadastroLinkPergunta', 'Pergunta de segurança (opcional, pra recuperar a senha)', 'Ex: nome do seu primeiro cachorro')}
-        ${campo('cadastroLinkResposta', 'Resposta da pergunta', 'Resposta')}
+        <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">${t.helpProfessor}</p>
+        ${campo('cadastroLinkGrupo', t.labelGrupo, t.placeholderGrupo)}
+        ${campo('cadastroLinkUser', t.labelUser, t.placeholderUser)}
+        ${campo('cadastroLinkSenha', t.labelSenha, t.placeholderSenha, 'password')}
+        ${campo('cadastroLinkPergunta', t.labelPergunta, t.placeholderPergunta)}
+        ${campo('cadastroLinkResposta', t.labelResposta, t.placeholderResposta)}
         <p id="cadastroLinkErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
-        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="cadastroLinkBtn" onclick="enviarPedidoCadastroLink()">Enviar cadastro</button>
-        <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">Já tem conta? <a href="` + location.pathname + `" style="color:#042C53;font-weight:600;">Entrar</a></p>
+        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="cadastroLinkBtn" onclick="enviarPedidoCadastroLink()">${t.btnEnviar}</button>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">${t.jaTemConta}<a href="` + location.pathname + `" style="color:#042C53;font-weight:600;">${t.linkEntrar}</a></p>
       </div>
       <div id="cadastroLinkMsg" style="display:none;text-align:center;padding:40px 10px;">
         <div id="cadastroLinkMsgIcon" style="font-size:48px;margin-bottom:14px;">✅</div>
-        <h2 id="cadastroLinkMsgTitulo" style="color:#042C53;margin:0 0 8px;">Cadastro enviado!</h2>
+        <h2 id="cadastroLinkMsgTitulo" style="color:#042C53;margin:0 0 8px;">${t.msgTitulo}</h2>
         <p id="cadastroLinkMsgTexto" style="color:#5B6B7A;font-size:14px;word-break:break-word;"></p>
       </div>
     </div>
   `;
-  window._cadastroLinkDaAula = false;
+  window._cadastroLinkDaAula = camposAnteriores ? camposAnteriores.daAula : false;
+  if(window._cadastroLinkDaAula) alternarCadastroLinkDaAula(true);
+  if(camposAnteriores){
+    const preencher = (id, valor) => { const el = document.getElementById(id); if(el && valor) el.value = valor; };
+    preencher('cadastroLinkApelido', camposAnteriores.apelido);
+    preencher('cadastroLinkGraduacao', camposAnteriores.graduacao);
+    preencher('cadastroLinkCorGraduacao', camposAnteriores.corGraduacao);
+    preencher('cadastroLinkProfessor', camposAnteriores.professor);
+    preencher('cadastroLinkGrupo', camposAnteriores.grupo);
+    preencher('cadastroLinkUser', camposAnteriores.user);
+    preencher('cadastroLinkSenha', camposAnteriores.senha);
+    preencher('cadastroLinkPergunta', camposAnteriores.pergunta);
+    preencher('cadastroLinkResposta', camposAnteriores.resposta);
+  }
   popularProfessoresCadastroLink(0);
 }
 
@@ -5612,14 +5816,15 @@ function popularProfessoresCadastroLink(tentativas){
   const lista = document.getElementById('cadastroLinkProfessorLista');
   const input = document.getElementById('cadastroLinkProfessor');
   if(!lista || !input) return;
+  const t = CADASTRO_LINK_I18N[idiomaAtual] || CADASTRO_LINK_I18N.pt;
   const professores = obterProfessoresReais();
   if(professores.length > 0){
     lista.innerHTML = professores.map(p => '<option value="' + escapeHtml(p) + '"></option>').join('');
-    input.placeholder = 'Escolha da lista ou digite o nome';
+    input.placeholder = t.placeholderProfessor;
     return;
   }
   if(tentativas < 6){
-    input.placeholder = 'Carregando professores...';
+    input.placeholder = t.placeholderProfessorCarregando;
     Promise.all([
       buscarValorFresco('gingapass_rede_academias'),
       buscarValorFresco('gingapass_academias_contas'),
@@ -5630,7 +5835,7 @@ function popularProfessoresCadastroLink(tentativas){
     });
     return;
   }
-  input.placeholder = 'Digite o nome do seu professor';
+  input.placeholder = t.placeholderProfessorDigite;
 }
 
 function mostrarMsgCadastroLink(sucesso, titulo, texto){
@@ -5659,16 +5864,17 @@ function enviarPedidoCadastroLink(){
   const resposta = (document.getElementById('cadastroLinkResposta').value || '').trim().toLowerCase();
   const erroEl = document.getElementById('cadastroLinkErro');
   const btn = document.getElementById('cadastroLinkBtn');
+  const t = CADASTRO_LINK_I18N[idiomaAtual] || CADASTRO_LINK_I18N.pt;
 
   const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
   erroEl.style.display = 'none';
 
-  if(!apelido){ mostrarErro('Digite seu apelido de capoeira.'); return; }
-  if(!user || !senha){ mostrarErro('Escolha um usuário e uma senha.'); return; }
-  if(senha.length < 4){ mostrarErro('A senha precisa ter pelo menos 4 caracteres.'); return; }
+  if(!apelido){ mostrarErro(t.errApelido); return; }
+  if(!user || !senha){ mostrarErro(t.errUserSenha); return; }
+  if(senha.length < 4){ mostrarErro(t.errSenhaCurta); return; }
 
   btn.disabled = true;
-  btn.textContent = 'Enviando...';
+  btn.textContent = t.enviando;
 
   Promise.all([
     buscarValorFresco('gingapass_master'),
@@ -5679,22 +5885,22 @@ function enviarPedidoCadastroLink(){
   ]).then(function(){
     if(localizarContaPorUsuario(user)){
       btn.disabled = false;
-      btn.textContent = 'Enviar cadastro';
-      mostrarErro('Esse usuário já existe. Escolha outro.');
+      btn.textContent = t.btnEnviar;
+      mostrarErro(t.errUserExiste);
       return;
     }
     const pedidos = JSON.parse(localStorage.getItem('gingapass_pedidos_cadastro') || '[]');
     if(pedidos.some(p => p.user === user && p.status === 'pendente')){
       btn.disabled = false;
-      btn.textContent = 'Enviar cadastro';
-      mostrarErro('Já existe um pedido de cadastro pendente com esse usuário.');
+      btn.textContent = t.btnEnviar;
+      mostrarErro(t.errPedidoPendente);
       return;
     }
 
     // Se indicou um professor já cadastrado, o pedido vai direto pra ele;
     // senão (grupo novo/sem professor), vai pra matriz aprovar.
     let destinoAprovacao = 'matriz';
-    let destinoNome = 'a matriz';
+    let destinoNome = t.destinoMatriz;
     if(professorEscolhido){
       const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
       const contaProf = academiasContas.find(c => mesmoProfessor(c.nome, professorEscolhido) || mesmoProfessor(c.user, professorEscolhido));
@@ -5714,11 +5920,11 @@ function enviarPedidoCadastroLink(){
     pedidos.push(pedido);
     setDado('gingapass_pedidos_cadastro', JSON.stringify(pedidos)).then(function(ok){
       if(ok){
-        mostrarMsgCadastroLink(true, 'Cadastro enviado!', 'Assim que ' + destinoNome + ' aprovar, você já pode entrar com o usuário "' + user + '" e a senha que você escolheu.');
+        mostrarMsgCadastroLink(true, t.msgTitulo, t.msgTexto(destinoNome, user));
       } else {
         btn.disabled = false;
-        btn.textContent = 'Enviar cadastro';
-        mostrarErro('Não conseguimos enviar agora. Verifique sua internet e tente de novo.');
+        btn.textContent = t.btnEnviar;
+        mostrarErro(t.errFalhaEnvio);
       }
     });
   });
