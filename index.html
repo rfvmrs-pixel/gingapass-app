@@ -1902,7 +1902,7 @@
     <p class="section-title">Histórico de graduações</p>
     <div class="card">
       <div id="fichaAlunoGraduacoesLista" style="margin-bottom:10px;"></div>
-      <input class="admin-input" id="fichaAlunoNovaGraduacao" placeholder="Nova graduação/corda (ex: Verde e Amarela)">
+      <input class="admin-input" id="fichaAlunoNovaGraduacao" list="cordasGrupoDatalist" placeholder="Nova graduação/corda (ex: Verde e Amarela)">
       <input class="admin-input" id="fichaAlunoDataGraduacao" type="date">
       <button class="btn" type="button" onclick="adicionarGraduacaoFicha()">Registrar graduação</button>
     </div>
@@ -1914,7 +1914,7 @@
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 10px;">Publica um aviso animado na tela Início do aluno, dando os parabéns. Diferente de "Registrar graduação" acima (que é o histórico oficial) — isso é só o anúncio/comunicado. Fica em destaque na tela dele até 23:59 do dia do evento — não some antes disso, mesmo que ele já tenha visto.</p>
       <p id="fichaAlunoAnuncioStatus" style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;"></p>
-      <input class="admin-input" id="fichaAlunoAnuncioGraduacao" placeholder="Nova graduação (ex: Corda Verde e Amarela)">
+      <input class="admin-input" id="fichaAlunoAnuncioGraduacao" list="cordasGrupoDatalist" placeholder="Nova graduação (ex: Corda Verde e Amarela)">
       <input class="admin-input" id="fichaAlunoAnuncioEvento" placeholder="Evento (ex: Batizado 2026)">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Data do evento (o aviso fica até 23:59 desse dia)</label>
       <input class="admin-input" id="fichaAlunoAnuncioEventoData" type="date">
@@ -1990,7 +1990,7 @@
       <p class="section-title">Adicionar aluno</p>
       <div class="card">
         <input class="admin-input" id="novoAlunoNomeAd" placeholder="Nome do aluno">
-        <input class="admin-input" id="novoAlunoCordaAd" placeholder="Graduação/corda (ex: Corda Verde e Amarela)">
+        <input class="admin-input" id="novoAlunoCordaAd" list="cordasGrupoDatalist" placeholder="Graduação/corda (ex: Corda Verde e Amarela)">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
         <select class="admin-input" id="novoAlunoTipoMensalidadeAd">
           <option value="mensalista">Mensalista (paga mensalidade)</option>
@@ -2047,7 +2047,7 @@
       <p class="section-title">Novo acesso de aluno</p>
       <div class="card">
         <input class="admin-input" id="novoAlunoNome" placeholder="Nome do aluno">
-        <input class="admin-input" id="novoAlunoCorda" placeholder="Graduação/corda (ex: Verde e Amarela)">
+        <input class="admin-input" id="novoAlunoCorda" list="cordasGrupoDatalist" placeholder="Graduação/corda (ex: Verde e Amarela)">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Esse aluno paga mensalidade?</label>
         <select class="admin-input" id="novoAlunoTipoMensalidade">
           <option value="mensalista">Mensalista (paga mensalidade)</option>
@@ -2521,6 +2521,17 @@
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
 
+    <p class="section-title">🥊 Aluno GingaWay — modalidades e alunos da rede</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Cada professor cadastra as próprias modalidades no perfil dele (Perfil → "Minhas modalidades GingaWay"). Aqui você vê tudo o que já foi cadastrado na rede toda, e a lista de quem assinou um plano GingaWay (sem vínculo fixo com nenhum grupo).</p>
+    <div class="card">
+      <p class="card-label" style="margin:0 0 8px;">Modalidades cadastradas pelos professores</p>
+      <div id="gwModalidadesRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
+    </div>
+    <div class="card">
+      <p class="card-label" style="margin:0 0 8px;">Alunos GingaWay (sem vínculo fixo com grupo)</p>
+      <div id="gwAlunosRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém assinou um plano GingaWay ainda.</p></div>
+    </div>
+
     <p class="section-title">Foto/logo da minha academia (aparece na lista de Academias/Grupos parceiros)</p>
     <div class="card">
       <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;">Essa foto/nome é o que os grupos parceiros veem quando abrem a aba "Grupos parceiros" e clicam na sua rede — junto com a lista de professores/mestres vinculados a você. Também aparece no seu card em "Academias da rede".</p>
@@ -2640,7 +2651,17 @@
       <button class="btn" type="button" onclick="adicionarNivelGraduacao()">Adicionar nível ao final</button>
     </div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 0;">Use as setas ↑ ↓ pra reordenar. Quem não tiver nenhum desses nomes no início do nome/usuário entra automaticamente como "aluno comum", no final da lista.</p>
+
+    <p class="section-title" style="margin-top:18px;">Nomes de graduação/corda do meu grupo</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Cadastre aqui os nomes exatos das cordas/graduações do seu grupo (ex: "Verde e Amarela"). A partir daí, todo campo de graduação do app (ficha do aluno, novo aluno, cadastro por link...) sugere essas opções — evita cada um digitar de um jeito diferente a mesma corda.</p>
+      <div id="cordasGrupoLista" style="margin-bottom:12px;"></div>
+      <input class="admin-input" id="novaCordaGrupoNome" placeholder="Nome da graduação/corda (ex: Verde e Amarela)">
+      <button class="btn" type="button" onclick="adicionarCordaGrupo()">Adicionar graduação/corda</button>
+    </div>
   </div>
+
+  <datalist id="cordasGrupoDatalist"></datalist>
 
   <div class="screen" id="estatisticas">
     <p class="greeting" style="font-size:18px;">Estatísticas</p>
@@ -3744,6 +3765,137 @@ function buscarValorFresco(chave){
     });
   });
 }
+
+// ---------- Datas: digitar direto (dd/mm/aaaa) OU escolher no calendário ----------
+// Os <input type="date"> nativos funcionam bem no computador, mas no iPhone
+// (Safari) só abrem uma rodinha pra girar — não dá pra digitar a data. Aqui a
+// gente monta, por cima de cada input de data já existente (sem mexer em mais
+// nada do código que lê/escreve o valor dele), um campo de texto pra digitar
+// "dd/mm/aaaa" e um botãozinho de calendário pra quem preferir escolher — as
+// duas opções ficam sempre disponíveis, e o input original continua sendo a
+// mesma fonte de verdade (valor em aaaa-mm-dd) que o resto do app já usa.
+function _formatarDataBR(iso){
+  if(!iso) return '';
+  const p = String(iso).split('-');
+  if(p.length !== 3) return '';
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+function _isoDeDataBR(txt){
+  const m = String(txt || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return '';
+  const dd = Number(m[1]), mm = Number(m[2]), yyyy = Number(m[3]);
+  const d = new Date(yyyy, mm - 1, dd);
+  if(d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return ''; // recusa datas inválidas tipo 31/02
+  return m[3] + '-' + m[2] + '-' + m[1];
+}
+function _mascaraDataDigitada(e){
+  let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+  if(v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+  else if(v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+  e.target.value = v;
+}
+function _envolverInputDataComTexto(input){
+  if(!input || input.dataset.envolvido === 'sim') return;
+  input.dataset.envolvido = 'sim';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;display:flex;align-items:center;gap:6px;';
+  input.parentNode.insertBefore(wrap, input);
+  // O input nativo continua no DOM (é ele que todo o resto do app lê/escreve),
+  // só fica visualmente escondido — mas continua clicável pra abrir o seletor.
+  input.style.position = 'absolute';
+  input.style.opacity = '0';
+  input.style.width = '1px';
+  input.style.height = '1px';
+  input.style.pointerEvents = 'none';
+  wrap.appendChild(input);
+  const txt = document.createElement('input');
+  txt.type = 'text';
+  txt.inputMode = 'numeric';
+  txt.autocomplete = 'off';
+  txt.placeholder = 'dd/mm/aaaa';
+  txt.maxLength = 10;
+  txt.className = input.className;
+  txt.style.cssText = 'flex:1;margin-bottom:0;';
+  txt.value = _formatarDataBR(input.value);
+  wrap.appendChild(txt);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = '📅';
+  btn.title = 'Selecionar no calendário';
+  btn.style.cssText = 'flex-shrink:0;border:none;background:var(--cream-2);border-radius:8px;width:38px;height:38px;font-size:16px;cursor:pointer;';
+  wrap.appendChild(btn);
+
+  txt.addEventListener('input', _mascaraDataDigitada);
+  txt.addEventListener('change', function(){
+    if(txt.value.trim() === ''){
+      input.value = '';
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+      return;
+    }
+    const iso = _isoDeDataBR(txt.value);
+    if(iso){
+      input.value = iso;
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+      input.dispatchEvent(new Event('input', {bubbles: true}));
+    } else {
+      alert('Data inválida. Digite no formato dd/mm/aaaa.');
+      txt.value = _formatarDataBR(input.value);
+    }
+  });
+  btn.addEventListener('click', function(){
+    if(typeof input.showPicker === 'function'){
+      try{ input.showPicker(); return; }catch(e){}
+    }
+    input.style.pointerEvents = 'auto';
+    input.focus();
+    try{ input.click(); }catch(e){}
+    setTimeout(function(){ input.style.pointerEvents = 'none'; }, 300);
+  });
+  input.addEventListener('change', function(){
+    txt.value = _formatarDataBR(input.value);
+  });
+}
+function sincronizarInputsDataVisuais(){
+  document.querySelectorAll('input[type="date"]').forEach(function(input){
+    if(input.dataset.envolvido !== 'sim'){
+      _envolverInputDataComTexto(input);
+      return;
+    }
+    const wrap = input.parentNode;
+    const txt = wrap && wrap.querySelector('input[type="text"]');
+    if(txt && document.activeElement !== txt){
+      const novoValor = _formatarDataBR(input.value);
+      if(txt.value !== novoValor) txt.value = novoValor;
+    }
+  });
+}
+
+// Vários cards de aluno/graduação são montados na hora via innerHTML (fora do
+// fluxo de showScreen), então em vez de caçar cada ponto do código que cria um
+// input de data novo, um observador cobre todos de uma vez só.
+(function(){
+  function iniciarObservadorInputsData(){
+    if(!document.body) return;
+    const obs = new MutationObserver(function(mutations){
+      let achouNovo = false;
+      mutations.forEach(function(m){
+        if(!m.addedNodes) return;
+        m.addedNodes.forEach(function(node){
+          if(node.nodeType !== 1) return;
+          if(node.matches && node.matches('input[type="date"]')) achouNovo = true;
+          else if(node.querySelector && node.querySelector('input[type="date"]')) achouNovo = true;
+        });
+      });
+      if(achouNovo) sincronizarInputsDataVisuais();
+    });
+    obs.observe(document.body, {childList: true, subtree: true});
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', iniciarObservadorInputsData);
+  } else {
+    iniciarObservadorInputsData();
+  }
+})();
 
 const LIMITE_FOTOS_LOCAIS = 1500; // quantas fotos manter em cache neste aparelho (a nuvem guarda todas, cada uma em seu próprio documento). IndexedDB aguenta bem mais que o antigo limite de localStorage.
 
@@ -5675,6 +5827,68 @@ function renderModalidadesGingaWayPerfil(){
   });
 }
 
+// ---------- Matriz: visão da rede toda (todas as modalidades, todos os alunos GingaWay) ----------
+function renderModalidadesGingaWayRede(){
+  const box = document.getElementById('gwModalidadesRedeLista');
+  if(!box || currentRole !== 'matriz') return;
+  const lista = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]');
+  if(lista.length === 0){
+    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  lista.forEach(m => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;';
+    const info = document.createElement('div');
+    const b = document.createElement('b');
+    b.style.cssText = 'font-size:13px;color:var(--navy-900);';
+    b.textContent = m.modalidade + (m.ativo === false ? ' (inativa)' : '');
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;';
+    p.textContent = (m.professorNome || m.professorUser || '—') + ' · ' + m.dias + ' · ' + m.horario + ' · ' + m.local;
+    info.appendChild(b);
+    info.appendChild(p);
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.textContent = '✕';
+    btnRemover.title = 'Remover';
+    btnRemover.style.cssText = 'background:none;border:none;color:#C0392B;font-size:16px;cursor:pointer;flex-shrink:0;line-height:1;';
+    btnRemover.onclick = function(){ removerModalidadeGingaWay(m.id); tentarChamar(function(){ renderModalidadesGingaWayRede(); }); };
+    row.appendChild(info);
+    row.appendChild(btnRemover);
+    box.appendChild(row);
+  });
+}
+
+function renderAlunosGingaWayRede(){
+  const box = document.getElementById('gwAlunosRedeLista');
+  if(!box || currentRole !== 'matriz') return;
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway');
+  if(contas.length === 0){
+    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém assinou um plano GingaWay ainda.</p>';
+    return;
+  }
+  const mesAtual = _mesReferenciaAtual();
+  box.innerHTML = '';
+  contas.forEach(c => {
+    const plano = GINGAWAY_PLANOS[c.gingawayPlano] || GINGAWAY_PLANOS['60'];
+    const totalAulas = plano.aulas + plano.bonus;
+    const usadas = (c.gingawayMesReferencia === mesAtual) ? (c.gingawayAulasUsadas || 0) : 0;
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const b = document.createElement('b');
+    b.style.cssText = 'font-size:13px;color:var(--navy-900);display:block;';
+    b.textContent = c.nome || c.user;
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;';
+    p.textContent = (c.gingawayModalidade || '—') + ' · Plano ' + plano.label + ' · ' + usadas + '/' + totalAulas + ' aulas usadas este mês';
+    row.appendChild(b);
+    row.appendChild(p);
+    box.appendChild(row);
+  });
+}
+
 // ---------- Aluno GingaWay: card na Início com status do plano ----------
 function renderAreaGingaWayHome(){
   const card = document.getElementById('gingawayPlanoCard');
@@ -7185,6 +7399,7 @@ function aplicarPermissoes(){
   if(alunosCriarMatriz) alunosCriarMatriz.style.display = (currentRole === 'matriz') ? 'block' : 'none';
 
   tentarChamar(function(){ renderSaudacao(); });
+  tentarChamar(function(){ sincronizarInputsDataVisuais(); });
   tentarChamar(function(){ renderAreaGingaWayHome(); });
   tentarChamar(function(){ renderAnuncioGraduacaoHome(); });
   tentarChamar(function(){ renderConviteEventoHome(); });
@@ -7221,6 +7436,12 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderMeusProfessoresVinculados(); });
   tentarChamar(function(){ renderGraduacoesLista(); });
   tentarChamar(function(){ popularSeletoresNivelGraduacao(); });
+  tentarChamar(function(){ renderCordasGrupoLista(); });
+  tentarChamar(function(){ popularDatalistCordasGrupo(); });
+  if(currentRole === 'matriz'){
+    tentarChamar(function(){ renderModalidadesGingaWayRede(); });
+    tentarChamar(function(){ renderAlunosGingaWayRede(); });
+  }
   if(currentRole === 'academia'){
     tentarChamar(function(){ popularSeletorGrupoParceiro('parceiraAdGrupoSelect'); });
   }
@@ -7471,6 +7692,7 @@ function showScreen(id, btn){
     const tabCorrespondente = document.querySelector('.tab[data-target="' + id + '"]');
     if(tabCorrespondente) tabCorrespondente.classList.add('active');
   }
+  sincronizarInputsDataVisuais();
 }
 
 let _contadorNucleosExtras = 0;
@@ -8772,7 +8994,7 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
   if(permitirEdicao){
     html += '<div style="border-top:1px solid #EFE6D2;margin-top:10px;padding-top:10px;">' +
       '<label style="display:block;font-size:11px;color:var(--ink-soft);margin-bottom:4px;">Adicionar graduação (seu professor pode corrigir ou remover depois)</label>' +
-      '<input class="admin-input" id="minhaNovaGraduacaoInput_' + containerId + '" placeholder="Graduação/corda (ex: Corda Verde e Amarela)" style="margin-bottom:6px;">' +
+      '<input class="admin-input" id="minhaNovaGraduacaoInput_' + containerId + '" list="cordasGrupoDatalist" placeholder="Graduação/corda (ex: Corda Verde e Amarela)" style="margin-bottom:6px;">' +
       '<input class="admin-input" id="minhaNovaGraduacaoDataInput_' + containerId + '" type="date" style="margin-bottom:6px;">' +
       '<button class="btn" type="button" onclick="adicionarMinhaGraduacao(&quot;' + containerId + '&quot;)" style="margin-top:0;width:auto;padding:8px 16px;">Adicionar</button>' +
       '</div>';
@@ -10879,11 +11101,9 @@ function renderPerfil(){
   const cardLinkCadastro = document.getElementById('perfilCardLinkCadastro');
   if(cardLinkCadastro) cardLinkCadastro.style.display = souProfessorOuMatriz ? 'block' : 'none';
   const cardModalidadesGingaWay = document.getElementById('perfilCardModalidadesGingaWay');
-  if(cardModalidadesGingaWay) cardModalidadesGingaWay.style.display = (currentRole === 'academia') ? 'block' : 'none';
+  if(cardModalidadesGingaWay) cardModalidadesGingaWay.style.display = souProfessorOuMatriz ? 'block' : 'none';
   if(souProfessorOuMatriz){
     tentarChamar(function(){ renderPedidosCadastroPerfil(); });
-  }
-  if(currentRole === 'academia'){
     tentarChamar(function(){ renderModalidadesGingaWayPerfil(); });
   }
   const secaoPlanoAula = document.getElementById('perfilSecaoPlanoAula');
@@ -18992,6 +19212,88 @@ function renderGraduacoesLista(){
     row.appendChild(btnDel);
     container.appendChild(row);
   });
+}
+
+// ---------- Cordas/graduações do grupo (evita erro de digitação) ----------
+// Diferente da "ordem de graduação" acima (que é a hierarquia de cargos tipo
+// Instrutor/Mestre), isto aqui é a lista de nomes de corda/faixa que o GRUPO
+// realmente usa (ex: "Verde e Amarela", "Crua", "Contra-Mestre"...). Cada
+// grupo tem a sua própria lista — assim que o professor cadastra as cordas do
+// seu grupo uma vez, todo mundo que digitar a graduação de um aluno depois
+// (inclusive quem se cadastra sozinho por link) já vê essas opções sugeridas
+// e não precisa reinventar a grafia toda vez.
+function chaveCordasGrupo(){
+  return 'gingapass_cordas_grupo:' + obterMeuGrupoId();
+}
+
+function obterCordasGrupoAtual(){
+  return JSON.parse(localStorage.getItem(chaveCordasGrupo()) || '[]');
+}
+
+function salvarCordasGrupo(cordas){
+  setDado(chaveCordasGrupo(), JSON.stringify(cordas));
+  renderCordasGrupoLista();
+  tentarChamar(function(){ popularDatalistCordasGrupo(); });
+}
+
+function adicionarCordaGrupo(){
+  const input = document.getElementById('novaCordaGrupoNome');
+  const nome = input.value.trim();
+  if(!nome){
+    alert('Digite o nome da graduação/corda.');
+    return;
+  }
+  const cordas = obterCordasGrupoAtual();
+  if(cordas.some(c => c.toLowerCase() === nome.toLowerCase())){
+    alert('Essa graduação já está na lista.');
+    return;
+  }
+  cordas.push(nome);
+  salvarCordasGrupo(cordas);
+  input.value = '';
+}
+
+function removerCordaGrupo(idx){
+  const cordas = obterCordasGrupoAtual();
+  cordas.splice(idx, 1);
+  salvarCordasGrupo(cordas);
+}
+
+function renderCordasGrupoLista(){
+  const container = document.getElementById('cordasGrupoLista');
+  if(!container) return;
+  const cordas = obterCordasGrupoAtual();
+  if(cordas.length === 0){
+    container.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma graduação/corda cadastrada ainda — quem digitar vai ver o campo livre normal, sem sugestões.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  cordas.forEach((corda, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EFE6D2;';
+    const nomeSpan = document.createElement('span');
+    nomeSpan.style.cssText = 'flex:1;font-size:13.5px;color:var(--ink);';
+    nomeSpan.textContent = corda;
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.textContent = 'Remover';
+    btnDel.style.cssText = 'border:none;background:none;color:var(--danger);font-size:11.5px;font-weight:600;cursor:pointer;';
+    btnDel.onclick = () => removerCordaGrupo(idx);
+    row.appendChild(nomeSpan);
+    row.appendChild(btnDel);
+    container.appendChild(row);
+  });
+}
+
+// Preenche o <datalist> compartilhado por todos os campos de graduação/corda
+// da tela (ficha do aluno, novo aluno, etc.) com as cordas do MEU grupo —
+// continua sendo um campo de texto normal, só ganha sugestões pra digitar
+// mais rápido e sem erro de grafia.
+function popularDatalistCordasGrupo(){
+  const datalist = document.getElementById('cordasGrupoDatalist');
+  if(!datalist) return;
+  const cordas = obterCordasGrupoAtual();
+  datalist.innerHTML = cordas.map(c => '<option value="' + escapeHtml(c) + '"></option>').join('');
 }
 
 // Ordena por hierarquia usando a lista personalizada do grupo (ou o padrão,
