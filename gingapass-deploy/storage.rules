@@ -1,8 +1,30 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // Vídeos do Mural/GingaFeed (ver publicarVideoComunidade em index.html) —
+    // até 20MB, só vídeo de verdade. Antes: qualquer arquivo, de qualquer
+    // tamanho, em qualquer caminho do bucket, por qualquer pessoa da internet.
+    match /mural_videos/{arquivo} {
+      allow read: if true;
+      allow create, update: if request.resource.size < 20 * 1024 * 1024
+                            && request.resource.contentType.matches('video/.*');
+      allow delete: if true;
+    }
+
+    // Vídeos do GingaSocial (ver publicarPostSocial) — até 80MB, só vídeo.
+    match /gingasocial_videos/{arquivo} {
+      allow read: if true;
+      allow create, update: if request.resource.size < 80 * 1024 * 1024
+                            && request.resource.contentType.matches('video/.*');
+      allow delete: if true;
+    }
+
+    // Qualquer outro caminho do bucket: nada. O app só usa os dois de cima —
+    // isso impede alguém de fora usar seu Storage como armazenamento
+    // gratuito pra arquivo qualquer (o que gera custo pra você).
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

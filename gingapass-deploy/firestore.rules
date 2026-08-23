@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ATENÇÃO — leia antes de mexer aqui:
+    // O GingaPass usa login PRÓPRIO (usuário/senha guardados nos próprios
+    // documentos), não o sistema de autenticação do Firebase. Ou seja, não
+    // existe "request.auth" pra checar aqui — não dá pra restringir POR
+    // PESSOA sem redesenhar o login inteiro do app (isso é um projeto à
+    // parte, não uma regra). O que estas regras fazem é o que dá pra fazer
+    // sem quebrar o app: 1) impedir que alguém de fora crie coleções novas
+    // só pra usar seu projeto Firebase de graça, e 2) impedir que uma
+    // escrita malformada (não vinda do app) injete lixo que quebraria a
+    // tela de todo mundo que lesse aquela chave depois.
+
+    // Coleção genérica de "chave -> valor" usada pelo app inteiro (contas,
+    // eventos, avisos, chat, etc — ver função setDado() em index.html).
+    // Todo documento real sempre tem exatamente esse formato.
+    match /gingapass/{chave} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasAll(['value', 'atualizado'])
+                            && request.resource.data.value is string
+                            && request.resource.data.atualizado is number;
+      allow delete: if true;
+    }
+
+    // Coleções auxiliares (fotos do mural, comprovantes, localização ao
+    // vivo, presença online, cartazes de evento, vídeos, loja, GingaSocial,
+    // certificados) — cada uma com seu próprio formato de documento
+    // (diferente do "value/atualizado" acima), então aqui só delimita QUAIS
+    // coleções existem de verdade, sem validar o formato interno de cada uma.
+    match /gingapass_mural_fotos/{id} { allow read, write: if true; }
+    match /gingapass_comprovantes/{id} { allow read, write: if true; }
+    match /gingapass_localizacoes/{id} { allow read, write: if true; }
+    match /gingapass_presenca/{id} { allow read, write: if true; }
+    match /gingapass_eventos_posters/{id} { allow read, write: if true; }
+    match /gingapass_videos_nuvem/{id} { allow read, write: if true; }
+    match /gingapass_loja_produtos_itens/{id} { allow read, write: if true; }
+    match /gingapass_social_posts/{id} { allow read, write: if true; }
+    match /gingapass_social_desafios/{id} { allow read, write: if true; }
+    match /gingapass_certificados_arte/{id} { allow read, write: if true; }
+
+    // Qualquer coleção fora da lista acima: nada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
