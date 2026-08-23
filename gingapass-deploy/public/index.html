@@ -4578,7 +4578,7 @@ function renderPainelPai(){
     if(filhos.length > 1){
       select.style.display = 'block';
       const atual = select.value;
-      select.innerHTML = filhos.map(f => '<option value="' + f.user + '">' + f.nome + '</option>').join('');
+      select.innerHTML = filhos.map(f => '<option value="' + escapeHtml(f.user) + '">' + escapeHtml(f.nome) + '</option>').join('');
       select.value = filhos.some(f => f.user === atual) ? atual : filhos[0].user;
       filhoUserAtual = select.value;
     } else {
@@ -8999,7 +8999,7 @@ function renderContasGrupoParceiroIndevido(){
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EFE6D2;';
     const span = document.createElement('span');
     span.style.cssText = 'font-size:12.5px;color:var(--ink);';
-    span.innerHTML = '<b>' + c.nome + '</b><br><span style="font-size:11px;color:var(--ink-soft);">isolado em: ' + (grupo ? grupo.nome : c.grupoParceiroId) + '</span>';
+    span.innerHTML = '<b>' + escapeHtml(c.nome) + '</b><br><span style="font-size:11px;color:var(--ink-soft);">isolado em: ' + escapeHtml(grupo ? grupo.nome : c.grupoParceiroId) + '</span>';
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = 'Corrigir (juntar de volta à rede)';
@@ -11100,7 +11100,7 @@ function renderBuscaResultados(){
       row.style.cursor = 'pointer';
       const span = document.createElement('span');
       const tagTexto = r.tipo === 'professor' ? '👤 Professor/Mestre' : '🎓 Aluno';
-      span.innerHTML = '<b style="color:var(--navy-900);">' + r.nome + '</b><br><span style="font-size:11.5px;color:var(--ink-soft);">' + tagTexto + (r.detalhe ? ' · ' + r.detalhe : '') + (r.grupo ? ' · Grupo: ' + r.grupo : '') + '</span>';
+      span.innerHTML = '<b style="color:var(--navy-900);">' + escapeHtml(r.nome) + '</b><br><span style="font-size:11.5px;color:var(--ink-soft);">' + escapeHtml(tagTexto) + (r.detalhe ? ' · ' + escapeHtml(r.detalhe) : '') + (r.grupo ? ' · Grupo: ' + escapeHtml(r.grupo) : '') + '</span>';
       row.appendChild(span);
       row.onclick = r.acao;
       container.appendChild(row);
@@ -12570,7 +12570,7 @@ function renderListaOnlineAgora(){
   online.forEach(p => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;color:var(--ink);';
-    row.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#2E8B57;flex-shrink:0;"></span><span>' + p.nome + (rotuloRole[p.role] ? ' <span style="color:var(--ink-soft);font-size:11px;">(' + rotuloRole[p.role] + ')</span>' : '') + (p.id === meuId ? ' <span style="color:var(--ink-soft);font-size:11px;">— você</span>' : '') + '</span>';
+    row.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#2E8B57;flex-shrink:0;"></span><span>' + escapeHtml(p.nome) + (rotuloRole[p.role] ? ' <span style="color:var(--ink-soft);font-size:11px;">(' + escapeHtml(rotuloRole[p.role]) + ')</span>' : '') + (p.id === meuId ? ' <span style="color:var(--ink-soft);font-size:11px;">— você</span>' : '') + '</span>';
     container.appendChild(row);
   });
 }
@@ -12756,8 +12756,8 @@ function renderLocalizacoesCompartilhadas(containerId){
 
     const linha = document.createElement('div');
     linha.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;';
-    linha.innerHTML = '<div><strong style="font-size:13px;color:var(--navy-900);">' + loc.autor + '</strong>' +
-      '<div style="font-size:11px;color:var(--ink-soft);">' + (rotulos[loc.autorRole] || 'Associado') + ' · atualizado ' + textoTempo + (privada ? ' · compartilhamento específico' : '') + '</div></div>';
+    linha.innerHTML = '<div><strong style="font-size:13px;color:var(--navy-900);">' + escapeHtml(loc.autor) + '</strong>' +
+      '<div style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(rotulos[loc.autorRole] || 'Associado') + ' · atualizado ' + textoTempo + (privada ? ' · compartilhamento específico' : '') + '</div></div>';
 
     const botaoMapa = document.createElement('button');
     botaoMapa.className = 'btn';
@@ -13366,8 +13366,8 @@ function _criarLinhaAlunoPublica(conta){
   const infoWrap = document.createElement('div');
   infoWrap.style.cssText = 'min-width:0;';
   const subtitulo = [conta.corda, conta.professor ? ('aluno de ' + conta.professor) : ''].filter(Boolean).join(' · ');
-  infoWrap.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + (conta.nome || conta.user) + '</b>' +
-    (subtitulo ? '<span style="font-size:11.5px;color:var(--ink-soft);display:block;">' + subtitulo + '</span>' : '');
+  infoWrap.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + escapeHtml(conta.nome || conta.user) + '</b>' +
+    (subtitulo ? '<span style="font-size:11.5px;color:var(--ink-soft);display:block;">' + escapeHtml(subtitulo) + '</span>' : '');
   row.appendChild(avatarDiv);
   row.appendChild(infoWrap);
   row.onclick = () => abrirPerfilPublico('aluno', conta.user);
@@ -13844,7 +13844,7 @@ function renderChatDireto(){
 
   container.innerHTML = '';
   if(mensagens.length === 0){
-    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma mensagem ainda. Manda um "oi" pra ' + _chatDiretoAlvo.nome + '!</p>';
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma mensagem ainda. Manda um "oi" pra ' + escapeHtml(_chatDiretoAlvo.nome) + '!</p>';
     return;
   }
   mensagens.forEach(m => {
@@ -15803,7 +15803,7 @@ function renderBuscaSocial(){
     info.onclick = () => abrirPerfilSocial(p.chaveConta);
     const handle = obterHandleSocial(p.chaveConta, p.nome);
     const totalSeguidores = contarSeguidoresSocial(p.chaveConta);
-    info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + p.nome + '</b><span style="font-size:11px;color:#C22C75;">' + handle + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + p.graduacao + '</span>' : '') + '<span style="font-size:10px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
+    info.innerHTML = '<b style="font-size:13px;color:var(--navy-900);display:block;">' + escapeHtml(p.nome) + '</b><span style="font-size:11px;color:#C22C75;">' + escapeHtml(handle) + '</span>' + (p.graduacao ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + escapeHtml(p.graduacao) + '</span>' : '') + '<span style="font-size:10px;color:var(--ink-soft);display:block;">👥 ' + totalSeguidores + (totalSeguidores === 1 ? ' seguidor' : ' seguidores') + '</span>';
     row.appendChild(avatar);
     row.appendChild(info);
     if(meuId && p.chaveConta !== meuId){
@@ -16222,10 +16222,10 @@ function criarCardPostSocial(post, meuId){
   infoAutor.style.cssText = 'flex:1;min-width:0;';
   const linhaExtra = [post.autorGrupoNome, post.autorGraduacao].filter(Boolean).join(' · ');
   const totalSeguidoresAutor = contarSeguidoresSocial(post.autorId);
-  infoAutor.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + (post.autorNome || 'Associado') + '</b>' +
-    '<span style="font-size:11.5px;color:#C22C75;font-weight:600;">' + (post.autorHandle || '') + '</span>' +
+  infoAutor.innerHTML = '<b style="font-size:13.5px;color:var(--navy-900);display:block;">' + escapeHtml(post.autorNome || 'Associado') + '</b>' +
+    '<span style="font-size:11.5px;color:#C22C75;font-weight:600;">' + escapeHtml(post.autorHandle || '') + '</span>' +
     ' <span style="font-size:10px;color:var(--ink-soft);">👥 ' + totalSeguidoresAutor + '</span>' +
-    (linhaExtra ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + linhaExtra + '</span>' : '');
+    (linhaExtra ? '<span style="font-size:10.5px;color:var(--ink-soft);display:block;">' + escapeHtml(linhaExtra) + '</span>' : '');
   // Clicar no autor abre o perfil dele dentro do GingaSocial (posts, frases,
   // pensamentos e desafios dele). Só o botão de apagar (abaixo) fica de fora.
   avatar.style.cursor = 'pointer';
@@ -17090,7 +17090,7 @@ function _criarPainelEnqueteDesafio(d, minhaChave, souCriador){
     linha.appendChild(barra);
     const conteudo = document.createElement('div');
     conteudo.style.cssText = 'position:relative;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;font-size:12px;color:var(--ink);';
-    conteudo.innerHTML = '<span>' + (votei ? '✓ ' : '') + o.texto + '</span><span style="font-weight:700;color:var(--navy-900);flex-shrink:0;margin-left:8px;">' + votos + ' (' + pct + '%)</span>';
+    conteudo.innerHTML = '<span>' + (votei ? '✓ ' : '') + escapeHtml(o.texto) + '</span><span style="font-weight:700;color:var(--navy-900);flex-shrink:0;margin-left:8px;">' + votos + ' (' + pct + '%)</span>';
     linha.appendChild(conteudo);
     linha.onclick = () => votarEnqueteDesafio(d.id, o.id);
     if(souCriador || currentRole === 'matriz'){
@@ -18470,7 +18470,7 @@ function renderPagamentos(sufixo){
     const tarja = c.tipoMensalidade === 'bolsista' ? '<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#8A5A00;background:#FCE7B8;padding:1px 7px;border-radius:100px;vertical-align:middle;">🎗️ Bolsista</span>'
       : c.tipoMensalidade === 'projeto' ? '<span style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#1F5C8B;background:#D6E9F7;padding:1px 7px;border-radius:100px;vertical-align:middle;">📋 Projeto</span>'
       : '';
-    info.innerHTML = '<b>' + c.nome + '</b>' + tarja + (pago && !isento ? '<br><span style="font-size:11px;color:var(--ink-soft);">Pago em ' + dataFormatada + '</span>' : '');
+    info.innerHTML = '<b>' + escapeHtml(c.nome) + '</b>' + tarja + (pago && !isento ? '<br><span style="font-size:11px;color:var(--ink-soft);">Pago em ' + dataFormatada + '</span>' : '');
 
     let btn;
     if(isento){
@@ -20022,7 +20022,7 @@ function renderCheckinsAlunos(){
     const row = document.createElement('div');
     row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
     const info = document.createElement('div');
-    info.innerHTML = '<b>' + nome + '</b><br><span style="font-size:11px;color:var(--ink-soft);">Prof. ' + (r.professor || '—') + (r.visita ? ' · <span style="color:#B8722A;font-weight:600;">🧭 Visita</span>' : '') + '</span>';
+    info.innerHTML = '<b>' + escapeHtml(nome) + '</b><br><span style="font-size:11px;color:var(--ink-soft);">Prof. ' + escapeHtml(r.professor || '—') + (r.visita ? ' · <span style="color:#B8722A;font-weight:600;">🧭 Visita</span>' : '') + '</span>';
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.textContent = 'Excluir';
@@ -20102,9 +20102,9 @@ function renderFaltasAlunos(){
     const row = document.createElement('div');
     row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;';
     const info = document.createElement('div');
-    info.innerHTML = '<b>' + a.nome + '</b>' +
+    info.innerHTML = '<b>' + escapeHtml(a.nome) + '</b>' +
       (excluida ? '<br><span style="font-size:11px;color:#1E9C71;">Justificada — não conta como falta</span>' : '') +
-      (motivo ? '<br><span style="font-size:11px;color:var(--ink-soft);">Obs: ' + String(motivo).replace(/</g, '&lt;') + '</span>' : '');
+      (motivo ? '<br><span style="font-size:11px;color:var(--ink-soft);">Obs: ' + escapeHtml(motivo) + '</span>' : '');
     const btnGroup = document.createElement('div');
     btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center;flex-shrink:0;flex-wrap:wrap;';
     const btnPresenca = document.createElement('button');
@@ -20299,8 +20299,8 @@ function renderCheckinsAvulsos(){
     row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
     const hora = new Date(c.hora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     const info = document.createElement('div');
-    info.innerHTML = '<b>' + c.nome + '</b>' + (c.graduacao ? ' — ' + c.graduacao : '') +
-      '<br><span style="font-size:11px;color:var(--ink-soft);">' + hora + (currentRole !== 'academia' ? ' · Prof. ' + c.professor : '') + '</span>';
+    info.innerHTML = '<b>' + escapeHtml(c.nome) + '</b>' + (c.graduacao ? ' — ' + escapeHtml(c.graduacao) : '') +
+      '<br><span style="font-size:11px;color:var(--ink-soft);">' + hora + (currentRole !== 'academia' ? ' · Prof. ' + escapeHtml(c.professor) : '') + '</span>';
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.textContent = 'Excluir';
@@ -21588,6 +21588,21 @@ function _criarCardAcademia(a, academiasContas){
 
 function _normalizarTextoBusca(texto){
   return (texto || '').toString().trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Escapa texto antes de jogar dentro de innerHTML — sem isso, alguém podia
+// colocar "<img src=x onerror=...>" como nome/legenda/mensagem e ele
+// executaria na tela de qualquer um que visse aquele card depois (XSS
+// guardado). Use sempre que for concatenar texto vindo de conta/formulário
+// dentro de uma string de innerHTML (textContent/createTextNode já são
+// seguros por natureza e não precisam disso).
+function escapeHtml(texto){
+  return (texto === null || texto === undefined) ? '' : String(texto)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function _geoCacheDeEndereco(endereco){
