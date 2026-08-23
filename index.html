@@ -2375,6 +2375,10 @@
       <p class="section-title">Aluno visitante (de outro professor)</p>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alguém de outro professor que veio treinar hoje na sua aula. Escolha o professor dele, depois o aluno na lista. Conta como visita (não como falta na academia de origem) e também entra na sua estatística de presença do dia.</p>
       <div class="card" id="checkinVisitanteBox"><p style="font-size:11.5px;color:var(--ink-soft);margin:0;">Não há outros professores cadastrados na rede ainda.</p></div>
+
+      <p class="section-title">🥊 Aluno GingaWay</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Aluno avulso (sem vínculo fixo com nenhum grupo) que veio treinar numa modalidade sua. Marcar presença aqui desconta uma aula do plano dele automaticamente.</p>
+      <div class="card" id="checkinGingaWayBox"><p style="font-size:11.5px;color:var(--ink-soft);margin:0;">Cadastre uma modalidade no seu Perfil pra poder dar presença a alunos GingaWay.</p></div>
     </div>
 
     <div id="gestaoAulasMatrizBox">
@@ -2419,6 +2423,10 @@
       <p class="section-title">Aluno visitante (de outro professor)</p>
       <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Alguém de outro professor que veio treinar hoje. Escolha o professor dele, depois o aluno na lista. Conta como visita (não como falta na academia de origem) e também entra na estatística de presença do dia.</p>
       <div class="card" id="checkinVisitanteBoxMatriz"></div>
+
+      <p class="section-title">🥊 Aluno GingaWay</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Aluno avulso (sem vínculo fixo com nenhum grupo) que veio treinar numa modalidade sua. Marcar presença aqui desconta uma aula do plano dele automaticamente.</p>
+      <div class="card" id="checkinGingaWayBoxMatriz"><p style="font-size:11.5px;color:var(--ink-soft);margin:0;">Cadastre uma modalidade no seu Perfil pra poder dar presença a alunos GingaWay.</p></div>
     </div>
 
     <p class="section-title">Corrigir check-ins de um dia (presença e falta)</p>
@@ -20465,6 +20473,110 @@ function renderCheckin(sufixo){
 
   // Aluno visitante: alguém de outro professor que veio treinar hoje na sua aula.
   renderVisitanteCheckin(idsVistos, todasContas, registro, sufixo);
+  // Aluno GingaWay: avulso, sem vínculo fixo, numa modalidade que EU ofereço.
+  renderGingaWayVisitanteCheckin(registro, sufixo);
+}
+
+// ---------- Gestão de Aulas: dar presença a um Aluno GingaWay (desconta aula do plano dele) ----------
+function renderGingaWayVisitanteCheckin(registro, sufixo){
+  sufixo = sufixo || '';
+  const box = document.getElementById('checkinGingaWayBox' + sufixo);
+  if(!box) return;
+
+  const minhasModalidades = [...new Set(
+    JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]')
+      .filter(m => m.professorUser === currentUser)
+      .map(m => m.modalidade)
+  )];
+  if(minhasModalidades.length === 0){
+    box.innerHTML = '<p style="font-size:11.5px;color:var(--ink-soft);margin:0;">Cadastre uma modalidade no seu Perfil pra poder dar presença a alunos GingaWay.</p>';
+    return;
+  }
+
+  const alunosGw = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]')
+    .filter(c => c.tipoConta === 'gingaway' && minhasModalidades.includes(c.gingawayModalidade));
+  if(alunosGw.length === 0){
+    box.innerHTML = '<p style="font-size:11.5px;color:var(--ink-soft);margin:0;">Nenhum aluno GingaWay assinou a(s) modalidade(s) que você oferece ainda.</p>';
+    return;
+  }
+
+  box.innerHTML = '';
+  const aviso = document.createElement('p');
+  aviso.style.cssText = 'font-size:10.5px;color:var(--amber-700);margin:0 0 10px;';
+  aviso.textContent = '💰 Cada presença marcada aqui conta pro seu repasse combinado com a rede.';
+  box.appendChild(aviso);
+  const mesAtual = _mesReferenciaAtual();
+  alunosGw.forEach(c => {
+    const plano = GINGAWAY_PLANOS[c.gingawayPlano] || GINGAWAY_PLANOS['60'];
+    const totalAulas = plano.aulas + plano.bonus;
+    const usadas = (c.gingawayMesReferencia === mesAtual) ? (c.gingawayAulasUsadas || 0) : 0;
+    const restantes = Math.max(0, totalAulas - usadas);
+    const presente = !!registro[c.user];
+
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const info = document.createElement('div');
+    const b = document.createElement('b');
+    b.style.cssText = 'font-size:13px;color:var(--navy-900);display:block;';
+    b.textContent = c.nome;
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:11px;color:' + (restantes > 0 ? 'var(--ink-soft)' : '#C0392B') + ';margin:2px 0 0;';
+    p.textContent = c.gingawayModalidade + ' · Plano ' + plano.label + ' · ' + (restantes > 0 ? (restantes + ' aula(s) restante(s) este mês') : 'já usou todas as aulas do plano este mês');
+    info.appendChild(b);
+    info.appendChild(p);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'aluno-del';
+    btn.style.color = presente ? '#2E8B57' : '#C0392B';
+    btn.textContent = presente ? 'Presente ✓' : 'Marcar presença';
+    btn.onclick = () => marcarCheckinGingaWayProfessor(c.user, sufixo);
+    row.appendChild(info);
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
+}
+
+function marcarCheckinGingaWayProfessor(userChave, sufixo){
+  sufixo = sufixo || '';
+  if(!userChave) return;
+
+  buscarValorFresco('gingapass_alunos_contas').then(function(){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const idx = contas.findIndex(c => c.user === userChave);
+    if(idx < 0) return;
+    const conta = contas[idx];
+    const plano = GINGAWAY_PLANOS[conta.gingawayPlano] || GINGAWAY_PLANOS['60'];
+    const totalAulas = plano.aulas + plano.bonus;
+    const mesAtual = _mesReferenciaAtual();
+    const usadas = (conta.gingawayMesReferencia === mesAtual) ? (conta.gingawayAulasUsadas || 0) : 0;
+
+    if(usadas >= totalAulas){
+      if(!confirm(conta.nome + ' já usou todas as aulas do plano dele este mês (' + totalAulas + '). Marcar presença mesmo assim?')) return;
+    }
+
+    conta.gingawayMesReferencia = mesAtual;
+    conta.gingawayAulasUsadas = usadas + 1;
+    setDado('gingapass_alunos_contas', JSON.stringify(contas)).then(function(ok){
+      if(!ok){ alert('Não conseguiu registrar agora. Verifique sua internet e tente de novo.'); return; }
+
+      const dataAula = dataCheckinAtual(sufixo);
+      const key = 'gingapass_checkin_' + dataAula;
+      const registro = JSON.parse(localStorage.getItem(key) || '{}');
+      registro[userChave] = true;
+      setDado(key, JSON.stringify(registro));
+
+      const meuNome = (obterMeuNomeProfessor() || '').trim();
+      const meusNucleos = (currentRole === 'academia') ? obterMeusNucleos() : [];
+      const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+      log.push({
+        data: dataAula, aluno: userChave, professor: meuNome, nucleo: meusNucleos[0] || '', visita: false,
+        origemGingaWay: true, modalidade: conta.gingawayModalidade
+      });
+      setDado('gingapass_checkin_log', JSON.stringify(log));
+
+      renderCheckin(sufixo);
+    });
+  });
 }
 
 function renderVisitanteCheckin(idsMeusAlunos, todasContas, registro, sufixo){
