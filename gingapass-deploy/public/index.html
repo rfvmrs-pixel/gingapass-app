@@ -1088,6 +1088,17 @@
       <button class="btn" type="button" onclick="vincularAlunoAoGrupo()">Vincular como meu aluno</button>
     </div>
 
+    <div class="card" id="perfilCardLinkCadastro" style="display:none;margin-top:14px;">
+      <p class="card-label" style="margin:0 0 8px;">📋 Convidar alguém pra se cadastrar</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Gera um link pra mandar por WhatsApp — a pessoa preenche os dados básicos dela (apelido, graduação, professor, grupo, se dá aula, usuário e senha) e o cadastro fica esperando aprovação: se ela indicar um professor já cadastrado, cai direto pra aprovação dele; se for um grupo novo, cai pra aprovação da matriz.</p>
+      <button class="btn" type="button" onclick="linkCadastroApp()">🔗 Gerar link de cadastro</button>
+    </div>
+
+    <div class="card" id="perfilCardPedidosCadastro" style="display:none;margin-top:14px;">
+      <p class="card-label" style="margin:0 0 8px;">📥 Pedidos de cadastro esperando aprovação</p>
+      <div id="perfilPedidosCadastroLista"></div>
+    </div>
+
     <div id="perfilSecaoHistoricoProfessor" style="display:none;margin-top:14px;">
       <p class="section-title">📜 Minha trajetória (como aluno do meu mestre)</p>
       <div id="perfilProfessorHistoricoBox"></div>
@@ -5167,6 +5178,7 @@ function estouNoMesmoGrupoQueAutor(autorId, autorRole){
 function seedContas(nuvemConfirmada){
   verificarModoCheckinRapido();
   verificarModoConviteEvento();
+  verificarModoCadastroLink();
   verificarModoDemo();
   if(!localStorage.getItem('gingapass_academias_contas')){
     _setLocal('gingapass_academias_contas', JSON.stringify([]));
@@ -5513,6 +5525,353 @@ function confirmarPresencaVisitanteLink(){
   });
 }
 
+/* ===================== Cadastro por link (sem estar logado) =====================
+   Mesmo esqueleto do check-in rápido/convite de evento: link abre uma
+   telinha isolada, fora do app, sem precisar estar logado. A pessoa
+   preenche os próprios dados e o cadastro fica PENDENTE — só vira conta de
+   verdade depois que um professor (se ela indicou um mestre/professor já
+   cadastrado) ou a matriz (se for um grupo novo, sem professor indicado)
+   aprovar, na tela "Pedidos de cadastro". */
+function verificarModoCadastroLink(){
+  if(window._cadastroLinkJaVerificado) return;
+  window._cadastroLinkJaVerificado = true;
+  try{
+    executarModoCadastroLink();
+  } catch(erro){
+    document.body.innerHTML = '<div style="max-width:420px;margin:0 auto;padding:28px 20px;font-family:sans-serif;"><h2 style="color:#C0392B;">Erro ao carregar</h2><p style="color:#5B6B7A;font-size:13px;word-break:break-word;">' + (erro && erro.message ? erro.message : String(erro)) + '</p></div>';
+  }
+}
+
+function executarModoCadastroLink(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('cadastro') !== '1') return;
+
+  const campo = (id, label, placeholder, tipo) => '<label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">' + label + '</label>' +
+    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
+
+  document.body.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;min-height:100vh;background:var(--cream, #FBF3E4);padding:28px 20px;font-family:'Poppins','Inter',sans-serif;">
+      <h2 style="color:#042C53;font-size:20px;margin:0 0 4px;">🥋 Cadastro no GingaPass</h2>
+      <p style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">Preencha seus dados — seu cadastro fica esperando aprovação antes de dar pra entrar.</p>
+      <div id="cadastroLinkForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
+        ${campo('cadastroLinkApelido', 'Apelido de capoeira', 'Seu apelido')}
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Graduação</label>
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="cadastroLinkGraduacao">
+          <option value="Aluno">Aluno</option>
+          <option value="Graduado">Graduado</option>
+          <option value="Instrutor">Instrutor</option>
+          <option value="Professor">Professor</option>
+          <option value="Mestrando">Mestrando</option>
+          <option value="Mestre">Mestre</option>
+        </select>
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Você dá aula / tem seu próprio núcleo?</label>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button type="button" id="cadastroLinkDaAulaNaoBtn" onclick="alternarCadastroLinkDaAula(false)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#042C53;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Não, sou aluno(a)</button>
+          <button type="button" id="cadastroLinkDaAulaSimBtn" onclick="alternarCadastroLinkDaAula(true)" style="flex:1;padding:12px;border-radius:100px;border:1.5px solid #042C53;background:#fff;color:#042C53;font-weight:700;font-size:13px;cursor:pointer;">Sim, dou aula</button>
+        </div>
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Seu mestre/professor (se tiver um já cadastrado no app)</label>
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:8px;box-sizing:border-box;background:#fff;" id="cadastroLinkProfessor"><option value="">Carregando...</option></select>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:-4px 0 16px;">Achou seu professor na lista? Seu cadastro cai direto pra aprovação dele. Não achou (ou está começando um grupo novo)? Deixe em branco — cai pra aprovação da matriz.</p>
+        ${campo('cadastroLinkGrupo', 'Nome do seu grupo de capoeira', 'Ex: Capoeira Team')}
+        ${campo('cadastroLinkUser', 'Usuário (pra entrar no app)', 'Escolha um usuário')}
+        ${campo('cadastroLinkSenha', 'Senha', 'Escolha uma senha', 'password')}
+        ${campo('cadastroLinkPergunta', 'Pergunta de segurança (opcional, pra recuperar a senha)', 'Ex: nome do seu primeiro cachorro')}
+        ${campo('cadastroLinkResposta', 'Resposta da pergunta', 'Resposta')}
+        <p id="cadastroLinkErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
+        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="cadastroLinkBtn" onclick="enviarPedidoCadastroLink()">Enviar cadastro</button>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">Já tem conta? <a href="` + location.pathname + `" style="color:#042C53;font-weight:600;">Entrar</a></p>
+      </div>
+      <div id="cadastroLinkMsg" style="display:none;text-align:center;padding:40px 10px;">
+        <div id="cadastroLinkMsgIcon" style="font-size:48px;margin-bottom:14px;">✅</div>
+        <h2 id="cadastroLinkMsgTitulo" style="color:#042C53;margin:0 0 8px;">Cadastro enviado!</h2>
+        <p id="cadastroLinkMsgTexto" style="color:#5B6B7A;font-size:14px;word-break:break-word;"></p>
+      </div>
+    </div>
+  `;
+  window._cadastroLinkDaAula = false;
+  popularProfessoresCadastroLink(0);
+}
+
+function alternarCadastroLinkDaAula(daAula){
+  window._cadastroLinkDaAula = daAula;
+  const simBtn = document.getElementById('cadastroLinkDaAulaSimBtn');
+  const naoBtn = document.getElementById('cadastroLinkDaAulaNaoBtn');
+  if(simBtn){
+    simBtn.style.background = daAula ? '#042C53' : '#fff';
+    simBtn.style.color = daAula ? '#fff' : '#042C53';
+  }
+  if(naoBtn){
+    naoBtn.style.background = !daAula ? '#042C53' : '#fff';
+    naoBtn.style.color = !daAula ? '#fff' : '#042C53';
+  }
+}
+
+function popularProfessoresCadastroLink(tentativas){
+  const select = document.getElementById('cadastroLinkProfessor');
+  if(!select) return;
+  const professores = obterProfessoresReais();
+  if(professores.length > 0){
+    select.innerHTML = '<option value="">Não tenho / grupo novo</option>' + professores.map(p => '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>').join('');
+    return;
+  }
+  if(tentativas < 6){
+    select.innerHTML = '<option value="">Carregando professores...</option>';
+    Promise.all([
+      buscarValorFresco('gingapass_rede_academias'),
+      buscarValorFresco('gingapass_academias_contas'),
+      buscarValorFresco('gingapass_professor_matriz'),
+      buscarValorFresco('gingapass_config_geral')
+    ]).then(function(){
+      setTimeout(function(){ popularProfessoresCadastroLink(tentativas + 1); }, 800);
+    });
+    return;
+  }
+  select.innerHTML = '<option value="">Não tenho / grupo novo</option>';
+}
+
+function mostrarMsgCadastroLink(sucesso, titulo, texto){
+  const form = document.getElementById('cadastroLinkForm');
+  const msg = document.getElementById('cadastroLinkMsg');
+  if(form) form.style.display = 'none';
+  if(msg) msg.style.display = 'block';
+  const icon = document.getElementById('cadastroLinkMsgIcon');
+  const tit = document.getElementById('cadastroLinkMsgTitulo');
+  const txt = document.getElementById('cadastroLinkMsgTexto');
+  if(icon) icon.textContent = sucesso ? '✅' : '⚠️';
+  if(tit) tit.textContent = titulo;
+  if(txt) txt.textContent = texto;
+}
+
+function enviarPedidoCadastroLink(){
+  const apelido = (document.getElementById('cadastroLinkApelido').value || '').trim();
+  const graduacao = document.getElementById('cadastroLinkGraduacao').value;
+  const daAula = !!window._cadastroLinkDaAula;
+  const professorEscolhido = (document.getElementById('cadastroLinkProfessor').value || '').trim();
+  const grupoCapoeira = (document.getElementById('cadastroLinkGrupo').value || '').trim();
+  const user = (document.getElementById('cadastroLinkUser').value || '').trim();
+  const senha = (document.getElementById('cadastroLinkSenha').value || '').trim();
+  const pergunta = (document.getElementById('cadastroLinkPergunta').value || '').trim();
+  const resposta = (document.getElementById('cadastroLinkResposta').value || '').trim().toLowerCase();
+  const erroEl = document.getElementById('cadastroLinkErro');
+  const btn = document.getElementById('cadastroLinkBtn');
+
+  const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
+  erroEl.style.display = 'none';
+
+  if(!apelido){ mostrarErro('Digite seu apelido de capoeira.'); return; }
+  if(!user || !senha){ mostrarErro('Escolha um usuário e uma senha.'); return; }
+  if(senha.length < 4){ mostrarErro('A senha precisa ter pelo menos 4 caracteres.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  Promise.all([
+    buscarValorFresco('gingapass_master'),
+    buscarValorFresco('gingapass_academias_contas'),
+    buscarValorFresco('gingapass_alunos_contas'),
+    buscarValorFresco('gingapass_pais_contas'),
+    buscarValorFresco('gingapass_pedidos_cadastro')
+  ]).then(function(){
+    if(localizarContaPorUsuario(user)){
+      btn.disabled = false;
+      btn.textContent = 'Enviar cadastro';
+      mostrarErro('Esse usuário já existe. Escolha outro.');
+      return;
+    }
+    const pedidos = JSON.parse(localStorage.getItem('gingapass_pedidos_cadastro') || '[]');
+    if(pedidos.some(p => p.user === user && p.status === 'pendente')){
+      btn.disabled = false;
+      btn.textContent = 'Enviar cadastro';
+      mostrarErro('Já existe um pedido de cadastro pendente com esse usuário.');
+      return;
+    }
+
+    // Se indicou um professor já cadastrado, o pedido vai direto pra ele;
+    // senão (grupo novo/sem professor), vai pra matriz aprovar.
+    let destinoAprovacao = 'matriz';
+    let destinoNome = 'a matriz';
+    if(professorEscolhido){
+      const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+      const contaProf = academiasContas.find(c => mesmoProfessor(c.nome, professorEscolhido) || mesmoProfessor(c.user, professorEscolhido));
+      if(contaProf){
+        destinoAprovacao = 'academia:' + contaProf.user;
+        destinoNome = professorEscolhido;
+      }
+    }
+
+    const pedido = {
+      id: 'pedido_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      apelido, graduacao, daAula, professorEscolhido, grupoCapoeira,
+      user, senha, pergunta, resposta,
+      destinoAprovacao, status: 'pendente',
+      data: Date.now(), respondidoEm: null
+    };
+    pedidos.push(pedido);
+    setDado('gingapass_pedidos_cadastro', JSON.stringify(pedidos)).then(function(ok){
+      if(ok){
+        mostrarMsgCadastroLink(true, 'Cadastro enviado!', 'Assim que ' + destinoNome + ' aprovar, você já pode entrar com o usuário "' + user + '" e a senha que você escolheu.');
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Enviar cadastro';
+        mostrarErro('Não conseguimos enviar agora. Verifique sua internet e tente de novo.');
+      }
+    });
+  });
+}
+
+/* ===================== Aprovação dos pedidos de cadastro =====================
+   Mostrado no Perfil de professor/matriz. Cada um só vê os pedidos
+   endereçados a ele: a matriz vê os que caíram pra "matriz" (quem não
+   indicou nenhum professor já cadastrado — grupo novo ou caso solto) e cada
+   professor vê só os que indicaram ELE como mestre/professor. Aprovar cria
+   a conta de verdade (aluno ou professor, dependendo de "dá aula"); recusar
+   só marca como recusado, sem criar nada. */
+function obterMeuDestinoAprovacaoCadastro(){
+  return currentRole === 'matriz' ? 'matriz' : ('academia:' + currentUser);
+}
+
+function renderPedidosCadastroPerfil(){
+  const card = document.getElementById('perfilCardPedidosCadastro');
+  const lista = document.getElementById('perfilPedidosCadastroLista');
+  if(!card || !lista || !currentRole || !currentUser) return;
+  const meuDestino = obterMeuDestinoAprovacaoCadastro();
+  const pedidos = JSON.parse(localStorage.getItem('gingapass_pedidos_cadastro') || '[]')
+    .filter(p => p.status === 'pendente' && p.destinoAprovacao === meuDestino)
+    .sort((a, b) => (a.data || 0) - (b.data || 0));
+
+  if(pedidos.length === 0){
+    card.style.display = 'none';
+    lista.innerHTML = '';
+    return;
+  }
+  card.style.display = 'block';
+  lista.innerHTML = '';
+  pedidos.forEach(p => {
+    const linha = document.createElement('div');
+    linha.style.cssText = 'padding:10px 0;border-bottom:1px solid #EFE6D2;';
+
+    const nomeLinha = document.createElement('p');
+    nomeLinha.style.cssText = 'font-size:13.5px;font-weight:700;color:var(--navy-900);margin:0 0 3px;';
+    nomeLinha.textContent = p.apelido + (p.graduacao ? ' — ' + p.graduacao : '');
+    linha.appendChild(nomeLinha);
+
+    const detalhes = document.createElement('p');
+    detalhes.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;';
+    let txtDetalhes = p.daAula ? 'Vai dar aula (professor/instrutor)' : 'Aluno(a)';
+    if(p.grupoCapoeira) txtDetalhes += ' · Grupo: ' + p.grupoCapoeira;
+    if(p.professorEscolhido) txtDetalhes += ' · Professor indicado: ' + p.professorEscolhido;
+    txtDetalhes += ' · Usuário: ' + p.user;
+    detalhes.textContent = txtDetalhes;
+    linha.appendChild(detalhes);
+
+    const acoes = document.createElement('div');
+    acoes.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+    const btnAprovar = document.createElement('button');
+    btnAprovar.className = 'btn';
+    btnAprovar.type = 'button';
+    btnAprovar.style.cssText = 'flex:1;min-width:110px;padding:9px;font-size:12.5px;';
+    btnAprovar.textContent = '✅ Aprovar';
+    btnAprovar.onclick = function(){ aprovarPedidoCadastro(p.id); };
+    const btnRecusar = document.createElement('button');
+    btnRecusar.type = 'button';
+    btnRecusar.style.cssText = 'flex:1;min-width:110px;padding:9px;font-size:12.5px;border-radius:100px;border:1.5px solid #C0392B;background:#fff;color:#C0392B;cursor:pointer;font-weight:700;';
+    btnRecusar.textContent = '✕ Recusar';
+    btnRecusar.onclick = function(){ recusarPedidoCadastro(p.id); };
+    acoes.appendChild(btnAprovar);
+    acoes.appendChild(btnRecusar);
+    linha.appendChild(acoes);
+
+    lista.appendChild(linha);
+  });
+}
+
+// Acha (ou, se não achar nenhum, deixa em branco pra digitar depois) o
+// núcleo do professor indicado — mesma lógica de sincronizarNucleoComProfessorEscolhido.
+function _resolverNucleoParaPedidoCadastro(nomeProfessor){
+  if(!nomeProfessor) return '';
+  const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+  const nucleosDoProfessor = [...new Set(rede.filter(a => mesmoProfessor(a.professor, nomeProfessor)).map(a => a.nome).filter(Boolean))];
+  return nucleosDoProfessor.length > 0 ? nucleosDoProfessor[0] : '';
+}
+
+function aprovarPedidoCadastro(id){
+  Promise.all([
+    buscarValorFresco('gingapass_pedidos_cadastro'),
+    buscarValorFresco('gingapass_academias_contas'),
+    buscarValorFresco('gingapass_alunos_contas'),
+    buscarValorFresco('gingapass_rede_academias')
+  ]).then(function(){
+    const pedidos = JSON.parse(localStorage.getItem('gingapass_pedidos_cadastro') || '[]');
+    const idx = pedidos.findIndex(p => p.id === id);
+    if(idx < 0){ alert('Esse pedido não existe mais (já foi respondido em outro aparelho).'); renderPedidosCadastroPerfil(); return; }
+    const p = pedidos[idx];
+    if(p.status !== 'pendente'){ alert('Esse pedido já foi respondido.'); renderPedidosCadastroPerfil(); return; }
+
+    if(localizarContaPorUsuario(p.user)){
+      alert('O usuário "' + p.user + '" já foi usado por outra conta enquanto o pedido esperava aprovação. Recuse este pedido e peça pra pessoa se cadastrar de novo com outro usuário.');
+      return;
+    }
+
+    if(!confirm('Aprovar o cadastro de "' + p.apelido + '" como ' + (p.daAula ? 'professor(a)/instrutor(a)' : 'aluno(a)') + '?')) return;
+
+    if(p.daAula){
+      // Vira conta de academia/professor — cria um núcleo próprio com o
+      // nome do grupo/apelido informado (a pessoa pode ajustar depois).
+      const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+      const nomeNucleo = (p.grupoCapoeira || (p.apelido + ' - núcleo')).trim();
+      academiasContas.push({
+        nome: nomeNucleo, user: p.user, senha: p.senha, pergunta: p.pergunta || '', resposta: p.resposta || '',
+        meuMestre: p.professorEscolhido || '',
+        inicioComoProfessor: '', vencimentoMensalidade: '', mensalidadeStatus: 'Em dia',
+        nucleosGerenciados: [nomeNucleo],
+        grupo: '', grupoParceiroId: '', grupoNome: '', grupoCadastroId: '', grupoFoto: '', foto: ''
+      });
+      setDado('gingapass_academias_contas', JSON.stringify(academiasContas));
+
+      const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
+      if(!rede.some(a => a.nome === nomeNucleo)){
+        rede.push({nome: nomeNucleo, endereco: '', professor: p.apelido, graduacao: p.graduacao || '', distancia: '', diasAulas: '', pix: '', cartao: ''});
+        setDado('gingapass_rede_academias', JSON.stringify(rede));
+      }
+      if(p.professorEscolhido) garantirProfessorComoAlunoDoMestre(p.apelido, p.professorEscolhido, p.graduacao || '');
+    } else {
+      // Vira conta de aluno vinculada ao professor indicado (se houver).
+      const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+      const nucleo = _resolverNucleoParaPedidoCadastro(p.professorEscolhido) || (p.grupoCapoeira || '');
+      alunosContas.push({
+        nome: p.apelido, user: p.user, senha: p.senha, corda: p.graduacao || '', nucleo, professor: p.professorEscolhido || '',
+        tipoMensalidade: 'mensalista', nivelGraduacao: '', inicioTreinos: '', vencimentoMensalidade: '',
+        desde: new Date().getFullYear().toString(),
+        pergunta: p.pergunta || '', resposta: p.resposta || '', semAcesso: false
+      });
+      setDado('gingapass_alunos_contas', JSON.stringify(alunosContas));
+    }
+
+    pedidos[idx] = Object.assign({}, p, {status: 'aprovado', respondidoEm: Date.now()});
+    setDado('gingapass_pedidos_cadastro', JSON.stringify(pedidos)).then(function(){
+      alert('Cadastro aprovado! Já pode avisar "' + p.apelido + '" que dá pra entrar com o usuário "' + p.user + '".');
+      renderPedidosCadastroPerfil();
+      tentarChamar(function(){ renderAlunos(); });
+      tentarChamar(function(){ renderAlunosContas(); });
+      tentarChamar(function(){ renderAcademiasContas(); });
+      tentarChamar(function(){ renderListaProfessoresPublica(); });
+    });
+  });
+}
+
+function recusarPedidoCadastro(id){
+  if(!confirm('Recusar esse pedido de cadastro? A pessoa não vai conseguir entrar com esse usuário.')) return;
+  buscarValorFresco('gingapass_pedidos_cadastro').then(function(){
+    const pedidos = JSON.parse(localStorage.getItem('gingapass_pedidos_cadastro') || '[]');
+    const idx = pedidos.findIndex(p => p.id === id);
+    if(idx < 0) return;
+    pedidos[idx] = Object.assign({}, pedidos[idx], {status: 'recusado', respondidoEm: Date.now()});
+    setDado('gingapass_pedidos_cadastro', JSON.stringify(pedidos)).then(function(){
+      renderPedidosCadastroPerfil();
+    });
+  });
+}
+
 // Gera (e copia/compartilha) o link público desse evento — dá pra mandar por
 // WhatsApp direto pra quem não tem o app.
 function linkConviteEvento(codigoCheckin){
@@ -5523,6 +5882,30 @@ function linkConviteEvento(codigoCheckin){
   const texto = 'Você foi convidado(a) pro evento "' + ev.titulo + '"' + (ev.data ? (' — ' + ev.data) : '') + (ev.local ? (', em ' + ev.local) : '') + '!\nConfirme sua presença aqui: ' + url;
   if(navigator.share){
     navigator.share({title: ev.titulo, text: texto, url}).catch(function(){});
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(function(){
+      alert('Link copiado! Agora é só colar e mandar pra quem você quiser convidar (por WhatsApp, por exemplo).');
+    }).catch(function(){
+      prompt('Copie o link abaixo:', url);
+    });
+    return;
+  }
+  prompt('Copie o link abaixo:', url);
+}
+
+// Link pra alguém se cadastrar sozinho no app (aluno OU professor/mestre,
+// dependendo do que a pessoa marcar no formulário). Só professor/mestre/
+// matriz têm o botão que gera esse link (ver perfilCardLinkCadastro), mas
+// uma vez gerado, qualquer um que abrir preenche os próprios dados — o
+// cadastro fica pendente até um professor (se ela indicou um) ou a matriz
+// (se for grupo novo) aprovar.
+function linkCadastroApp(){
+  const url = location.origin + location.pathname + '?cadastro=1';
+  const texto = 'Vem treinar com a gente! Faz seu cadastro no GingaPass por aqui: ' + url;
+  if(navigator.share){
+    navigator.share({title: 'Cadastro no GingaPass', text: texto, url}).catch(function(){});
     return;
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -9824,6 +10207,11 @@ function renderPerfil(){
   // "Plano de aula" e "Aulas do professor" só existem no perfil de quem dá
   // aula (professor/matriz) — aluno nunca vê essas seções no próprio perfil.
   const souProfessorOuMatriz = currentRole === 'academia' || currentRole === 'matriz';
+  const cardLinkCadastro = document.getElementById('perfilCardLinkCadastro');
+  if(cardLinkCadastro) cardLinkCadastro.style.display = souProfessorOuMatriz ? 'block' : 'none';
+  if(souProfessorOuMatriz){
+    tentarChamar(function(){ renderPedidosCadastroPerfil(); });
+  }
   const secaoPlanoAula = document.getElementById('perfilSecaoPlanoAula');
   const secaoAulasProfessor = document.getElementById('perfilSecaoAulasProfessor');
   if(secaoPlanoAula) secaoPlanoAula.style.display = souProfessorOuMatriz ? 'block' : 'none';
