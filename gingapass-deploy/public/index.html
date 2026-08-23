@@ -809,6 +809,7 @@
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button" style="opacity: 1;">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
       <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
+      <a href="?gingaway=1" style="display:block;margin-top:10px;font-size:11.5px;color:var(--amber-500);text-decoration:underline;">🥊 Quer treinar sem vínculo com um grupo? Vire Aluno GingaWay</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
         <input id="setupMasterUser" placeholder="Usuário que você quer usar" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:14px;width:100%;">
@@ -864,6 +865,13 @@
         <p class="subgreeting" id="homeSubgreeting">Sexta-feira, 07 de agosto</p>
       </div>
       <button class="btn" type="button" onclick="logout()" style="width:auto;padding:8px 14px;margin-top:4px;font-size:12px;white-space:nowrap;background:var(--white);color:#C0392B;border:1.5px solid #C0392B;">Sair</button>
+    </div>
+
+    <div class="card" id="gingawayPlanoCard" style="display:none;background:linear-gradient(135deg,#042C53,#0C447C);color:#fff;">
+      <div class="card-label" style="color:var(--amber-500);">🥊 Meu plano GingaWay</div>
+      <p id="gingawayPlanoResumo" style="font-size:13.5px;margin:0 0 4px;font-weight:700;"></p>
+      <p id="gingawayPlanoAulas" style="font-size:12px;margin:0 0 12px;color:#DCE6F0;"></p>
+      <button class="btn" type="button" onclick="showScreen('gingawayCheckin')" style="background:var(--amber-500);color:#2A1B04;margin:0;">📍 Fazer check-in numa aula</button>
     </div>
 
     <div class="card">
@@ -931,10 +939,26 @@
     </div>
   </div>
 
+  <!-- CHECK-IN GINGAWAY (aluno avulso, sem vínculo de grupo — faz check-in em qualquer academia que ofereça a modalidade dele) -->
+  <div class="screen" id="gingawayCheckin">
+    <p class="greeting" style="font-size:18px;">📍 Fazer check-in</p>
+    <p class="subgreeting">Escolha a aula que você vai fazer</p>
+    <div class="card" style="margin-bottom:14px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Modalidade</label>
+      <select class="admin-input" id="gwCheckinModalidadeFiltro" onchange="renderGingaWayOfertas()" style="margin-bottom:0;"></select>
+    </div>
+    <div id="gwOfertasLista"></div>
+  </div>
+
   <!-- ACADEMIAS -->
   <div class="screen" id="academias">
     <p class="greeting" style="font-size:18px;">Academias da rede</p>
     <p class="subgreeting">Encontre um núcleo perto de você</p>
+    <div class="card" id="academiasCardAtalhoGingaWay" style="display:none;margin-bottom:14px;background:linear-gradient(135deg,#042C53,#0C447C);color:#fff;">
+      <p class="card-label" style="color:var(--amber-500);margin:0 0 6px;">🥊 Sou Aluno GingaWay</p>
+      <p style="font-size:11.5px;color:#DCE6F0;margin:0 0 10px;">Veja quais academias daqui perto oferecem a sua modalidade e faça check-in direto.</p>
+      <button class="btn" type="button" onclick="showScreen('gingawayCheckin')" style="background:var(--amber-500);color:#2A1B04;margin:0;">📍 Ver academias parceiras por modalidade</button>
+    </div>
     <div class="search-bar" style="padding:0;">
       <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por bairro, cidade, estado ou país" oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:14px;padding:12px 14px;color:var(--ink);">
     </div>
@@ -1103,6 +1127,27 @@
     <div class="card" id="perfilCardPedidosCadastro" style="display:none;margin-top:14px;">
       <p class="card-label" style="margin:0 0 8px;">📥 Pedidos de cadastro esperando aprovação</p>
       <div id="perfilPedidosCadastroLista"></div>
+    </div>
+
+    <div class="card" id="perfilCardModalidadesGingaWay" style="display:none;margin-top:14px;">
+      <p class="card-label" style="margin:0 0 8px;">🥊 Minhas modalidades GingaWay</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Ofereça aulas avulsas pra quem assina o plano GingaWay (sem vínculo fixo com nenhum grupo) — cadastre a modalidade, dias, horário e local. Quando alguém fizer check-in numa dessas aulas, você fica sabendo.</p>
+      <select class="admin-input" id="gwModalidadeSelect" onchange="alternarModalidadeOutraGingaWay()">
+        <option value="">Escolha a modalidade...</option>
+        <option value="Jiu-Jitsu">Jiu-Jitsu</option>
+        <option value="Muay Thai">Muay Thai</option>
+        <option value="Boxe">Boxe</option>
+        <option value="Capoeira">Capoeira</option>
+        <option value="Ginástica">Ginástica</option>
+        <option value="Calistenia">Calistenia</option>
+        <option value="Outra">Outra (digitar)</option>
+      </select>
+      <input class="admin-input" id="gwModalidadeOutraInput" placeholder="Nome da modalidade" style="display:none;">
+      <input class="admin-input" id="gwModalidadeDias" placeholder="Dias (ex: Terça e Quinta)">
+      <input class="admin-input" id="gwModalidadeHorario" placeholder="Horário (ex: 19h às 20h)">
+      <input class="admin-input" id="gwModalidadeLocal" placeholder="Local (endereço ou nome da academia)">
+      <button class="btn" type="button" onclick="adicionarModalidadeGingaWay()">+ Adicionar modalidade</button>
+      <div id="gwModalidadesLista" style="margin-top:10px;"></div>
     </div>
 
     <div id="perfilSecaoHistoricoProfessor" style="display:none;margin-top:14px;">
@@ -5185,6 +5230,7 @@ function seedContas(nuvemConfirmada){
   verificarModoCheckinRapido();
   verificarModoConviteEvento();
   verificarModoCadastroLink();
+  verificarModoGingaWaySignup();
   verificarModoDemo();
   if(!localStorage.getItem('gingapass_academias_contas')){
     _setLocal('gingapass_academias_contas', JSON.stringify([]));
@@ -5526,6 +5572,363 @@ function confirmarPresencaVisitanteLink(){
         btn.textContent = '✅ Confirmar minha presença';
         erroEl.textContent = 'Não conseguimos registrar agora. Verifique sua internet e tente de novo.';
         erroEl.style.display = 'block';
+      }
+    });
+  });
+}
+
+/* ===================== Aluno GingaWay (avulso, sem vínculo de grupo) =====================
+   Fase 1: professor cadastra as modalidades que oferece (dias/horário/local);
+   quem não quer se vincular a nenhum grupo assina um plano por link público
+   e faz check-in em QUALQUER academia da rede que ofereça a modalidade dele.
+   Sem processamento de pagamento de verdade dentro do app (igual ao resto do
+   app) — o app só registra e mostra, o repasse pro professor continua sendo
+   combinado por fora, como já acontece hoje com o resto da mensalidade. */
+const GINGAWAY_PLANOS = {
+  '60': {preco: 60, aulas: 4, bonus: 0, label: 'R$ 60 — 4 aulas/mês'},
+  '90': {preco: 90, aulas: 6, bonus: 0, label: 'R$ 90 — 6 aulas/mês'},
+  '120': {preco: 120, aulas: 8, bonus: 1, label: 'R$ 120 — 8 aulas/mês + 1 aula bônus'}
+};
+
+function _mesReferenciaAtual(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+// ---------- Professor: cadastrar/gerenciar as modalidades que oferece ----------
+function alternarModalidadeOutraGingaWay(){
+  const sel = document.getElementById('gwModalidadeSelect');
+  const outraInput = document.getElementById('gwModalidadeOutraInput');
+  if(!sel || !outraInput) return;
+  outraInput.style.display = sel.value === 'Outra' ? 'block' : 'none';
+}
+
+function adicionarModalidadeGingaWay(){
+  if(currentRole !== 'academia' && currentRole !== 'matriz') return;
+  const sel = document.getElementById('gwModalidadeSelect');
+  const outraInput = document.getElementById('gwModalidadeOutraInput');
+  const dias = document.getElementById('gwModalidadeDias').value.trim();
+  const horario = document.getElementById('gwModalidadeHorario').value.trim();
+  const local = document.getElementById('gwModalidadeLocal').value.trim();
+  const modalidade = (sel.value === 'Outra' ? outraInput.value.trim() : sel.value);
+  if(!modalidade){ alert('Escolha ou digite a modalidade.'); return; }
+  if(!dias || !horario || !local){ alert('Preencha dias, horário e local da aula.'); return; }
+  const meuNome = (obterMeuNomeProfessor() || currentUser || '').trim();
+  const meusNucleos = (currentRole === 'academia') ? obterMeusNucleos() : [];
+
+  buscarValorFresco('gingapass_modalidades_professor').then(function(){
+    const lista = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]');
+    lista.push({
+      id: 'gwmod_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      professorUser: currentUser, professorNome: meuNome,
+      nucleo: meusNucleos[0] || '', modalidade, dias, horario, local, ativo: true
+    });
+    setDado('gingapass_modalidades_professor', JSON.stringify(lista)).then(function(ok){
+      if(!ok){ alert('Não conseguiu salvar agora. Verifique sua internet e tente de novo.'); return; }
+      document.getElementById('gwModalidadeDias').value = '';
+      document.getElementById('gwModalidadeHorario').value = '';
+      document.getElementById('gwModalidadeLocal').value = '';
+      outraInput.value = '';
+      sel.value = '';
+      outraInput.style.display = 'none';
+      renderModalidadesGingaWayPerfil();
+    });
+  });
+}
+
+function removerModalidadeGingaWay(id){
+  if(!confirm('Remover essa modalidade da sua lista? Quem já assinou o plano GingaWay vendo essa aula deixa de vê-la.')) return;
+  const lista = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]').filter(m => m.id !== id);
+  setDado('gingapass_modalidades_professor', JSON.stringify(lista)).then(function(){ renderModalidadesGingaWayPerfil(); });
+}
+
+function renderModalidadesGingaWayPerfil(){
+  const box = document.getElementById('gwModalidadesLista');
+  if(!box || !currentUser) return;
+  const lista = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]').filter(m => m.professorUser === currentUser);
+  if(lista.length === 0){
+    box.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  lista.forEach(m => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;';
+    const info = document.createElement('div');
+    const b = document.createElement('b');
+    b.style.cssText = 'font-size:13px;color:var(--navy-900);';
+    b.textContent = m.modalidade;
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;';
+    p.textContent = m.dias + ' · ' + m.horario + ' · ' + m.local;
+    info.appendChild(b);
+    info.appendChild(p);
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.textContent = '✕';
+    btnRemover.title = 'Remover';
+    btnRemover.style.cssText = 'background:none;border:none;color:#C0392B;font-size:16px;cursor:pointer;flex-shrink:0;line-height:1;';
+    btnRemover.onclick = function(){ removerModalidadeGingaWay(m.id); };
+    row.appendChild(info);
+    row.appendChild(btnRemover);
+    box.appendChild(row);
+  });
+}
+
+// ---------- Aluno GingaWay: card na Início com status do plano ----------
+function renderAreaGingaWayHome(){
+  const card = document.getElementById('gingawayPlanoCard');
+  if(!card) return;
+  const conta = resolverMinhaContaComoAluno();
+  if(currentRole !== 'aluno' || !conta || conta.tipoConta !== 'gingaway'){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  const plano = GINGAWAY_PLANOS[conta.gingawayPlano] || GINGAWAY_PLANOS['60'];
+  const totalAulas = plano.aulas + plano.bonus;
+  const mesAtual = _mesReferenciaAtual();
+  const usadas = (conta.gingawayMesReferencia === mesAtual) ? (conta.gingawayAulasUsadas || 0) : 0;
+  const resumo = document.getElementById('gingawayPlanoResumo');
+  const aulasTxt = document.getElementById('gingawayPlanoAulas');
+  if(resumo) resumo.textContent = (conta.gingawayModalidade || 'Modalidade') + ' · Plano ' + plano.label;
+  if(aulasTxt) aulasTxt.textContent = usadas + ' de ' + totalAulas + ' aulas usadas este mês';
+}
+
+// ---------- Aluno GingaWay: telinha de check-in (escolhe modalidade + academia) ----------
+// Só quem paga o plano de R$120 (o maior) pode circular entre modalidades
+// diferentes — nos planos menores, o check-in fica travado na modalidade
+// que a pessoa escolheu quando assinou (a "modalidade principal" dela).
+function _gingawayPodeTrocarModalidade(conta){
+  return conta.gingawayPlano === '120';
+}
+
+function renderGingaWayOfertas(){
+  const select = document.getElementById('gwCheckinModalidadeFiltro');
+  const lista = document.getElementById('gwOfertasLista');
+  if(!select || !lista) return;
+  const conta = resolverMinhaContaComoAluno();
+  if(!conta) return;
+
+  const podeTrocar = _gingawayPodeTrocarModalidade(conta);
+  const todasOfertas = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]').filter(m => m.ativo !== false);
+  const modalidadesTodas = [...new Set(todasOfertas.map(m => m.modalidade))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const modalidades = podeTrocar ? modalidadesTodas : [conta.gingawayModalidade].filter(Boolean);
+  if(select.options.length === 0 || select.dataset.populated !== 'sim'){
+    select.innerHTML = modalidades.map(m => '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>').join('');
+    select.dataset.populated = 'sim';
+    if(conta.gingawayModalidade && modalidades.includes(conta.gingawayModalidade)) select.value = conta.gingawayModalidade;
+  }
+  select.disabled = !podeTrocar;
+
+  const modalidadeEscolhida = select.value || conta.gingawayModalidade || '';
+  const ofertas = todasOfertas.filter(m => m.modalidade === modalidadeEscolhida);
+
+  const mesAtual = _mesReferenciaAtual();
+  const plano = GINGAWAY_PLANOS[conta.gingawayPlano] || GINGAWAY_PLANOS['60'];
+  const totalAulas = plano.aulas + plano.bonus;
+  const usadas = (conta.gingawayMesReferencia === mesAtual) ? (conta.gingawayAulasUsadas || 0) : 0;
+  const restantes = Math.max(0, totalAulas - usadas);
+
+  lista.innerHTML = '';
+  const avisoRestantes = document.createElement('p');
+  avisoRestantes.style.cssText = 'font-size:12px;color:var(--ink-soft);margin:0 0 10px;';
+  avisoRestantes.textContent = restantes > 0
+    ? ('Você ainda tem ' + restantes + ' aula(s) disponível(is) este mês.')
+    : 'Você já usou todas as aulas do seu plano este mês.';
+  lista.appendChild(avisoRestantes);
+
+  if(!podeTrocar){
+    const dicaPlano = document.createElement('p');
+    dicaPlano.style.cssText = 'font-size:11.5px;color:var(--amber-700);margin:-6px 0 12px;';
+    dicaPlano.textContent = 'Seu plano só dá acesso à modalidade que você escolheu no cadastro (' + (conta.gingawayModalidade || '') + '). Quer treinar outras modalidades também? Assine o plano de R$ 120.';
+    lista.appendChild(dicaPlano);
+  }
+
+  if(ofertas.length === 0){
+    const vazio = document.createElement('p');
+    vazio.style.cssText = 'font-size:12.5px;color:var(--ink-soft);margin:0;';
+    vazio.textContent = 'Nenhum professor oferecendo essa modalidade ainda.';
+    lista.appendChild(vazio);
+    return;
+  }
+
+  ofertas.forEach(oferta => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const titulo = document.createElement('p');
+    titulo.style.cssText = 'font-weight:700;font-size:14px;color:var(--navy-900);margin:0 0 4px;';
+    titulo.textContent = oferta.professorNome + (oferta.nucleo ? ' · ' + oferta.nucleo : '');
+    const detalhe = document.createElement('p');
+    detalhe.style.cssText = 'font-size:12px;color:var(--ink-soft);margin:0 0 10px;';
+    detalhe.textContent = oferta.dias + ' · ' + oferta.horario + ' · ' + oferta.local;
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.type = 'button';
+    btn.textContent = '✅ Confirmar check-in aqui hoje';
+    btn.disabled = restantes <= 0;
+    if(restantes <= 0) btn.style.opacity = '0.5';
+    btn.onclick = function(){ confirmarCheckinGingaWay(oferta); };
+    card.appendChild(titulo);
+    card.appendChild(detalhe);
+    card.appendChild(btn);
+    lista.appendChild(card);
+  });
+}
+
+function confirmarCheckinGingaWay(oferta){
+  const conta = resolverMinhaContaComoAluno();
+  if(!conta) return;
+  if(!confirm('Confirmar presença hoje na aula de ' + oferta.modalidade + ' com ' + oferta.professorNome + '?')) return;
+
+  Promise.all([
+    buscarValorFresco('gingapass_alunos_contas'),
+    buscarValorFresco('gingapass_checkin_log')
+  ]).then(function(){
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    const idx = contas.findIndex(c => c.user === currentUser);
+    if(idx < 0) return;
+    const mesAtual = _mesReferenciaAtual();
+    const plano = GINGAWAY_PLANOS[contas[idx].gingawayPlano] || GINGAWAY_PLANOS['60'];
+    const totalAulas = plano.aulas + plano.bonus;
+    const usadasAtuais = (contas[idx].gingawayMesReferencia === mesAtual) ? (contas[idx].gingawayAulasUsadas || 0) : 0;
+    if(usadasAtuais >= totalAulas){
+      alert('Você já usou todas as aulas do seu plano este mês.');
+      return;
+    }
+    contas[idx].gingawayMesReferencia = mesAtual;
+    contas[idx].gingawayAulasUsadas = usadasAtuais + 1;
+    setDado('gingapass_alunos_contas', JSON.stringify(contas)).then(function(ok){
+      if(!ok){ alert('Não conseguiu registrar agora. Verifique sua internet e tente de novo.'); return; }
+      const log = JSON.parse(localStorage.getItem('gingapass_checkin_log') || '[]');
+      log.push({
+        data: hojeStr(), aluno: currentUser, professor: oferta.professorNome,
+        nucleo: oferta.nucleo || '', visita: false,
+        origemGingaWay: true, modalidade: oferta.modalidade
+      });
+      setDado('gingapass_checkin_log', JSON.stringify(log));
+      alert('Presença confirmada! Bom treino 🥊');
+      renderAreaGingaWayHome();
+      renderGingaWayOfertas();
+    });
+  });
+}
+
+/* ===================== Cadastro público do Aluno GingaWay (sem estar logado) =====================
+   Mesmo esqueleto do cadastro por link — telinha isolada, fora do app,
+   acessível direto pelo link da tela de login (não precisa de convite de
+   professor, já que não tem vínculo de grupo nenhum pra aprovar). */
+function verificarModoGingaWaySignup(){
+  if(window._gingawaySignupJaVerificado) return;
+  window._gingawaySignupJaVerificado = true;
+  try{
+    executarModoGingaWaySignup();
+  } catch(erro){
+    document.body.innerHTML = '<div style="max-width:420px;margin:0 auto;padding:28px 20px;font-family:sans-serif;"><h2 style="color:#C0392B;">Erro ao carregar</h2><p style="color:#5B6B7A;font-size:13px;word-break:break-word;">' + (erro && erro.message ? erro.message : String(erro)) + '</p></div>';
+  }
+}
+
+function executarModoGingaWaySignup(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('gingaway') !== '1') return;
+
+  const campo = (id, label, placeholder, tipo) => '<label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">' + label + '</label>' +
+    '<input style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;" id="' + id + '" type="' + (tipo || 'text') + '" placeholder="' + placeholder + '">';
+
+  const planosHtml = Object.keys(GINGAWAY_PLANOS).map(function(chave){
+    const p = GINGAWAY_PLANOS[chave];
+    return '<label style="display:flex;align-items:center;gap:8px;border:1.5px solid #E2D8C4;border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;">' +
+      '<input type="radio" name="gwPlano" value="' + chave + '"' + (chave === '60' ? ' checked' : '') + '>' +
+      '<span style="font-size:13.5px;color:#1B2733;">' + p.label + (p.bonus ? '' : '') + '</span></label>';
+  }).join('');
+
+  document.body.innerHTML = `
+    <div style="max-width:420px;margin:0 auto;min-height:100vh;background:var(--cream, #FBF3E4);padding:28px 20px;font-family:'Poppins','Inter',sans-serif;">
+      <h2 style="color:#042C53;font-size:20px;margin:0 0 4px;">🥊 Aluno GingaWay</h2>
+      <p style="color:#5B6B7A;font-size:13px;margin:0 0 22px;">Treine sem vínculo fixo com nenhum grupo — escolha a modalidade, o plano, e faça check-in em qualquer academia da rede que ofereça essa aula.</p>
+      <div id="gwSignupForm" style="background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(4,44,83,0.08);">
+        ${campo('gwSignupApelido', 'Seu apelido', 'Como quer ser chamado(a)')}
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:6px;font-weight:600;">Modalidade que você quer treinar</label>
+        <select style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #E2D8C4;font-size:15px;margin-bottom:16px;box-sizing:border-box;background:#fff;" id="gwSignupModalidade">
+          <option value="Jiu-Jitsu">Jiu-Jitsu</option>
+          <option value="Muay Thai">Muay Thai</option>
+          <option value="Boxe">Boxe</option>
+          <option value="Capoeira">Capoeira</option>
+          <option value="Ginástica">Ginástica</option>
+          <option value="Calistenia">Calistenia</option>
+        </select>
+        <label style="display:block;font-size:12px;color:#5B6B7A;margin-bottom:8px;font-weight:600;">Escolha seu plano</label>
+        <div style="margin-bottom:6px;">${planosHtml}</div>
+        ${campo('gwSignupUser', 'Usuário (pra entrar no app)', 'Escolha um usuário')}
+        ${campo('gwSignupSenha', 'Senha', 'Escolha uma senha', 'password')}
+        <p id="gwSignupErro" style="color:#C0392B;font-size:13px;margin-top:-8px;margin-bottom:16px;display:none;"></p>
+        <button style="width:100%;padding:15px;border:none;border-radius:100px;background:#2E8B57;color:#fff;font-weight:700;font-size:15px;cursor:pointer;" id="gwSignupBtn" onclick="enviarSignupGingaWay()">Virar Aluno GingaWay</button>
+        <p style="font-size:10.5px;color:#8FA3B8;margin:12px 0 0;">Já tem conta? <a href="` + location.pathname + `" style="color:#042C53;font-weight:600;">Entrar</a></p>
+      </div>
+      <div id="gwSignupMsg" style="display:none;text-align:center;padding:40px 10px;">
+        <div style="font-size:48px;margin-bottom:14px;">✅</div>
+        <h2 style="color:#042C53;margin:0 0 8px;">Prontinho!</h2>
+        <p id="gwSignupMsgTexto" style="color:#5B6B7A;font-size:14px;word-break:break-word;"></p>
+      </div>
+    </div>
+  `;
+}
+
+function enviarSignupGingaWay(){
+  const apelido = (document.getElementById('gwSignupApelido').value || '').trim();
+  const modalidade = document.getElementById('gwSignupModalidade').value;
+  const planoEscolhido = (document.querySelector('input[name="gwPlano"]:checked') || {}).value || '60';
+  const user = (document.getElementById('gwSignupUser').value || '').trim();
+  const senha = (document.getElementById('gwSignupSenha').value || '').trim();
+  const erroEl = document.getElementById('gwSignupErro');
+  const btn = document.getElementById('gwSignupBtn');
+
+  const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
+  erroEl.style.display = 'none';
+
+  if(!apelido){ mostrarErro('Digite seu apelido.'); return; }
+  if(!user || !senha){ mostrarErro('Escolha um usuário e uma senha.'); return; }
+  if(senha.length < 4){ mostrarErro('A senha precisa ter pelo menos 4 caracteres.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  Promise.all([
+    buscarValorFresco('gingapass_master'),
+    buscarValorFresco('gingapass_academias_contas'),
+    buscarValorFresco('gingapass_alunos_contas'),
+    buscarValorFresco('gingapass_pais_contas')
+  ]).then(function(){
+    if(localizarContaPorUsuario(user)){
+      btn.disabled = false;
+      btn.textContent = 'Virar Aluno GingaWay';
+      mostrarErro('Esse usuário já existe. Escolha outro.');
+      return;
+    }
+    const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+    contas.push({
+      nome: apelido, user, senha, corda: '', nucleo: '', professor: '',
+      tipoMensalidade: 'gingaway', nivelGraduacao: '', inicioTreinos: '', vencimentoMensalidade: '',
+      desde: new Date().getFullYear().toString(),
+      pergunta: '', resposta: '', semAcesso: false,
+      tipoConta: 'gingaway',
+      gingawayModalidade: modalidade,
+      gingawayPlano: planoEscolhido,
+      gingawayAulasUsadas: 0,
+      gingawayMesReferencia: _mesReferenciaAtual()
+    });
+    setDado('gingapass_alunos_contas', JSON.stringify(contas)).then(function(ok){
+      if(ok){
+        const form = document.getElementById('gwSignupForm');
+        const msg = document.getElementById('gwSignupMsg');
+        if(form) form.style.display = 'none';
+        if(msg) msg.style.display = 'block';
+        const txt = document.getElementById('gwSignupMsgTexto');
+        if(txt) txt.textContent = 'Já pode entrar como "Aluno" com o usuário "' + user + '" e a senha que você escolheu.';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Virar Aluno GingaWay';
+        mostrarErro('Não conseguimos enviar agora. Verifique sua internet e tente de novo.');
       }
     });
   });
@@ -6782,6 +7185,7 @@ function aplicarPermissoes(){
   if(alunosCriarMatriz) alunosCriarMatriz.style.display = (currentRole === 'matriz') ? 'block' : 'none';
 
   tentarChamar(function(){ renderSaudacao(); });
+  tentarChamar(function(){ renderAreaGingaWayHome(); });
   tentarChamar(function(){ renderAnuncioGraduacaoHome(); });
   tentarChamar(function(){ renderConviteEventoHome(); });
   tentarChamar(function(){ aplicarAparenciaAtual(); });
@@ -7011,6 +7415,9 @@ function showScreen(id, btn){
   if(id === 'mensalidade'){
     renderPagamentoAluno();
     renderComprovantesAluno();
+  }
+  if(id === 'gingawayCheckin'){
+    renderGingaWayOfertas();
   }
   if(id === 'academias'){
     // O mapa (Leaflet) só mede o próprio tamanho direito se a tela já
@@ -10471,8 +10878,13 @@ function renderPerfil(){
   const souProfessorOuMatriz = currentRole === 'academia' || currentRole === 'matriz';
   const cardLinkCadastro = document.getElementById('perfilCardLinkCadastro');
   if(cardLinkCadastro) cardLinkCadastro.style.display = souProfessorOuMatriz ? 'block' : 'none';
+  const cardModalidadesGingaWay = document.getElementById('perfilCardModalidadesGingaWay');
+  if(cardModalidadesGingaWay) cardModalidadesGingaWay.style.display = (currentRole === 'academia') ? 'block' : 'none';
   if(souProfessorOuMatriz){
     tentarChamar(function(){ renderPedidosCadastroPerfil(); });
+  }
+  if(currentRole === 'academia'){
+    tentarChamar(function(){ renderModalidadesGingaWayPerfil(); });
   }
   const secaoPlanoAula = document.getElementById('perfilSecaoPlanoAula');
   const secaoAulasProfessor = document.getElementById('perfilSecaoAulasProfessor');
@@ -22215,6 +22627,11 @@ function renderAcademiasScreen(){
   if(!container) return;
   const cardMinhaLocalizacaoAluno = document.getElementById('academiasCardMinhaLocalizacaoAluno');
   if(cardMinhaLocalizacaoAluno) cardMinhaLocalizacaoAluno.style.display = (currentRole === 'aluno') ? 'block' : 'none';
+  const cardAtalhoGingaWay = document.getElementById('academiasCardAtalhoGingaWay');
+  if(cardAtalhoGingaWay){
+    const contaGw = (currentRole === 'aluno') ? resolverMinhaContaComoAluno() : null;
+    cardAtalhoGingaWay.style.display = (contaGw && contaGw.tipoConta === 'gingaway') ? 'block' : 'none';
+  }
   let rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   rede = rede.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
   const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
