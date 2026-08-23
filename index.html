@@ -1156,6 +1156,18 @@
       <div id="gwModalidadesLista" style="margin-top:10px;"></div>
     </div>
 
+    <div class="card" id="perfilCardParceirosAnunciantes" style="display:none;margin-top:14px;">
+      <p class="card-label" style="margin:0 0 8px;">📢 Parceiros anunciantes</p>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Cadastre comércios/parceiros que apoiam o grupo (cobrança combinada por fora, como o resto do app). Ao criar um evento, você pode escolher um deles como anunciante — a logo e o contato aparecem junto do evento.</p>
+      <input class="admin-input" id="parceiroAnuncianteNome" placeholder="Nome do parceiro (ex: Loja do bairro tal)">
+      <input class="admin-input" id="parceiroAnuncianteContato" placeholder="Contato (telefone, @instagram...)">
+      <input class="admin-input" id="parceiroAnuncianteValor" placeholder="Valor combinado (opcional, ex: 150/mês)">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Logo do parceiro (opcional)</label>
+      <input type="file" id="parceiroAnuncianteLogoInput" accept="image/*" style="font-size:12px;margin-bottom:8px;">
+      <button class="btn" type="button" onclick="adicionarParceiroAnunciante()">+ Adicionar parceiro</button>
+      <div id="parceirosAnunciantesLista" style="margin-top:10px;"></div>
+    </div>
+
     <div id="perfilSecaoHistoricoProfessor" style="display:none;margin-top:14px;">
       <p class="section-title">📜 Minha trajetória (como aluno do meu mestre)</p>
       <div id="perfilProfessorHistoricoBox"></div>
@@ -1340,6 +1352,8 @@
         <select class="admin-input" id="evAcademiaSelectAdmin" onchange="preencherLocalEvento('Admin')"><option value="">Selecione uma academia (opcional)...</option></select>
         <input class="admin-input" id="evLocalAdmin" placeholder="Local">
         <input class="admin-input" id="evPagamentoAdmin" placeholder="Link de pagamento da inscrição (opcional)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Anunciante/parceiro deste evento (opcional — cadastre em Perfil → Parceiros anunciantes)</label>
+        <select class="admin-input" id="evAnuncianteAdmin"><option value="">Sem anunciante</option></select>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
           <input type="checkbox" id="evPublicoAdmin" style="width:16px;height:16px;">
           Evento Público (aparece pra todo mundo no app, de qualquer grupo)
@@ -1368,6 +1382,8 @@
         <select class="admin-input" id="evAcademiaSelectMatriz" onchange="preencherLocalEvento('Matriz')"><option value="">Selecione uma academia (opcional)...</option></select>
         <input class="admin-input" id="evLocalMatriz" placeholder="Local">
         <input class="admin-input" id="evPagamentoMatriz" placeholder="Link de pagamento da inscrição (opcional)">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Anunciante/parceiro deste evento (opcional — cadastre em Perfil → Parceiros anunciantes)</label>
+        <select class="admin-input" id="evAnuncianteMatriz"><option value="">Sem anunciante</option></select>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);margin:2px 0 10px;">
           <input type="checkbox" id="evPublicoMatriz" style="width:16px;height:16px;">
           Evento Público (aparece pra todo mundo no app, de qualquer grupo)
@@ -5935,6 +5951,148 @@ function renderModalidadesGingaWayPerfil(){
     row.appendChild(btnRemover);
     box.appendChild(row);
   });
+}
+
+/* ===================== Parceiros anunciantes =====================
+   Professor/matriz cadastra um comércio/parceiro local que patrocina o
+   grupo (loja do bairro, academia parceira, etc — cobrança combinada por
+   fora, o app só registra e exibe, igual ao resto das "formas de
+   pagamento" do app). Ao criar um evento, dá pra escolher um desses
+   parceiros como anunciante — a logo e o contato dele aparecem junto do
+   evento como apoio/patrocínio. */
+function chaveParceirosAnunciantes(){
+  return 'gingapass_parceiros_anunciantes';
+}
+
+function obterMeusParceirosAnunciantes(){
+  const todos = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]');
+  return todos.filter(p => p.professorUser === currentUser);
+}
+
+function _lerLogoParceiroComoBase64(callback){
+  const input = document.getElementById('parceiroAnuncianteLogoInput');
+  const file = input && input.files && input.files[0];
+  if(!file){ callback(''); return; }
+  comprimirImagem(file, 400, 0.75).then(callback);
+}
+
+function adicionarParceiroAnunciante(){
+  if(currentRole !== 'academia' && currentRole !== 'matriz') return;
+  const nome = document.getElementById('parceiroAnuncianteNome').value.trim();
+  const contato = document.getElementById('parceiroAnuncianteContato').value.trim();
+  const valor = document.getElementById('parceiroAnuncianteValor').value.trim();
+  if(!nome){ alert('Digite o nome do parceiro/anunciante.'); return; }
+  _lerLogoParceiroComoBase64(function(logo){
+    buscarValorFresco(chaveParceirosAnunciantes()).then(function(){
+      const lista = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]');
+      lista.push({
+        id: 'anunc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        professorUser: currentUser, nome, contato, valorCombinado: valor, logo, ativo: true, criadoEm: Date.now()
+      });
+      setDado(chaveParceirosAnunciantes(), JSON.stringify(lista)).then(function(ok){
+        if(!ok){ alert('Não conseguiu salvar agora. Verifique sua internet e tente de novo.'); return; }
+        document.getElementById('parceiroAnuncianteNome').value = '';
+        document.getElementById('parceiroAnuncianteContato').value = '';
+        document.getElementById('parceiroAnuncianteValor').value = '';
+        const logoInput = document.getElementById('parceiroAnuncianteLogoInput');
+        if(logoInput) logoInput.value = '';
+        renderParceirosAnunciantesLista();
+        tentarChamar(function(){ popularSelectsAnuncianteEvento(); });
+      });
+    });
+  });
+}
+
+function alternarAtivoParceiroAnunciante(id){
+  const lista = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]');
+  const p = lista.find(x => x.id === id);
+  if(!p) return;
+  p.ativo = !p.ativo;
+  setDado(chaveParceirosAnunciantes(), JSON.stringify(lista)).then(function(){
+    renderParceirosAnunciantesLista();
+    tentarChamar(function(){ popularSelectsAnuncianteEvento(); });
+  });
+}
+
+function removerParceiroAnunciante(id){
+  if(!confirm('Remover esse parceiro/anunciante? Eventos que já usaram a logo dele mantêm o registro, mas ele some da lista pra novos eventos.')) return;
+  const lista = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]').filter(p => p.id !== id);
+  setDado(chaveParceirosAnunciantes(), JSON.stringify(lista)).then(function(){
+    renderParceirosAnunciantesLista();
+    tentarChamar(function(){ popularSelectsAnuncianteEvento(); });
+  });
+}
+
+function renderParceirosAnunciantesLista(){
+  const box = document.getElementById('parceirosAnunciantesLista');
+  if(!box || !currentUser) return;
+  const lista = obterMeusParceirosAnunciantes();
+  if(lista.length === 0){
+    box.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum parceiro/anunciante cadastrado ainda.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  lista.forEach(p => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const esquerda = document.createElement('div');
+    esquerda.style.cssText = 'display:flex;align-items:center;gap:10px;flex:1;min-width:0;' + (p.ativo === false ? 'opacity:0.5;' : '');
+    if(p.logo){
+      const img = document.createElement('img');
+      img.src = p.logo;
+      img.style.cssText = 'width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;';
+      esquerda.appendChild(img);
+    }
+    const info = document.createElement('div');
+    info.style.minWidth = '0';
+    const b = document.createElement('b');
+    b.style.cssText = 'font-size:13px;color:var(--navy-900);display:block;';
+    b.textContent = p.nome + (p.ativo === false ? ' (inativo)' : '');
+    const sub = document.createElement('p');
+    sub.style.cssText = 'font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;';
+    sub.textContent = [p.contato, p.valorCombinado ? ('R$ ' + p.valorCombinado) : ''].filter(Boolean).join(' · ') || '—';
+    info.appendChild(b);
+    info.appendChild(sub);
+    esquerda.appendChild(info);
+    const botoes = document.createElement('div');
+    botoes.style.cssText = 'display:flex;gap:8px;flex-shrink:0;';
+    const btnAtivo = document.createElement('button');
+    btnAtivo.type = 'button';
+    btnAtivo.textContent = p.ativo === false ? 'Ativar' : 'Pausar';
+    btnAtivo.style.cssText = 'border:none;background:none;color:var(--navy-700);font-size:11.5px;font-weight:600;cursor:pointer;';
+    btnAtivo.onclick = function(){ alternarAtivoParceiroAnunciante(p.id); };
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.textContent = '✕';
+    btnRemover.title = 'Remover';
+    btnRemover.style.cssText = 'background:none;border:none;color:#C0392B;font-size:16px;cursor:pointer;line-height:1;';
+    btnRemover.onclick = function(){ removerParceiroAnunciante(p.id); };
+    botoes.appendChild(btnAtivo);
+    botoes.appendChild(btnRemover);
+    row.appendChild(esquerda);
+    row.appendChild(botoes);
+    box.appendChild(row);
+  });
+}
+
+// Preenche os selects "Anunciante deste evento" (opcional) nos formulários
+// de Admin e Matriz, só com parceiros ativos de quem está logado.
+function popularSelectsAnuncianteEvento(){
+  const meusParceiros = (currentRole === 'academia' || currentRole === 'matriz') ? obterMeusParceirosAnunciantes().filter(p => p.ativo !== false) : [];
+  ['evAnuncianteAdmin', 'evAnuncianteMatriz'].forEach(id => {
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Sem anunciante</option>' +
+      meusParceiros.map(p => '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>').join('');
+    if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
+  });
+}
+
+function obterParceiroAnunciantePorId(id){
+  if(!id) return null;
+  const lista = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]');
+  return lista.find(p => p.id === id) || null;
 }
 
 // ---------- Matriz: visão da rede toda (todas as modalidades, todos os alunos GingaWay) ----------
@@ -11234,9 +11392,12 @@ function renderPerfil(){
   if(cardLinkCadastro) cardLinkCadastro.style.display = souProfessorOuMatriz ? 'block' : 'none';
   const cardModalidadesGingaWay = document.getElementById('perfilCardModalidadesGingaWay');
   if(cardModalidadesGingaWay) cardModalidadesGingaWay.style.display = souProfessorOuMatriz ? 'block' : 'none';
+  const cardParceirosAnunciantes = document.getElementById('perfilCardParceirosAnunciantes');
+  if(cardParceirosAnunciantes) cardParceirosAnunciantes.style.display = souProfessorOuMatriz ? 'block' : 'none';
   if(souProfessorOuMatriz){
     tentarChamar(function(){ renderPedidosCadastroPerfil(); });
     tentarChamar(function(){ renderModalidadesGingaWayPerfil(); });
+    tentarChamar(function(){ renderParceirosAnunciantesLista(); });
   }
   const secaoPlanoAula = document.getElementById('perfilSecaoPlanoAula');
   const secaoAulasProfessor = document.getElementById('perfilSecaoAulasProfessor');
@@ -11544,7 +11705,7 @@ function renderHistoricoMesPerfil(){
   container.innerHTML = '';
 }
 
-function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico){
+function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico, anuncianteId){
   dataISO = (dataISO || '').trim();
   if(!data && dataISO){
     data = formatarDataEventoExtenso(dataISO);
@@ -11558,7 +11719,7 @@ function adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, public
   // A imagem (cartaz) NUNCA vai no localStorage — fica só no IndexedDB deste aparelho
   // e sincronizada à parte pela nuvem (ver "Cartazes de evento" mais acima). O array
   // de eventos guarda só um sinalizador temImagem, então nunca fica grande.
-  eventos.push({titulo, data, dataISO, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual(), publico: !!publico, likes: [], comentarios: []});
+  eventos.push({titulo, data, dataISO, local, pagamento: pagamento || '', temImagem: !!imagem, codigoCheckin, grupo: obterMeuGrupoId(), criadoPor: identificadorUsuarioAtual(), publico: !!publico, anuncianteId: anuncianteId || '', likes: [], comentarios: []});
   setDado('gingapass_eventos', JSON.stringify(eventos));
   if(imagem){
     salvarImagemEvento(codigoCheckin, imagem);
@@ -11627,15 +11788,18 @@ function publicarEventoAdmin(){
   const local = document.getElementById('evLocalAdmin').value.trim();
   const pagamento = document.getElementById('evPagamentoAdmin').value.trim();
   const publico = document.getElementById('evPublicoAdmin').checked;
+  const anuncianteSel = document.getElementById('evAnuncianteAdmin');
+  const anuncianteId = anuncianteSel ? anuncianteSel.value : '';
   const fotoInput = document.getElementById('evFotoAdmin');
   lerImagemComoBase64(fotoInput, imagem => {
-    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico)){
+    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico, anuncianteId)){
       document.getElementById('evTituloAdmin').value = '';
       document.getElementById('evDataAdmin').value = '';
       document.getElementById('evDataIsoAdmin').value = '';
       document.getElementById('evLocalAdmin').value = '';
       document.getElementById('evPagamentoAdmin').value = '';
       document.getElementById('evPublicoAdmin').checked = false;
+      if(anuncianteSel) anuncianteSel.value = '';
       const selAcademiaAdmin = document.getElementById('evAcademiaSelectAdmin');
       if(selAcademiaAdmin) selAcademiaAdmin.value = '';
       if(fotoInput) fotoInput.value = '';
@@ -11650,15 +11814,18 @@ function publicarEventoMatriz(){
   const local = document.getElementById('evLocalMatriz').value.trim();
   const pagamento = document.getElementById('evPagamentoMatriz').value.trim();
   const publico = document.getElementById('evPublicoMatriz').checked;
+  const anuncianteSel = document.getElementById('evAnuncianteMatriz');
+  const anuncianteId = anuncianteSel ? anuncianteSel.value : '';
   const fotoInput = document.getElementById('evFotoMatriz');
   lerImagemComoBase64(fotoInput, imagem => {
-    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico)){
+    if(adicionarEvento(titulo, data, local, pagamento, imagem, dataISO, publico, anuncianteId)){
       document.getElementById('evTituloMatriz').value = '';
       document.getElementById('evDataMatriz').value = '';
       document.getElementById('evDataIsoMatriz').value = '';
       document.getElementById('evLocalMatriz').value = '';
       document.getElementById('evPagamentoMatriz').value = '';
       document.getElementById('evPublicoMatriz').checked = false;
+      if(anuncianteSel) anuncianteSel.value = '';
       const selAcademiaMatriz = document.getElementById('evAcademiaSelectMatriz');
       if(selAcademiaMatriz) selAcademiaMatriz.value = '';
       if(fotoInput) fotoInput.value = '';
@@ -11773,6 +11940,7 @@ function preencherLocalEvento(sufixo){
 function renderEventos(){
   tentarChamar(function(){ popularSelectAcademiasEvento('Admin'); });
   tentarChamar(function(){ popularSelectAcademiasEvento('Matriz'); });
+  tentarChamar(function(){ popularSelectsAnuncianteEvento(); });
   const meuGrupoEv = obterMeuGrupoId();
   const todosEventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]');
   const comIndice = todosEventos.map((ev, indiceReal) => ({ev, indiceReal}));
@@ -11850,6 +12018,24 @@ function renderListaEventos(containerId, eventosComIndice, mensagemVazia){
         shareBtn.style.cssText = 'display:inline-block;margin:8px 0 0 26px;font-size:12px;font-weight:600;color:var(--navy-700);background:none;border:none;cursor:pointer;padding:0;';
         shareBtn.onclick = () => compartilharCartazEvento(ev.codigoCheckin);
         div.appendChild(shareBtn);
+      }
+    }
+    if(ev.anuncianteId){
+      const anunciante = obterParceiroAnunciantePorId(ev.anuncianteId);
+      if(anunciante){
+        const faixa = document.createElement('div');
+        faixa.style.cssText = 'display:flex;align-items:center;gap:8px;margin:8px 0 0 26px;padding:6px 10px;background:var(--cream-2);border-radius:10px;';
+        if(anunciante.logo){
+          const logoImg = document.createElement('img');
+          logoImg.src = anunciante.logo;
+          logoImg.style.cssText = 'width:24px;height:24px;border-radius:6px;object-fit:cover;flex-shrink:0;';
+          faixa.appendChild(logoImg);
+        }
+        const texto = document.createElement('span');
+        texto.style.cssText = 'font-size:11px;color:var(--ink-soft);';
+        texto.textContent = '📢 Apoio: ' + anunciante.nome + (anunciante.contato ? (' · ' + anunciante.contato) : '');
+        faixa.appendChild(texto);
+        div.appendChild(faixa);
       }
     }
     if(ev.pagamento){
