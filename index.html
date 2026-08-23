@@ -2521,6 +2521,10 @@
     <div class="card" id="gruposOficiaisList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum grupo cadastrado ainda.</p></div>
 
     <p class="section-title">Academias com acesso</p>
+    <div id="academiasContasFiltroModalidadeBox" style="display:none;margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
+      <select class="admin-input" id="academiasContasFiltroModalidade" onchange="renderAcademiasContas()" style="margin-bottom:0;"><option value="">Todas as modalidades</option></select>
+    </div>
     <p class="card-label" style="margin:6px 0 4px;">Minha rede</p>
     <div class="card" id="academiasContasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma academia com acesso ainda.</p></div>
     <p class="card-label" style="margin:14px 0 4px;">Academias parceiras (independentes)</p>
@@ -2778,6 +2782,14 @@
     </div>
 
     <div id="estatisticasProfessorSecoes">
+    <div id="estatisticasFiltroGrupoBox" style="display:none;margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por núcleo/professor</label>
+      <select class="admin-input" id="estatisticasFiltroGrupo" onchange="renderEstatisticas()" style="margin-bottom:0;"><option value="">Todos os núcleos</option></select>
+    </div>
+    <div id="estatisticasFiltroModalidadeBox" style="display:none;margin-bottom:10px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
+      <select class="admin-input" id="estatisticasFiltroModalidade" onchange="renderEstatisticas()" style="margin-bottom:0;"><option value="">Todas as modalidades</option></select>
+    </div>
     <div class="card" id="estatisticasList"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum aluno cadastrado ainda.</p></div>
     <p style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">A frequência é calculada com base nos dias em que um QR code de check-in foi gerado.</p>
 
@@ -9284,11 +9296,18 @@ function renderAcademiasContas(){
   const containerInd = document.getElementById('academiasContasIndependentesList');
   if(!container) return;
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
-  const minhaRede = contas.filter(c => c.grupo !== 'independente');
+  let minhaRede = contas.filter(c => c.grupo !== 'independente');
   const parceiras = contas.filter(c => c.grupo === 'independente');
+
+  const filtroAtivo = _popularEExibirFiltroModalidade('academiasContasFiltroModalidadeBox', 'academiasContasFiltroModalidade');
+  if(filtroAtivo){
+    const modalidadeEscolhida = document.getElementById('academiasContasFiltroModalidade').value;
+    if(modalidadeEscolhida) minhaRede = minhaRede.filter(c => _modalidadesDoProfessorPorNome(c.nome).includes(modalidadeEscolhida));
+  }
+
   container.innerHTML = '';
   if(minhaRede.length === 0){
-    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma academia com acesso ainda.</p>';
+    container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">' + (filtroAtivo && document.getElementById('academiasContasFiltroModalidade').value ? 'Nenhuma academia encontrada com esse filtro.' : 'Nenhuma academia com acesso ainda.') + '</p>';
   }
   minhaRede.forEach((c) => {
     const i = contas.indexOf(c);
@@ -22694,6 +22713,38 @@ function renderEstatisticas(){
     const meusNucleos = obterMeusNucleos();
     alunos = meusNucleos.length > 0 ? todosAlunos.filter(a => nucleoEstaEmLista(obterNucleoAtualDoAluno(a), meusNucleos)) : [];
     meuNome = obterMeuNomeProfessor();
+  }
+
+  // A matriz vê a rede toda de uma vez — sem filtro, essa lista só cresce.
+  // Núcleo/professor sempre aparece (existe desde sempre); modalidade só
+  // aparece quando a rede já tem mais de uma (segue o mesmo padrão das
+  // outras telas de gestão).
+  if(currentRole === 'matriz'){
+    const boxGrupo = document.getElementById('estatisticasFiltroGrupoBox');
+    const selGrupo = document.getElementById('estatisticasFiltroGrupo');
+    if(boxGrupo && selGrupo){
+      const nucleosUnicos = [...new Set(todosAlunos.map(a => (a.professor || '').trim()).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'pt-BR'));
+      boxGrupo.style.display = nucleosUnicos.length > 0 ? 'block' : 'none';
+      const atualGrupo = selGrupo.value;
+      selGrupo.innerHTML = '<option value="">Todos os núcleos</option>' + nucleosUnicos.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('');
+      if(atualGrupo && selGrupo.querySelector('option[value="' + atualGrupo + '"]')) selGrupo.value = atualGrupo;
+      if(selGrupo.value) alunos = alunos.filter(a => (a.professor || '').trim() === selGrupo.value);
+    }
+    const filtroModalidadeAtivo = _popularEExibirFiltroModalidade('estatisticasFiltroModalidadeBox', 'estatisticasFiltroModalidade');
+    if(filtroModalidadeAtivo){
+      const modalidadeEscolhida = document.getElementById('estatisticasFiltroModalidade').value;
+      if(modalidadeEscolhida){
+        alunos = alunos.filter(a => {
+          const modalidadesDoAluno = (a.tipoConta === 'gingaway') ? [a.gingawayModalidade].filter(Boolean) : _modalidadesDoProfessorPorNome(a.professor);
+          return modalidadesDoAluno.includes(modalidadeEscolhida);
+        });
+      }
+    }
+  } else {
+    const boxGrupo = document.getElementById('estatisticasFiltroGrupoBox');
+    const boxModalidade = document.getElementById('estatisticasFiltroModalidadeBox');
+    if(boxGrupo) boxGrupo.style.display = 'none';
+    if(boxModalidade) boxModalidade.style.display = 'none';
   }
 
   container.innerHTML = '';
