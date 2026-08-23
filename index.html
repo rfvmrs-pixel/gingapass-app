@@ -2547,9 +2547,10 @@
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
 
     <p class="section-title">🥊 Aluno GingaWay — modalidades e alunos da rede</p>
-    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Cada professor cadastra as próprias modalidades no perfil dele (Perfil → "Minhas modalidades GingaWay"). Aqui você vê tudo o que já foi cadastrado na rede toda, e a lista de quem assinou um plano GingaWay (sem vínculo fixo com nenhum grupo).</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Cada professor cadastra as próprias modalidades no perfil dele. Aqui você vê tudo o que já foi cadastrado na rede toda, e a lista de quem assinou um plano GingaWay (sem vínculo fixo com nenhum grupo).</p>
     <div class="card">
       <p class="card-label" style="margin:0 0 8px;">Modalidades cadastradas pelos professores</p>
+      <button class="btn" type="button" onclick="irParaModalidadesGingaWayPerfil()" style="margin-bottom:12px;">+ Cadastrar uma modalidade que EU ofereço</button>
       <div id="gwModalidadesRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
     </div>
     <div class="card">
@@ -6093,6 +6094,21 @@ function obterParceiroAnunciantePorId(id){
   if(!id) return null;
   const lista = JSON.parse(localStorage.getItem(chaveParceirosAnunciantes()) || '[]');
   return lista.find(p => p.id === id) || null;
+}
+
+// Atalho pra quem tá no painel da Matriz e quer cadastrar a PRÓPRIA
+// modalidade — leva pra Perfil (onde fica o formulário de verdade, o mesmo
+// usado pelos professores) e já destaca o card, pra não passar batido.
+function irParaModalidadesGingaWayPerfil(){
+  showScreen('perfil', null);
+  setTimeout(function(){
+    const card = document.getElementById('perfilCardModalidadesGingaWay');
+    if(!card) return;
+    card.scrollIntoView({block: 'center', behavior: 'smooth'});
+    card.style.transition = 'box-shadow 0.3s';
+    card.style.boxShadow = '0 0 0 3px var(--amber-500)';
+    setTimeout(function(){ card.style.boxShadow = ''; }, 2500);
+  }, 150);
 }
 
 // ---------- Matriz: visão da rede toda (todas as modalidades, todos os alunos GingaWay) ----------
