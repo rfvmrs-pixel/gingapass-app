@@ -978,7 +978,11 @@
       <button class="btn" type="button" onclick="showScreen('gingawayCheckin')" style="background:var(--amber-500);color:#2A1B04;margin:0;">📍 Ver academias parceiras por modalidade</button>
     </div>
     <div class="search-bar" style="padding:0;">
-      <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por bairro, cidade, estado ou país" oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:16px;padding:12px 14px;color:var(--ink);">
+      <input type="text" id="academiasBuscaInput" placeholder="🔍 Buscar por nome, professor, bairro, cidade..." oninput="renderAcademiasScreen()" style="width:100%;border:none;background:none;outline:none;font-size:16px;padding:12px 14px;color:var(--ink);">
+    </div>
+    <div id="academiasFiltroGrupoBox" style="display:none;margin-bottom:14px;">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por grupo</label>
+      <select class="admin-input" id="academiasFiltroGrupo" onchange="renderAcademiasScreen()" style="margin-bottom:0;"><option value="">Todos os grupos</option></select>
     </div>
     <button class="btn" type="button" onclick="calcularDistanciasAcademias(this)" style="margin-bottom:14px;">📍 Ver distância até você</button>
     <p id="distanciaStatus" style="font-size:11.5px;color:var(--ink-soft);margin:-8px 0 12px;"></p>
@@ -23918,8 +23922,33 @@ function renderAcademiasScreen(){
     const conta = academiasContas.find(c => (c.nucleosGerenciados && c.nucleosGerenciados.indexOf(a.nome) >= 0) || c.nome === a.professor || c.nome === a.nome);
     return !(conta && conta.oculto);
   });
-  // Busca por texto (bairro, cidade, estado, país...) — antes a "barra de
-  // busca" era só um <div> decorativo, não dava nem pra digitar nela.
+
+  // Filtro por Grupo cadastrado (ex: "Capoeira Team") — só aparece se
+  // existir algum grupo cadastrado na rede, senão fica escondido igual
+  // antes (nada muda pra quem não usa essa organização).
+  const gruposCadastrados = listarTodosGruposParceirosCadastrados();
+  const boxFiltroGrupo = document.getElementById('academiasFiltroGrupoBox');
+  const selFiltroGrupo = document.getElementById('academiasFiltroGrupo');
+  if(boxFiltroGrupo && selFiltroGrupo){
+    boxFiltroGrupo.style.display = gruposCadastrados.length > 0 ? 'block' : 'none';
+    if(gruposCadastrados.length > 0){
+      const atualGrupo = selFiltroGrupo.value;
+      selFiltroGrupo.innerHTML = '<option value="">Todos os grupos</option>' +
+        gruposCadastrados.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
+      if(atualGrupo && selFiltroGrupo.querySelector('option[value="' + atualGrupo + '"]')) selFiltroGrupo.value = atualGrupo;
+    }
+    const grupoEscolhido = selFiltroGrupo.value;
+    if(grupoEscolhido){
+      rede = rede.filter(a => {
+        const conta = academiasContas.find(c => c.nome === a.nome || mesmoProfessor(c.nome, a.professor));
+        return conta && (conta.grupoParceiroId === grupoEscolhido || conta.grupoCadastroId === grupoEscolhido);
+      });
+    }
+  }
+
+  // Busca por texto (nome, professor, bairro, cidade, estado, país...) —
+  // antes a "barra de busca" era só um <div> decorativo, não dava nem pra
+  // digitar nela.
   const buscaInput = document.getElementById('academiasBuscaInput');
   const termoBusca = buscaInput ? _normalizarTextoBusca(buscaInput.value) : '';
   if(termoBusca){
@@ -23946,8 +23975,9 @@ function renderAcademiasScreen(){
   container.innerHTML = '';
 
   // Pra matriz (rede grande, muitos núcleos), a lista inteira sempre visível
-  // vira poluição — só mostra depois que ela busca por algo específico.
-  if(currentRole === 'matriz' && !termoBusca){
+  // vira poluição — só mostra depois que ela busca ou filtra por algo.
+  const temFiltroAtivo = !!termoBusca || (selFiltroGrupo && !!selFiltroGrupo.value);
+  if(currentRole === 'matriz' && !temFiltroAtivo){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Use a busca acima pra encontrar uma academia (' + rede.length + ' cadastradas na rede).</p>';
     _ultimaRedeFiltradaAcademias = [];
     tentarChamar(function(){ renderMapaAcademias([], []); });
