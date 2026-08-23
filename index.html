@@ -845,7 +845,12 @@
   <!-- HOME -->
   <div class="screen active" id="home">
     <div id="anuncioGraduacaoBanner" class="anuncio-graduacao-banner" style="display:none;">
-      <div class="anuncio-graduacao-confete">🎉🥋🎊</div>
+      <div class="anuncio-graduacao-confete">
+        <span>🎉</span>
+        <img id="anuncioGraduacaoLogo" src="" alt="" style="display:none;width:34px;height:34px;object-fit:contain;border-radius:8px;vertical-align:middle;">
+        <span id="anuncioGraduacaoEmojiFallback">🥋</span>
+        <span>🎊</span>
+      </div>
       <p id="anuncioGraduacaoTexto" style="margin:0 0 10px;font-size:14.5px;font-weight:700;line-height:1.4;"></p>
       <button type="button" id="anuncioGraduacaoConfirmarBtn" class="btn" style="background:var(--white);color:#C22C75;margin:0;width:auto;padding:9px 20px;" onclick="confirmarAnuncioGraduacao()">Show, obrigado! 🙌</button>
     </div>
@@ -1255,7 +1260,7 @@
 
     <p class="section-title">Localização em tempo real</p>
     <div class="card">
-      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Compartilhe sua localização ao vivo. Escolha com quem, ative e ela atualiza sozinha enquanto a tela ficar aberta.</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Compartilhe sua localização ao vivo. Escolha com quem, ative e ela atualiza sozinha enquanto a tela ficar aberta. Quando você desativa, o mapa continua mostrando sua última posição (mais apagada, sem o "ao vivo") por até 30 dias — pra apagar isso de vez, use o botão abaixo.</p>
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Compartilhar com</label>
       <select class="admin-input" id="localizacaoDestinatarioTipo" onchange="atualizarListaDestinatariosLocalizacao()">
         <option value="todos">Todos os usuários</option>
@@ -1265,6 +1270,7 @@
       <select class="admin-input" id="localizacaoDestinatarioEspecifico" style="display:none;"></select>
       <button class="btn js-btn-compartilhar-localizacao" id="btnCompartilharLocalizacao" onclick="alternarCompartilharLocalizacao()">Compartilhar minha localização</button>
       <p class="js-status-compartilhar-localizacao" id="statusCompartilharLocalizacao" style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;"></p>
+      <button class="btn" type="button" style="background:var(--white);color:#C0392B;border:1.5px solid #C0392B;margin-top:8px;" onclick="removerMinhaLocalizacaoDeVez()">🗑️ Remover minha última localização do mapa</button>
     </div>
     <div class="card">
       <div class="card-label">Pessoas compartilhando comigo agora</div>
@@ -10278,6 +10284,22 @@ function renderAnuncioGraduacaoHome(){
   const primeiroNome = (anuncio.nomeAluno || obterNomeExibicaoAtual() || '').split(' ')[0];
   textoEl.textContent = '🎉 Parabéns' + (primeiroNome ? ', ' + primeiroNome : '') + '! Você foi indicado(a) para a graduação ' +
     anuncio.graduacao + (anuncio.evento ? (' no evento ' + anuncio.evento) : '') + '!';
+
+  // Logo do grupo no lugar do 🥋 genérico, quando o grupo tiver uma cadastrada.
+  const logoEl = document.getElementById('anuncioGraduacaoLogo');
+  const emojiFallback = document.getElementById('anuncioGraduacaoEmojiFallback');
+  const logoGrupo = obterLogoDoMeuGrupo();
+  if(logoEl && emojiFallback){
+    if(logoGrupo){
+      logoEl.src = logoGrupo;
+      logoEl.style.display = 'inline-block';
+      emojiFallback.style.display = 'none';
+    } else {
+      logoEl.style.display = 'none';
+      emojiFallback.style.display = 'inline';
+    }
+  }
+
   const confirmarBtn = document.getElementById('anuncioGraduacaoConfirmarBtn');
   if(confirmarBtn) confirmarBtn.textContent = anuncio.lido ? 'Confirmado ✓' : 'Show, obrigado! 🙌';
   banner.style.display = 'block';
@@ -14700,7 +14722,8 @@ let localizacaoWatchId = null;
 let compartilhandoLocalizacao = false;
 let _ultimoEnvioLocalizacaoTs = 0;
 const LOCALIZACAO_INTERVALO_MIN_MS = 15000; // não manda pra nuvem mais que 1x a cada 15s
-const LOCALIZACAO_EXPIRA_MS = 5 * 60 * 1000; // some da lista se ficar 5min sem atualizar
+const LOCALIZACAO_EXPIRA_MS = 5 * 60 * 1000; // some da lista "ao vivo" se ficar 5min sem atualizar
+const LOCALIZACAO_ULTIMA_VEZ_EXPIRA_MS = 30 * 24 * 60 * 60 * 1000; // marcador de "última vez visto" some depois de 30 dias parado
 let mapaLocalizacaoAbertoId = null;
 
 function atualizarListaDestinatariosLocalizacao(){
@@ -14795,7 +14818,8 @@ function iniciarCompartilharLocalizacao(){
       lat: pos.coords.latitude,
       lon: pos.coords.longitude,
       destinatarios: destinatarios, // 'todos' ou array de ids tipo 'academia:usuario' / 'aluno:usuario'
-      atualizado: agora
+      atualizado: agora,
+      ativo: true
     };
     salvarLocalizacaoNaNuvem(doc).then(function(ok){
       statusEls.forEach(status => {
@@ -14827,9 +14851,33 @@ function pararCompartilharLocalizacao(){
   });
   statusEls.forEach(status => { status.textContent = 'Você não está compartilhando sua localização.'; });
   if(currentRole && currentUser){
-    apagarLocalizacaoNaNuvem(identificadorUsuarioAtual());
+    // Não apaga mais o registro — só marca como parado, e a última posição
+    // continua aparecendo no mapa (mais apagada, sem o "ao vivo") até
+    // completar 30 dias parado. Quem quiser sumir de vez usa o botão
+    // "Remover minha última localização do mapa", no Perfil.
+    marcarLocalizacaoComoParada(identificadorUsuarioAtual());
   }
   tentarChamar(function(){ _atualizarMarcadoresAoVivoNoMapaAcademias(); });
+}
+
+function removerMinhaLocalizacaoDeVez(){
+  if(!currentRole || !currentUser) return;
+  if(!confirm('Isso apaga sua última posição do mapa de vez (não só o "ao vivo") — pra voltar a aparecer, você precisa ativar o compartilhamento de novo. Continuar?')) return;
+  apagarLocalizacaoNaNuvem(identificadorUsuarioAtual()).then(function(ok){
+    const statusEls = document.querySelectorAll('.js-status-compartilhar-localizacao');
+    statusEls.forEach(status => { status.textContent = ok ? 'Sua localização foi removida do mapa.' : 'Não conseguiu remover agora. Tente de novo.'; });
+    tentarChamar(function(){ _atualizarMarcadoresAoVivoNoMapaAcademias(); });
+  });
+}
+
+function marcarLocalizacaoComoParada(autorId){
+  if(modoDemo || !localizacoesCollection) return Promise.resolve(true);
+  return localizacoesCollection.doc(autorId).set({ativo: false}, {merge: true}).then(function(){
+    return true;
+  }).catch(function(e){
+    console.error('Erro ao marcar localização como parada:', e);
+    return false;
+  });
 }
 
 function localizacaoEhVisivelPraMim(loc, meuId){
@@ -23974,14 +24022,17 @@ function renderAcademiasScreen(){
 
   container.innerHTML = '';
 
-  // Pra matriz (rede grande, muitos núcleos), a lista inteira sempre visível
-  // vira poluição — só mostra depois que ela busca ou filtra por algo.
+  // Pra matriz (rede grande, muitos núcleos), a LISTA inteira sempre visível
+  // vira poluição — só mostra depois que ela busca ou filtra por algo. O
+  // MAPA continua mostrando todo mundo mesmo sem filtro (mapa não "polui"
+  // do mesmo jeito que uma lista comprida — dá pra ver todo mundo de uma
+  // vez com zoom/pan), e vai encolhendo normalmente conforme filtra.
   const temFiltroAtivo = !!termoBusca || (selFiltroGrupo && !!selFiltroGrupo.value);
   if(currentRole === 'matriz' && !temFiltroAtivo){
     container.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 0;">Use a busca acima pra encontrar uma academia (' + rede.length + ' cadastradas na rede).</p>';
-    _ultimaRedeFiltradaAcademias = [];
-    tentarChamar(function(){ renderMapaAcademias([], []); });
-    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido([], []); });
+    _ultimaRedeFiltradaAcademias = rede;
+    tentarChamar(function(){ renderMapaAcademias(rede, alunosComEndereco); });
+    if(_academiasMapaExpandidoAberto) tentarChamar(function(){ renderMapaAcademiasExpandido(rede, alunosComEndereco); });
     return;
   }
 
@@ -24363,7 +24414,29 @@ function _alunosAoVivoNoMeuGrupo(){
   const agora = Date.now();
   const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   return todas
-    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
+    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado && l.ativo !== false && (agora - l.atualizado) < LOCALIZACAO_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
+    .map(l => {
+      const userAluno = l.autorId.split(':')[1];
+      const conta = alunosContas.find(c => c.user === userAluno);
+      return {loc: l, professor: conta ? conta.professor : '', nucleo: conta ? conta.nucleo : ''};
+    })
+    .filter(item => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(item.professor || item.nucleo || '')));
+}
+
+// Quem JÁ compartilhou localização em algum momento, mas desativou (ou
+// ficou mais de 5min sem atualizar) — continua no mapa como "última vez
+// visto" por até 30 dias, em vez de simplesmente sumir.
+function _alunosUltimaVezVistosNoMeuGrupo(){
+  if(!currentRole || !currentUser) return [];
+  const todas = window._localizacoesCache || [];
+  if(todas.length === 0) return [];
+  const meuId = identificadorUsuarioAtual();
+  const agora = Date.now();
+  const alunosContas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  return todas
+    .filter(l => l && l.autorId && l.autorRole === 'aluno' && l.lat && l.lon && l.atualizado &&
+      (l.ativo === false || (agora - l.atualizado) >= LOCALIZACAO_EXPIRA_MS) &&
+      (agora - l.atualizado) < LOCALIZACAO_ULTIMA_VEZ_EXPIRA_MS && localizacaoEhVisivelPraMim(l, meuId))
     .map(l => {
       const userAluno = l.autorId.split(':')[1];
       const conta = alunosContas.find(c => c.user === userAluno);
@@ -24392,6 +24465,18 @@ function _popularMarcadoresAoVivoMapa(layerGroup){
     marker.bindPopup('<b>🟢 ' + (l.autor || 'Aluno') + '</b>' +
       '<br><span style="font-size:11px;color:#6b7a89;">Ao vivo · atualizado ' + textoTempo + '</span>' +
       '<br><a href="' + linkWhats + '" target="_blank" rel="noopener">📲 Enviar localização no WhatsApp</a>');
+    marker.addTo(layerGroup);
+    pontos.push([l.lat, l.lon]);
+  });
+  // "Última vez visto" — mesma camada, ícone sem o pulso verde de "ao vivo".
+  _alunosUltimaVezVistosNoMeuGrupo().forEach(item => {
+    const l = item.loc;
+    const logo = _obterLogoParaMarcadorAluno(item);
+    const dataFmt = new Date(l.atualizado).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
+    const horaFmt = new Date(l.atualizado).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+    const marker = L.marker([l.lat, l.lon], {icon: _iconeMarcadorPessoa(logo, false), opacity: 0.65});
+    marker.bindPopup('<b>⚪ ' + (l.autor || 'Aluno') + '</b>' +
+      '<br><span style="font-size:11px;color:#6b7a89;">Última vez visto em ' + dataFmt + ' às ' + horaFmt + '</span>');
     marker.addTo(layerGroup);
     pontos.push([l.lat, l.lon]);
   });
