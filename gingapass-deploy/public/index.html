@@ -2676,6 +2676,31 @@
       <div id="gwModalidadesRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
     </div>
 
+    <p class="section-title">Cadastrar professor/instrutor de uma modalidade</p>
+    <div class="card">
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Pra um instrutor de Jiu-Jitsu, Muay Thai etc que ainda não tem login nenhum no app — ele ganha um acesso de Professor de verdade, pra ver e confirmar os check-ins dos alunos GingaWay dele mesmo, sem precisar de você toda vez.</p>
+      <input class="admin-input" id="gwNovoProfNome" placeholder="Nome completo do professor/instrutor">
+      <select class="admin-input" id="gwNovoProfModalidadeSelect" onchange="alternarModalidadeOutraNovoProf(); _atualizarDatalistGraduacaoNovoProf();">
+        <option value="">Escolha a modalidade...</option>
+        <option value="Jiu-Jitsu">Jiu-Jitsu</option>
+        <option value="Muay Thai">Muay Thai</option>
+        <option value="Boxe">Boxe</option>
+        <option value="Capoeira">Capoeira</option>
+        <option value="Ginástica">Ginástica</option>
+        <option value="Calistenia">Calistenia</option>
+        <option value="Outra">Outra (digitar)</option>
+      </select>
+      <input class="admin-input" id="gwNovoProfModalidadeOutraInput" placeholder="Nome da modalidade" style="display:none;">
+      <input class="admin-input" id="gwNovoProfGraduacao" list="gwNovoProfGraduacaoDatalist" placeholder="Graduação/faixa dele nessa modalidade (opcional)">
+      <datalist id="gwNovoProfGraduacaoDatalist"></datalist>
+      <input class="admin-input" id="gwNovoProfDias" placeholder="Dias (ex: Terça e Quinta)">
+      <input class="admin-input" id="gwNovoProfHorario" placeholder="Horário (ex: 19h às 20h)">
+      <input class="admin-input" id="gwNovoProfLocal" placeholder="Local (endereço ou nome da academia)">
+      <input class="admin-input" id="gwNovoProfUser" placeholder="Usuário de acesso (pra ele entrar como Professor)">
+      <input class="admin-input" id="gwNovoProfSenha" placeholder="Senha de acesso">
+      <button class="btn" type="button" onclick="criarProfessorModalidadeGingaWay()">+ Cadastrar professor e modalidade</button>
+    </div>
+
     <p class="section-title">Alunos GingaWay (meus afiliados)</p>
     <div class="card">
       <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
@@ -6132,6 +6157,94 @@ function irParaModalidadesGingaWayPerfil(){
     card.style.boxShadow = '0 0 0 3px var(--amber-500)';
     setTimeout(function(){ card.style.boxShadow = ''; }, 2500);
   }, 150);
+}
+
+// ---------- Matriz: cadastra um professor/instrutor NOVO pra uma modalidade ----------
+// Diferente de "Cadastrar uma modalidade que EU ofereço" (que é auto-cadastro
+// de quem já está logado), isso aqui cria um acesso de Professor de verdade
+// pra alguém que ainda não tem conta nenhuma no app — sem isso, quem dá aula
+// de uma modalidade nova (Jiu-Jitsu, Muay Thai...) não tinha como ver nem
+// confirmar os check-ins dos próprios alunos GingaWay.
+function alternarModalidadeOutraNovoProf(){
+  const sel = document.getElementById('gwNovoProfModalidadeSelect');
+  const outraInput = document.getElementById('gwNovoProfModalidadeOutraInput');
+  if(!sel || !outraInput) return;
+  outraInput.style.display = sel.value === 'Outra' ? 'block' : 'none';
+}
+
+function _atualizarDatalistGraduacaoNovoProf(){
+  const sel = document.getElementById('gwNovoProfModalidadeSelect');
+  const datalist = document.getElementById('gwNovoProfGraduacaoDatalist');
+  if(!sel || !datalist) return;
+  datalist.innerHTML = obterGraduacoesModalidade(sel.value).map(c => '<option value="' + escapeHtml(c) + '"></option>').join('');
+}
+
+function criarProfessorModalidadeGingaWay(){
+  if(currentRole !== 'matriz') return;
+  const nome = document.getElementById('gwNovoProfNome').value.trim();
+  const sel = document.getElementById('gwNovoProfModalidadeSelect');
+  const outraInput = document.getElementById('gwNovoProfModalidadeOutraInput');
+  const modalidade = (sel.value === 'Outra' ? outraInput.value.trim() : sel.value);
+  const graduacao = document.getElementById('gwNovoProfGraduacao').value.trim();
+  const dias = document.getElementById('gwNovoProfDias').value.trim();
+  const horario = document.getElementById('gwNovoProfHorario').value.trim();
+  const local = document.getElementById('gwNovoProfLocal').value.trim();
+  const user = document.getElementById('gwNovoProfUser').value.trim();
+  const senha = document.getElementById('gwNovoProfSenha').value.trim();
+
+  if(!nome){ alert('Digite o nome do professor/instrutor.'); return; }
+  if(!modalidade){ alert('Escolha ou digite a modalidade.'); return; }
+  if(!dias || !horario || !local){ alert('Preencha dias, horário e local da aula.'); return; }
+  if(!user || !senha){ alert('Defina um usuário e uma senha de acesso pra ele.'); return; }
+  if(senha.length < 4){ alert('A senha precisa ter pelo menos 4 caracteres.'); return; }
+
+  const btn = document.querySelector('#gingawayGestao button[onclick="criarProfessorModalidadeGingaWay()"]');
+  if(btn){ btn.disabled = true; btn.textContent = 'Cadastrando...'; }
+
+  Promise.all([
+    buscarValorFresco('gingapass_master'),
+    buscarValorFresco('gingapass_academias_contas'),
+    buscarValorFresco('gingapass_alunos_contas'),
+    buscarValorFresco('gingapass_pais_contas')
+  ]).then(function(){
+    if(localizarContaPorUsuario(user)){
+      if(btn){ btn.disabled = false; btn.textContent = '+ Cadastrar professor e modalidade'; }
+      alert('Esse usuário já existe. Escolha outro.');
+      return;
+    }
+    const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
+    contas.push({
+      nome, user, senha, corda: graduacao, endereco: local,
+      daAula: true, tipoAcademia: 'gingaway',
+      pergunta: '', resposta: ''
+    });
+    setDado('gingapass_academias_contas', JSON.stringify(contas)).then(function(ok){
+      if(!ok){
+        if(btn){ btn.disabled = false; btn.textContent = '+ Cadastrar professor e modalidade'; }
+        alert('Não conseguiu salvar agora. Verifique sua internet e tente de novo.');
+        return;
+      }
+      const mods = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]');
+      mods.push({
+        id: 'gwmod_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        professorUser: user, professorNome: nome, nucleo: '', modalidade, dias, horario, local, ativo: true
+      });
+      setDado('gingapass_modalidades_professor', JSON.stringify(mods)).then(function(){
+        alert('Professor cadastrado! Ele já pode entrar como "Professor", com o usuário e senha que você definiu.');
+        ['gwNovoProfNome', 'gwNovoProfGraduacao', 'gwNovoProfDias', 'gwNovoProfHorario', 'gwNovoProfLocal', 'gwNovoProfUser', 'gwNovoProfSenha'].forEach(id => {
+          const el = document.getElementById(id);
+          if(el) el.value = '';
+        });
+        sel.value = '';
+        outraInput.value = '';
+        outraInput.style.display = 'none';
+        if(btn){ btn.disabled = false; btn.textContent = '+ Cadastrar professor e modalidade'; }
+        tentarChamar(function(){ renderModalidadesGingaWayRede(); });
+        tentarChamar(function(){ popularFiltroModalidadeGingaWayRede(); });
+        tentarChamar(function(){ renderGingaWayExtratoModalidade(); });
+      });
+    });
+  });
 }
 
 // ---------- Matriz: visão da rede toda (todas as modalidades, todos os alunos GingaWay) ----------
