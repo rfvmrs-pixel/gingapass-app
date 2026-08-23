@@ -2546,16 +2546,10 @@
     <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Professores também são alunos de alguém e também pagam mensalidade. Marque a situação e as datas de cada um.</p>
     <div class="card" id="mensalidadesProfessoresMatriz"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum professor cadastrado ainda.</p></div>
 
-    <p class="section-title">🥊 Aluno GingaWay — modalidades e alunos da rede</p>
-    <p style="font-size:11.5px;color:var(--ink-soft);margin:-6px 0 8px;">Cada professor cadastra as próprias modalidades no perfil dele. Aqui você vê tudo o que já foi cadastrado na rede toda, e a lista de quem assinou um plano GingaWay (sem vínculo fixo com nenhum grupo).</p>
+    <p class="section-title">🥊 Aluno GingaWay</p>
     <div class="card">
-      <p class="card-label" style="margin:0 0 8px;">Modalidades cadastradas pelos professores</p>
-      <button class="btn" type="button" onclick="irParaModalidadesGingaWayPerfil()" style="margin-bottom:12px;">+ Cadastrar uma modalidade que EU ofereço</button>
-      <div id="gwModalidadesRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
-    </div>
-    <div class="card">
-      <p class="card-label" style="margin:0 0 8px;">Alunos GingaWay (sem vínculo fixo com grupo)</p>
-      <div id="gwAlunosRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém assinou um plano GingaWay ainda.</p></div>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;">Modalidades oferecidas, alunos afiliados (sem vínculo fixo com grupo) e extrato por modalidade — tudo numa tela separada, pra não poluir aqui.</p>
+      <button class="btn" type="button" onclick="showScreen('gingawayGestao')" style="margin:0;">Gerenciar Alunos GingaWay</button>
     </div>
 
     <p class="section-title">Foto/logo da minha academia (aparece na lista de Academias/Grupos parceiros)</p>
@@ -2664,6 +2658,30 @@
       <p style="font-size:12px;color:var(--ink);margin:0 0 10px;">O histórico de presença, faltas, agenda de aulas e mensalidades fica salvo pelo <b>nome</b> do professor/aluno, não por um código único — então, se você apagou uma conta e recriou alguém com o mesmo nome, o histórico antigo dele "ressuscita" sozinho. Use este botão pra apagar só esse histórico, mantendo as contas atuais intactas.</p>
       <button class="btn" type="button" style="background:#C0392B;" onclick="limparHistoricoAntigoCompleto()">Limpar histórico de presença/faltas/agenda/mensalidades</button>
     </div>
+  </div>
+
+  <!-- GESTÃO DEDICADA: ALUNO GINGAWAY (modalidades, afiliados, extrato) -->
+  <div class="screen" id="gingawayGestao">
+    <button class="btn" type="button" onclick="showScreen('matriz', null)" style="width:auto;padding:8px 14px;margin-bottom:14px;background:var(--white);color:var(--navy-900);border:1.5px solid var(--navy-900);">← Voltar</button>
+    <p class="greeting" style="font-size:18px;">🥊 Aluno GingaWay</p>
+    <p class="subgreeting">Modalidades, afiliados e extrato por modalidade</p>
+
+    <p class="section-title">Extrato por modalidade</p>
+    <div class="card" id="gingawayExtratoModalidade"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
+
+    <p class="section-title">Modalidades cadastradas</p>
+    <div class="card">
+      <button class="btn" type="button" onclick="irParaModalidadesGingaWayPerfil()" style="margin-bottom:12px;">+ Cadastrar uma modalidade que EU ofereço</button>
+      <div id="gwModalidadesRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p></div>
+    </div>
+
+    <p class="section-title">Alunos GingaWay (meus afiliados)</p>
+    <div class="card">
+      <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Filtrar por modalidade</label>
+      <select class="admin-input" id="gingawayAlunosFiltroModalidade" onchange="renderAlunosGingaWayRede()"><option value="">Todas as modalidades</option></select>
+      <input class="admin-input" id="gingawayAlunosFiltroBusca" placeholder="🔍 Buscar por nome ou usuário" oninput="renderAlunosGingaWayRede()" style="margin-bottom:0;">
+    </div>
+    <div class="card" id="gwAlunosRedeLista"><p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém assinou um plano GingaWay ainda.</p></div>
   </div>
 
   <!-- ESTATÍSTICAS -->
@@ -6145,12 +6163,34 @@ function renderModalidadesGingaWayRede(){
   });
 }
 
+function _todasModalidadesGingaWayDaRede(){
+  const modsProf = JSON.parse(localStorage.getItem('gingapass_modalidades_professor') || '[]').map(m => m.modalidade);
+  const modsAlunos = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway').map(c => c.gingawayModalidade);
+  return [...new Set([...modsProf, ...modsAlunos].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+function popularFiltroModalidadeGingaWayRede(){
+  const sel = document.getElementById('gingawayAlunosFiltroModalidade');
+  if(!sel || currentRole !== 'matriz') return;
+  const atual = sel.value;
+  const modalidades = _todasModalidadesGingaWayDaRede();
+  sel.innerHTML = '<option value="">Todas as modalidades</option>' +
+    modalidades.map(m => '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>').join('');
+  if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
+}
+
+// Lista de afiliados GingaWay, com filtro por modalidade e busca por nome/usuário
+// — a tela dedicada existe justamente pra não empilhar tudo isso na tela Admin.
 function renderAlunosGingaWayRede(){
   const box = document.getElementById('gwAlunosRedeLista');
   if(!box || currentRole !== 'matriz') return;
-  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway');
+  const filtroModalidade = (document.getElementById('gingawayAlunosFiltroModalidade') || {}).value || '';
+  const filtroBusca = _normalizarTextoBusca((document.getElementById('gingawayAlunosFiltroBusca') || {}).value || '');
+  let contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway');
+  if(filtroModalidade) contas = contas.filter(c => c.gingawayModalidade === filtroModalidade);
+  if(filtroBusca) contas = contas.filter(c => _normalizarTextoBusca((c.nome || '') + ' ' + (c.user || '')).indexOf(filtroBusca) !== -1);
   if(contas.length === 0){
-    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Ninguém assinou um plano GingaWay ainda.</p>';
+    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhum afiliado encontrado com esse filtro.</p>';
     return;
   }
   const mesAtual = _mesReferenciaAtual();
@@ -6171,6 +6211,42 @@ function renderAlunosGingaWayRede(){
     row.appendChild(p);
     box.appendChild(row);
   });
+}
+
+// Extrato informativo por modalidade — quantos afiliados, quantas aulas usadas
+// no mês, e a soma dos valores dos planos (não é cobrança de verdade, é só
+// o "quanto entraria" com base nos planos assinados, igual ao resto do app).
+function renderGingaWayExtratoModalidade(){
+  const box = document.getElementById('gingawayExtratoModalidade');
+  if(!box || currentRole !== 'matriz') return;
+  const modalidades = _todasModalidadesGingaWayDaRede();
+  if(modalidades.length === 0){
+    box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:0;">Nenhuma modalidade cadastrada ainda.</p>';
+    return;
+  }
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]').filter(c => c.tipoConta === 'gingaway');
+  const mesAtual = _mesReferenciaAtual();
+  box.innerHTML = '';
+  modalidades.forEach(mod => {
+    const dessaModalidade = contas.filter(c => c.gingawayModalidade === mod);
+    const totalAulasUsadas = dessaModalidade.reduce((soma, c) => soma + ((c.gingawayMesReferencia === mesAtual) ? (c.gingawayAulasUsadas || 0) : 0), 0);
+    const valorEstimado = dessaModalidade.reduce((soma, c) => soma + ((GINGAWAY_PLANOS[c.gingawayPlano] || GINGAWAY_PLANOS['60']).preco || 0), 0);
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:8px 0;border-bottom:1px solid #EFE6D2;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    const nome = document.createElement('b');
+    nome.style.cssText = 'font-size:13px;color:var(--navy-900);';
+    nome.textContent = mod;
+    const dados = document.createElement('span');
+    dados.style.cssText = 'font-size:11.5px;color:var(--ink-soft);text-align:right;';
+    dados.textContent = dessaModalidade.length + ' aluno(s) · ' + totalAulasUsadas + ' aula(s) usada(s) este mês · R$ ' + valorEstimado + '/mês em planos';
+    row.appendChild(nome);
+    row.appendChild(dados);
+    box.appendChild(row);
+  });
+  const aviso = document.createElement('p');
+  aviso.style.cssText = 'font-size:10.5px;color:var(--ink-soft);margin:8px 0 0;';
+  aviso.textContent = 'Valor informativo, com base nos planos assinados — o repasse pro professor de cada modalidade continua sendo combinado por fora, como o resto das mensalidades do app.';
+  box.appendChild(aviso);
 }
 
 // ---------- Aluno GingaWay: card na Início com status do plano ----------
@@ -7746,7 +7822,9 @@ function aplicarPermissoes(){
   tentarChamar(function(){ renderGraduacoesModalidadeLista(); });
   if(currentRole === 'matriz'){
     tentarChamar(function(){ renderModalidadesGingaWayRede(); });
+    tentarChamar(function(){ popularFiltroModalidadeGingaWayRede(); });
     tentarChamar(function(){ renderAlunosGingaWayRede(); });
+    tentarChamar(function(){ renderGingaWayExtratoModalidade(); });
   }
   if(currentRole === 'academia'){
     tentarChamar(function(){ popularSeletorGrupoParceiro('parceiraAdGrupoSelect'); });
@@ -7945,6 +8023,12 @@ function showScreen(id, btn){
   }
   if(id === 'gingawayCheckin'){
     renderGingaWayOfertas();
+  }
+  if(id === 'gingawayGestao'){
+    tentarChamar(function(){ renderModalidadesGingaWayRede(); });
+    tentarChamar(function(){ popularFiltroModalidadeGingaWayRede(); });
+    tentarChamar(function(){ renderAlunosGingaWayRede(); });
+    tentarChamar(function(){ renderGingaWayExtratoModalidade(); });
   }
   if(id === 'academias'){
     // O mapa (Leaflet) só mede o próprio tamanho direito se a tela já
