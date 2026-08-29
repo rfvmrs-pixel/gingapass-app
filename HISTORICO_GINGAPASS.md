@@ -149,6 +149,32 @@ isso e já sei o que já foi feito, sem precisar re-explicar tudo.
   foto/logo cadastrada** (ver item 2), essa logo aparece como um círculo
   discreto no canto esquerdo da faixa (`obterLogoGrupoDoEvento`).
 
+## 10. Aniversariantes do mês — card duplicado + compartilhar mandava só a foto
+- **Bug 1 (card duplicado)**: quando a mesma pessoa tinha mais de uma conta
+  com aniversário cadastrado (ex: professor que também é aluno/mestrando em
+  outro núcleo — uma conta `academia` e uma `aluno`), ela aparecia com DOIS
+  cards no mesmo dia. **Corrigido** em `obterAniversariantesDoMes()`: agora
+  deduplica por nome normalizado + dia antes de devolver a lista, mantendo
+  só a primeira ocorrência.
+- **Bug 2 (compartilhar não mandava o card)**: o botão "Compartilhar"
+  (WhatsApp/Instagram) só anexava a FOTO pura da pessoa, sem o card
+  desenhado (moldura, "Feliz Aniversário!", nome, faixa colorida, logo do
+  grupo). Isso era proposital desde a primeira versão porque tentar
+  exportar o card em HTML via SVG `<foreignObject>` travava em vários
+  navegadores (principalmente Safari do iPhone, com fonte do Google Fonts
+  dentro do foreignObject).
+  **Corrigido**: nova função `renderizarCardAniversarioCanvas()` desenha o
+  card inteiro num `<canvas>` "na mão" (`fillRect`/`drawImage`/`fillText`,
+  sem SVG nem foreignObject) — mesma técnica já comprovada em
+  `renderizarCertificadoCanvas()` (funciona até no Safari iOS). O botão de
+  compartilhar agora usa essa imagem; se por algum motivo a geração do
+  canvas falhar, cai pro comportamento antigo (só a foto) como fallback de
+  segurança.
+- `criarCardAniversario` agora passa `indice` e `logoGrupo` pros botões de
+  compartilhar (antes passava só o elemento HTML do card, que nem era
+  usado) — necessário pra pintar o card gerado com a mesma cor do tema e a
+  mesma logo de grupo do card exibido na tela.
+
 ---
 
 ## Coisas que EXISTEM mas têm limitação conhecida
@@ -175,5 +201,8 @@ isso e já sei o que já foi feito, sem precisar re-explicar tudo.
   `renderMeusCertificados`, `renderizarCertificadoCanvas`,
   `baixarCertificado`.
 - Perfil: `renderPerfil`, `alternarEdicaoPerfilInterno`.
+- Aniversariantes do mês: `obterAniversariantesDoMes`, `criarCardAniversario`,
+  `renderizarCardAniversarioCanvas`, `compartilharCardAniversario`,
+  `renderAniversariantesMes`.
 - Aparência/topo: `aplicarAparenciaAtual`, `obterFotosTopoSalvas`,
   `aplicarFotosTopo`, `carregarFotosPerfilNaMemoria`.
