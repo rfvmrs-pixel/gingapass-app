@@ -16544,7 +16544,19 @@ function obterAniversariantesDoMes(){
     }
   });
 
-  return pessoas.sort((a, b) => a.dia - b.dia);
+  // Evita o card duplicado quando a mesma pessoa tem mais de uma conta com
+  // aniversário cadastrado (ex: professor que também é aluno/mestrando em
+  // outro núcleo, com uma conta de cada tipo) — mantém só a primeira
+  // ocorrência de cada nome+dia, sem depender de ID de conta.
+  const vistos = new Set();
+  const semDuplicata = pessoas.filter(p => {
+    const chave = normalizarNomeProfessor(p.nome) + '|' + p.dia;
+    if(vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+
+  return semDuplicata.sort((a, b) => a.dia - b.dia);
 }
 
 // Foto/logo do GRUPO DE CAPOEIRA oficial (Capoeira Team, Fundação Capoeira
@@ -16695,12 +16707,12 @@ function criarCardAniversario(pessoa, indice, logoGrupo, destaque){
   btnWhats.type = 'button';
   btnWhats.textContent = '📲 WhatsApp';
   btnWhats.style.cssText = 'flex:1;border:1.5px solid ' + tema.cor + ';background:var(--white);color:' + tema.cor + ';font-size:11.5px;font-weight:600;padding:7px 0;border-radius:100px;cursor:pointer;';
-  btnWhats.onclick = () => compartilharCardAniversario(pessoa, card, 'whatsapp');
+  btnWhats.onclick = () => compartilharCardAniversario(pessoa, indice, logoGrupo, 'whatsapp');
   const btnInsta = document.createElement('button');
   btnInsta.type = 'button';
   btnInsta.textContent = '📷 Instagram';
   btnInsta.style.cssText = 'flex:1;border:1.5px solid ' + tema.cor + ';background:' + tema.cor + ';color:var(--white);font-size:11.5px;font-weight:600;padding:7px 0;border-radius:100px;cursor:pointer;';
-  btnInsta.onclick = () => compartilharCardAniversario(pessoa, card, 'instagram');
+  btnInsta.onclick = () => compartilharCardAniversario(pessoa, indice, logoGrupo, 'instagram');
   acoesShare.appendChild(btnWhats);
   acoesShare.appendChild(btnInsta);
   card.appendChild(acoesShare);
@@ -16708,39 +16720,180 @@ function criarCardAniversario(pessoa, indice, logoGrupo, destaque){
   return card;
 }
 
-// Transforma o card de aniversário (HTML) numa imagem PNG, via SVG
-// <foreignObject> + canvas — não depende de nenhuma biblioteca externa.
-// Se por algum motivo não conseguir gerar a imagem (navegador não suporta,
-// erro de CORS etc.), devolve null e quem chamou cai pro compartilhamento só
-// com texto.
-// Compartilha o aniversário anexando a FOTO DE VERDADE da pessoa (em vez de
-// tentar desenhar o card inteiro num canvas e exportar como imagem — isso
-// falhava em vários navegadores, principalmente Safari do iPhone, que trava
-// a exportação do canvas quando tem fonte do Google Fonts desenhada dentro
-// de um <foreignObject>). Sem foto cadastrada, ou sem suporte a compartilhar
-// arquivo, cai pro compartilhamento só com texto.
-function compartilharCardAniversario(pessoa, cardEl, canal){
-  const textoBase = '🎉 Feliz aniversário, ' + pessoa.nome + '! Hoje é dia de comemorar mais um ano de conquistas, disciplina e alegria na capoeira. Parabéns! 🥋';
+// Desenha o card de aniversário como imagem, num <canvas> "de verdade" com
+// desenho manual (fillRect/drawImage/fillText — nada de SVG+foreignObject).
+// Antes a gente compartilhava só a foto pura da pessoa porque a tentativa
+// original de exportar o card (HTML → SVG <foreignObject> → canvas) travava
+// em vários navegadores, principalmente no Safari do iPhone, quando tinha
+// fonte do Google Fonts desenhada dentro do foreignObject. O certificado
+// (`renderizarCertificadoCanvas`) já resolve isso desenhando tudo direto no
+// canvas com ctx.fillText/drawImage — mesma técnica aqui, comprovada.
+// Chama callback(blob) com o PNG gerado, ou callback(null) se der erro.
+function renderizarCardAniversarioCanvas(pessoa, indice, logoGrupo, callback){
+  const tema = TEMAS_ANIVERSARIO[indice % TEMAS_ANIVERSARIO.length];
+  const LARGURA = 1080, ALTURA = 1350, BANNER_ALTURA = 820;
+  const canvas = document.createElement('canvas');
+  canvas.width = LARGURA;
+  canvas.height = ALTURA;
+  const ctx = canvas.getContext('2d');
+  if(!ctx){ callback(null); return; }
+
   const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
-  let arquivo = null;
-  if(fotoPessoa){
-    try{ arquivo = dataUrlParaArquivo(fotoPessoa, 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.jpg'); } catch(e){ arquivo = null; }
-  }
-  const podeCompartilharArquivo = !!(arquivo && navigator.canShare && navigator.canShare({files: [arquivo]}));
-  if(navigator.share && (podeCompartilharArquivo || !arquivo)){
-    const dadosShare = {title: 'Feliz Aniversário!', text: textoBase};
-    if(podeCompartilharArquivo) dadosShare.files = [arquivo];
-    navigator.share(dadosShare).catch(function(){});
-    return;
-  }
-  if(canal === 'whatsapp'){
-    window.open('https://wa.me/?text=' + encodeURIComponent(textoBase), '_blank');
-  } else {
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(textoBase);
+  const iniciaisTexto = (pessoa.nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+
+  const carregarImagemOpcional = (src) => new Promise((resolve) => {
+    if(!src){ resolve(null); return; }
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
+  const carregarFontes = (typeof document !== 'undefined' && document.fonts && document.fonts.ready)
+    ? Promise.all([
+        document.fonts.load('700 100px Caveat'),
+        document.fonts.load('700 34px Poppins'),
+        document.fonts.load('400 30px Inter'),
+        document.fonts.ready
+      ]).catch(() => null)
+    : Promise.resolve(null);
+
+  Promise.all([carregarImagemOpcional(fotoPessoa), carregarImagemOpcional(logoGrupo), carregarFontes])
+    .then(([fotoImg, logoImg]) => {
+      try{
+        // fundo claro do tema
+        ctx.fillStyle = tema.clara;
+        ctx.fillRect(0, 0, LARGURA, ALTURA);
+
+        // faixa diagonal decorativa no canto, igual ao card em HTML
+        ctx.save();
+        ctx.globalAlpha = 0.16;
+        ctx.fillStyle = tema.cor;
+        ctx.translate(-70, -140);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(0, 0, 360, 360);
+        ctx.restore();
+
+        // banner da foto no topo (object-fit:contain, sem cortar a pessoa)
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, LARGURA, BANNER_ALTURA);
+        ctx.clip();
+        ctx.fillStyle = tema.cor;
+        ctx.fillRect(0, 0, LARGURA, BANNER_ALTURA);
+        if(fotoImg){
+          const escala = Math.min(LARGURA / fotoImg.width, BANNER_ALTURA / fotoImg.height);
+          const w = fotoImg.width * escala, h = fotoImg.height * escala;
+          ctx.drawImage(fotoImg, (LARGURA - w) / 2, (BANNER_ALTURA - h) / 2, w, h);
+        } else {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 220px Poppins, Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(iniciaisTexto, LARGURA / 2, BANNER_ALTURA / 2);
+          ctx.textBaseline = 'alphabetic';
+        }
+        ctx.restore();
+
+        // logo do grupo, círculo discreto no canto superior direito
+        if(logoImg){
+          const r = 58, cx = LARGURA - 90, cy = 90;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          const escalaLogo = Math.max((r * 2) / logoImg.width, (r * 2) / logoImg.height);
+          const wLogo = logoImg.width * escalaLogo, hLogo = logoImg.height * escalaLogo;
+          ctx.drawImage(logoImg, cx - wLogo / 2, cy - hLogo / 2, wLogo, hLogo);
+          ctx.restore();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // texto abaixo do banner
+        const inicioTexto = 70;
+        const larguraTexto = LARGURA - inicioTexto * 2;
+        let y = BANNER_ALTURA + 90;
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = tema.cor;
+        ctx.font = '700 30px Poppins, Arial';
+        ctx.fillText('🎂 FELIZ ANIVERSÁRIO!', inicioTexto, y);
+
+        y += 96;
+        ctx.fillStyle = '#0B1B33';
+        ctx.font = '700 96px Caveat, cursive';
+        ctx.fillText(pessoa.nome + '!', inicioTexto, y);
+
+        y += 66;
+        ctx.fillStyle = '#5B6472';
+        ctx.font = '400 30px Inter, Poppins, Arial';
+        const linhasLegenda = _quebrarTextoCanvas(ctx, 'A equipe celebra com você mais um ano de conquistas, disciplina e alegria!', larguraTexto);
+        linhasLegenda.slice(0, 3).forEach(linha => { ctx.fillText(linha, inicioTexto, y); y += 40; });
+
+        y += 24;
+        ctx.fillStyle = tema.cor;
+        ctx.font = '700 30px Poppins, Arial';
+        ctx.fillText(pessoa.tipo + ' · dia ' + String(pessoa.dia).padStart(2, '0'), inicioTexto, y);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#9AA3AF';
+        ctx.font = '400 24px Inter, Arial';
+        ctx.fillText('GingaWay', LARGURA - inicioTexto, ALTURA - 50);
+
+        canvas.toBlob(function(blob){ callback(blob); }, 'image/png');
+      } catch(e){
+        callback(null);
+      }
+    })
+    .catch(() => callback(null));
+}
+
+// Compartilha o card de aniversário completo (o "flyer" gerado no canvas
+// acima), não só a foto pura da pessoa. Se a geração da imagem falhar por
+// qualquer motivo (navegador sem suporte a canvas, erro ao carregar fonte,
+// etc.), cai pro comportamento antigo de compartilhar só a foto — e, na
+// ausência de foto ou de suporte a compartilhar arquivo, cai pro
+// compartilhamento só com texto.
+function compartilharCardAniversario(pessoa, indice, logoGrupo, canal){
+  const textoBase = '🎉 Feliz aniversário, ' + pessoa.nome + '! Hoje é dia de comemorar mais um ano de conquistas, disciplina e alegria na capoeira. Parabéns! 🥋';
+
+  const compartilharArquivo = (arquivo) => {
+    const podeCompartilharArquivo = !!(arquivo && navigator.canShare && navigator.canShare({files: [arquivo]}));
+    if(navigator.share && (podeCompartilharArquivo || !arquivo)){
+      const dadosShare = {title: 'Feliz Aniversário!', text: textoBase};
+      if(podeCompartilharArquivo) dadosShare.files = [arquivo];
+      navigator.share(dadosShare).catch(function(){});
+      return;
     }
-    alert('Esse navegador não deixa compartilhar direto pro Instagram. Copiei a mensagem — é só colar numa Story ou publicação:\n\n' + textoBase);
-  }
+    if(canal === 'whatsapp'){
+      window.open('https://wa.me/?text=' + encodeURIComponent(textoBase), '_blank');
+    } else {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(textoBase);
+      }
+      alert('Esse navegador não deixa compartilhar direto pro Instagram. Copiei a mensagem — é só colar numa Story ou publicação:\n\n' + textoBase);
+    }
+  };
+
+  renderizarCardAniversarioCanvas(pessoa, indice, logoGrupo, function(blob){
+    let arquivo = null;
+    if(blob){
+      try{ arquivo = new File([blob], 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.png', {type: 'image/png'}); } catch(e){ arquivo = null; }
+    }
+    if(!arquivo){
+      // fallback: se o canvas falhar, volta pra foto pura de antes.
+      const fotoPessoa = lerFotoPerfilLocal('gingapass_perfil_' + pessoa.user + '_foto');
+      if(fotoPessoa){
+        try{ arquivo = dataUrlParaArquivo(fotoPessoa, 'aniversario-' + pessoa.nome.replace(/\s+/g, '-') + '.jpg'); } catch(e){ arquivo = null; }
+      }
+    }
+    compartilharArquivo(arquivo);
+  });
 }
 
 // Preenche os dois lugares onde os aniversariantes do mês aparecem: o card
