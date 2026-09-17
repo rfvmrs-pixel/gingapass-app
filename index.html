@@ -2065,6 +2065,8 @@
         <input class="admin-input" id="novoAlunoInicioAd" type="date">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade</label>
         <input class="admin-input" id="novoAlunoVencimentoAd" type="date">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Valor mensal deste aluno (opcional)</label>
+        <input class="admin-input" id="novoAlunoValorAd" placeholder="Ex: R$ 150,00 — deixe em branco pra usar o valor padrão da rede">
         <div id="alunoAdCamposAcesso">
         <input class="admin-input" id="novoAlunoUserAd" placeholder="Usuário de acesso">
         <input class="admin-input" id="novoAlunoSenhaAd" placeholder="Senha de acesso">
@@ -2121,6 +2123,8 @@
         <input class="admin-input" id="novoAlunoInicio" type="date">
         <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Vencimento da mensalidade</label>
         <input class="admin-input" id="novoAlunoVencimento" type="date">
+        <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">Valor mensal deste aluno (opcional)</label>
+        <input class="admin-input" id="novoAlunoValor" placeholder="Ex: R$ 150,00 — deixe em branco pra usar o valor padrão da rede">
         <select class="admin-input" id="novoAlunoNucleo"><option value="">Selecione o professor primeiro...</option></select>
         <select class="admin-input" id="novoAlunoProfessor" onchange="sincronizarNucleoComProfessorEscolhido(&#39;novoAlunoProfessor&#39;,&#39;novoAlunoNucleo&#39;)"><option value="">Selecione o professor...</option><option value="Mestrando Borracha">Mestrando Borracha</option><option value="Zangado / Grad. India / Grad. Dedé">Zangado / Grad. India / Grad. Dedé</option><option value="Graduado Pelezinho">Graduado Pelezinho</option><option value="Graduado Passaro">Graduado Passaro</option><option value="Grd Malhado">Grd Malhado</option><option value="Instrutor Marreta">Instrutor Marreta</option><option value="Raposa">Raposa</option><option value="Tizil">Tizil</option><option value="Flecha">Flecha</option><option value="Instrutor Lobo">Instrutor Lobo</option><option value="Psyco">Psyco</option><option value="Big big">Big big</option><option value="Mestrando Psico">Mestrando Psico</option><option value="Mestrando Moreno">Mestrando Moreno</option><option value="Grauna">Grauna</option></select>
         <div id="alunoMatrizCamposAcesso">
@@ -11309,6 +11313,7 @@ function criarAcessoAluno(){
   const corda = document.getElementById('novoAlunoCorda').value.trim();
   const inicio = document.getElementById('novoAlunoInicio').value;
   const vencimento = document.getElementById('novoAlunoVencimento').value;
+  const valorIndividual = document.getElementById('novoAlunoValor') ? document.getElementById('novoAlunoValor').value.trim() : '';
   let nucleo = document.getElementById('novoAlunoNucleo').value;
   const professor = document.getElementById('novoAlunoProfessor').value;
   const comAcesso = window._alunoComAcessoMatriz !== false;
@@ -11365,6 +11370,7 @@ function criarAcessoAluno(){
     nivelGraduacao: document.getElementById('novoAlunoNivel') ? document.getElementById('novoAlunoNivel').value : '',
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
+    valorMensalidade: valorIndividual || '',
     desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
     pergunta, resposta: resposta.trim().toLowerCase(),
     semAcesso: !comAcesso
@@ -11398,6 +11404,7 @@ function criarAcessoAluno(){
   document.getElementById('novoAlunoCorda').value = '';
   document.getElementById('novoAlunoInicio').value = '';
   document.getElementById('novoAlunoVencimento').value = '';
+  if(document.getElementById('novoAlunoValor')) document.getElementById('novoAlunoValor').value = '';
   document.getElementById('novoAlunoNucleo').value = '';
   document.getElementById('novoAlunoNucleo').innerHTML = '<option value="">Selecione o professor primeiro...</option>';
   document.getElementById('novoAlunoNucleo').disabled = false;
@@ -20159,6 +20166,7 @@ function criarAcessoAlunoAcademia(){
   const corda = document.getElementById('novoAlunoCordaAd').value.trim();
   const inicio = document.getElementById('novoAlunoInicioAd').value;
   const vencimento = document.getElementById('novoAlunoVencimentoAd').value;
+  const valorIndividualAd = document.getElementById('novoAlunoValorAd') ? document.getElementById('novoAlunoValorAd').value.trim() : '';
   const comAcesso = window._alunoComAcessoAd !== false;
 
   if(!nome){
@@ -20213,6 +20221,7 @@ function criarAcessoAlunoAcademia(){
     nivelGraduacao: document.getElementById('novoAlunoNivelAd') ? document.getElementById('novoAlunoNivelAd').value : '',
     inicioTreinos: inicio || '',
     vencimentoMensalidade: vencimento || '',
+    valorMensalidade: valorIndividualAd || '',
     desde: inicio ? new Date(inicio + 'T00:00:00').getFullYear().toString() : new Date().getFullYear().toString(),
     pergunta, resposta: resposta.trim().toLowerCase(),
     semAcesso: !comAcesso
@@ -20246,6 +20255,7 @@ function criarAcessoAlunoAcademia(){
   document.getElementById('novoAlunoCordaAd').value = '';
   document.getElementById('novoAlunoInicioAd').value = '';
   document.getElementById('novoAlunoVencimentoAd').value = '';
+  if(document.getElementById('novoAlunoValorAd')) document.getElementById('novoAlunoValorAd').value = '';
   document.getElementById('novoAlunoUserAd').value = '';
   document.getElementById('novoAlunoSenhaAd').value = '';
   document.getElementById('novoAlunoPerguntaAd').value = '';
@@ -22050,6 +22060,9 @@ function renderMensalidade(){
     if(minhaConta && minhaConta.vencimentoMensalidade){
       vencimento = new Date(minhaConta.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
     }
+    if(minhaConta && minhaConta.valorMensalidade){
+      valor = minhaConta.valorMensalidade;
+    }
     const atrasoEl = document.getElementById('atrasoAviso');
     if(atrasoEl){
       const dias = diasEmAtrasoReal(minhaConta);
@@ -22318,6 +22331,17 @@ function alterarDataAluno(userAluno, campo, valor){
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
 }
 
+function alterarValorAluno(userAluno, valor){
+  const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
+  const idx = contas.findIndex(c => c.user === userAluno);
+  if(idx < 0) return;
+  contas[idx].valorMensalidade = (valor || '').trim();
+  setDado('gingapass_alunos_contas', JSON.stringify(contas));
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  renderMensalidade();
+}
+
 function registrarPagamentoAluno(userAluno, formaPreenchida, obsPreenchida){
   const contas = JSON.parse(localStorage.getItem('gingapass_alunos_contas') || '[]');
   const idx = contas.findIndex(c => c.user === userAluno);
@@ -22580,8 +22604,21 @@ function renderMensalidadesAlunos(containerId, escopo){
     vencInput.onchange = () => alterarDataAluno(aluno.user, 'vencimentoMensalidade', vencInput.value);
     vencLabel.appendChild(vencInput);
 
+    const valorLabel = document.createElement('label');
+    valorLabel.style.cssText = 'font-size:11px;color:var(--ink-soft);display:flex;align-items:center;gap:4px;';
+    valorLabel.textContent = 'Valor:';
+    const valorInputAluno = document.createElement('input');
+    valorInputAluno.type = 'text';
+    valorInputAluno.className = 'admin-input';
+    valorInputAluno.style.cssText = 'width:110px;margin-bottom:0;padding:4px 6px;font-size:11px;';
+    valorInputAluno.placeholder = 'Padrão da rede';
+    valorInputAluno.value = aluno.valorMensalidade || '';
+    valorInputAluno.onchange = () => alterarValorAluno(aluno.user, valorInputAluno.value);
+    valorLabel.appendChild(valorInputAluno);
+
     datasRow.appendChild(inicioLabel);
     datasRow.appendChild(vencLabel);
+    datasRow.appendChild(valorLabel);
     wrap.appendChild(datasRow);
 
     if(!aluno.vencimentoMensalidade){
