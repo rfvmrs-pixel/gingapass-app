@@ -1722,6 +1722,14 @@
       <button class="btn" onclick="publicarContato()">Salvar contato</button>
     </div>
 
+    <p class="section-title">Mensalidade dos seus alunos</p>
+    <div class="card">
+      <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Valor e vencimento padrão pra todos os SEUS alunos (vale só pra quem não tiver um valor ou vencimento individual definido na ficha dele, em "Gerenciar alunos"). Pode ser um dia fixo, tipo "Todo dia 10" ou "Todo dia 15".</p>
+      <input class="admin-input" id="admMensalidadeValor" placeholder="Valor padrão (ex: R$ 120,00)">
+      <input class="admin-input" id="admMensalidadeVencimento" placeholder="Vencimento padrão (ex: Todo dia 10)">
+      <button class="btn" type="button" onclick="publicarMensalidadeProfessor()">Salvar mensalidade padrão</button>
+    </div>
+
     <p class="section-title">Forma de pagamento</p>
     <div class="card">
       <p style="font-size:12px;color:var(--ink-soft);margin:0 0 8px;">Cole sua chave Pix ou um link de cobrança (Mercado Pago, PagSeguro, etc). Fica em branco até você preencher — os alunos só veem o botão de pagamento depois que isso for salvo.</p>
@@ -8305,6 +8313,13 @@ function aplicarPermissoes(){
       if(referencia){
         if(pixInput && !pixInput.value && referencia.pix) pixInput.value = referencia.pix;
         if(cartaoInput && !cartaoInput.value && referencia.cartao) cartaoInput.value = referencia.cartao;
+      }
+      const meuPadraoMensalidade = obterMensalidadeProfessorPara(nomeProfessor);
+      const admMensValorInput = document.getElementById('admMensalidadeValor');
+      const admMensVencInput = document.getElementById('admMensalidadeVencimento');
+      if(meuPadraoMensalidade){
+        if(admMensValorInput && !admMensValorInput.value && meuPadraoMensalidade.valor) admMensValorInput.value = meuPadraoMensalidade.valor;
+        if(admMensVencInput && !admMensVencInput.value && meuPadraoMensalidade.vencimento) admMensVencInput.value = meuPadraoMensalidade.vencimento;
       }
     }
   }
@@ -22057,6 +22072,15 @@ function renderMensalidade(){
   if((currentRole === 'aluno' || currentRole === 'academia') && currentUser){
     const minhaConta = resolverMinhaContaComoAluno();
     if(minhaConta) status = statusMensalidadeReal(minhaConta);
+
+    // Prioridade: 1) valor/vencimento individual do aluno, 2) padrão do professor dele, 3) padrão da rede.
+    if(minhaConta && minhaConta.professor){
+      const padraoProfessor = obterMensalidadeProfessorPara(minhaConta.professor);
+      if(padraoProfessor){
+        if(padraoProfessor.valor) valor = padraoProfessor.valor;
+        if(padraoProfessor.vencimento) vencimento = padraoProfessor.vencimento;
+      }
+    }
     if(minhaConta && minhaConta.vencimentoMensalidade){
       vencimento = new Date(minhaConta.vencimentoMensalidade + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
     }
@@ -22329,6 +22353,48 @@ function alterarDataAluno(userAluno, campo, valor){
   setDado('gingapass_alunos_contas', JSON.stringify(contas));
   renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
   renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+}
+
+function obterMensalidadesProfessores(){
+  return JSON.parse(localStorage.getItem('gingapass_mensalidade_professores') || '{}');
+}
+
+function salvarMensalidadeProfessor(nomeProfessor, valor, vencimento){
+  const chave = normalizarNomeProfessor(nomeProfessor);
+  if(!chave) return false;
+  const mapa = obterMensalidadesProfessores();
+  mapa[chave] = {nomeOriginal: nomeProfessor, valor: valor || '', vencimento: vencimento || ''};
+  setDado('gingapass_mensalidade_professores', JSON.stringify(mapa));
+  return true;
+}
+
+function obterMensalidadeProfessorPara(nomeProfessorAluno){
+  if(!nomeProfessorAluno) return null;
+  const mapa = obterMensalidadesProfessores();
+  const chaves = Object.keys(mapa);
+  for(let i = 0; i < chaves.length; i++){
+    if(mesmoProfessor(mapa[chaves[i]].nomeOriginal || chaves[i], nomeProfessorAluno)) return mapa[chaves[i]];
+  }
+  return null;
+}
+
+function publicarMensalidadeProfessor(){
+  const valor = document.getElementById('admMensalidadeValor').value.trim();
+  const vencimento = document.getElementById('admMensalidadeVencimento').value.trim();
+  if(!valor && !vencimento){
+    alert('Preencha o valor e/ou o vencimento padrão dos seus alunos.');
+    return;
+  }
+  const nomeProfessor = obterMeuNomeProfessor();
+  if(!nomeProfessor){
+    alert('Defina seu nome de professor em "Configurações gerais" (ou no seu cadastro de academia) antes de salvar.');
+    return;
+  }
+  salvarMensalidadeProfessor(nomeProfessor, valor, vencimento);
+  renderMensalidadesAlunos('mensalidadesAlunosAdmin', 'academia');
+  renderMensalidadesAlunos('mensalidadesAlunosMatriz', 'matriz');
+  renderMensalidade();
+  alert('Mensalidade padrão salva! Vale pra todos os seus alunos que não tiverem um valor ou vencimento individual definido.');
 }
 
 function alterarValorAluno(userAluno, valor){
@@ -22611,7 +22677,7 @@ function renderMensalidadesAlunos(containerId, escopo){
     valorInputAluno.type = 'text';
     valorInputAluno.className = 'admin-input';
     valorInputAluno.style.cssText = 'width:110px;margin-bottom:0;padding:4px 6px;font-size:11px;';
-    valorInputAluno.placeholder = 'Padrão da rede';
+    valorInputAluno.placeholder = 'Valor padrão';
     valorInputAluno.value = aluno.valorMensalidade || '';
     valorInputAluno.onchange = () => alterarValorAluno(aluno.user, valorInputAluno.value);
     valorLabel.appendChild(valorInputAluno);
