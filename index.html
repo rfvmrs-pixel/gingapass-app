@@ -8150,6 +8150,14 @@ function copiarLinkDemo(){
 window._errosRenderizacao = [];
 
 window.addEventListener('error', function(event){
+  // "Script error." sem arquivo é o que o navegador mostra quando a falha é
+  // num script de fora (extensão, bloqueador, navegador embutido do Teams/
+  // Instagram, etc.): não traz nenhuma informação e não é erro do app.
+  // Vai só pro console, sem assustar o usuário com a faixa vermelha.
+  if(event.message === 'Script error.' && !event.filename){
+    console.warn('Erro de script externo (sem detalhes disponíveis).');
+    return;
+  }
   // Nome do arquivo ajuda a saber se o erro é do app ou de uma biblioteca
   // externa (Firebase, mapa, QR code).
   let origem = '';
@@ -8181,7 +8189,7 @@ function mostrarBannerErros(){
     document.body.appendChild(banner);
   }
   const contagem = window._contagemErros || {};
-  banner.innerHTML = '<b>Erros encontrados (manda print disso) · v1109b</b><br>' + window._errosRenderizacao.map((m, i) => (i+1) + '. ' + escapeHtml(m) + (contagem[m] > 1 ? ' ×' + contagem[m] : '')).join('<br>');
+  banner.innerHTML = '<b>Erros encontrados (manda print disso) · v1109c</b><br>' + window._errosRenderizacao.map((m, i) => (i+1) + '. ' + escapeHtml(m) + (contagem[m] > 1 ? ' ×' + contagem[m] : '')).join('<br>');
 }
 
 function aplicarPermissoes(){
