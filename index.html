@@ -511,7 +511,10 @@
     background:rgba(255,255,255,0.08);
   }
 
+  /* Toque mais rápido no celular (sem a espera de duplo toque) */
+  a, button, input, select, textarea, label, .tab{ touch-action:manipulation; }
   .admin-input{
+    min-height:44px;
     width:100%;
     margin-bottom:8px;
     padding:10px 12px;
@@ -777,8 +780,8 @@
 })();
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -3080,8 +3083,8 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
@@ -3096,6 +3099,9 @@ let dbCollection = null;
 let muralFotosCollection = null;
 let comprovantesCollection = null;
 let localizacoesCollection = null;
+// Localização ao vivo desligada até o app ter login seguro no servidor: hoje
+// a coleção de localizações pode ser lida por qualquer pessoa na internet.
+const LOCALIZACAO_AO_VIVO_ATIVA = false;
 let presencaCollection = null;
 let videosNuvemCollection = null;
 let lojaProdutosCollection = null;
@@ -4456,6 +4462,15 @@ function iniciarFirebase(tentativas){
   try{
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
+    // Fila offline: o que for gravado sem internet fica guardado no aparelho
+    // e o Firebase reenvia sozinho quando a conexão volta (antes, ficava só
+    // "salvo neste aparelho" e podia se perder). Também deixa a 2ª abertura
+    // mais rápida, porque os dados já lidos ficam em cache.
+    try{
+      db.enablePersistence({synchronizeTabs: true}).catch(function(e){
+        console.warn('Cache offline do Firebase indisponível neste navegador:', e && e.code);
+      });
+    } catch(e){}
     dbCollection = db.collection('gingapass');
     muralFotosCollection = db.collection('gingapass_mural_fotos');
     comprovantesCollection = db.collection('gingapass_comprovantes');
@@ -4641,7 +4656,7 @@ function iniciarFirebase(tentativas){
       console.error('Erro ao sincronizar arte personalizada de certificados:', e);
     });
 
-    muralFotosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
+    muralFotosCollection.orderBy('data', 'desc').limit(120).onSnapshot(function(snapshot){
       const fotos = [];
       snapshot.forEach(function(doc){ fotos.push(doc.data()); });
       salvarFotosLocais(fotos);
@@ -4658,7 +4673,7 @@ function iniciarFirebase(tentativas){
     // na nuvem (não um array gigante numa chave só) — assim uma foto de produto
     // um pouco mais pesada não estoura o limite de tamanho de documento e trava a
     // sincronização de todos os outros produtos junto.
-    lojaProdutosCollection.orderBy('data', 'desc').limit(300).onSnapshot(function(snapshot){
+    lojaProdutosCollection.orderBy('data', 'desc').limit(100).onSnapshot(function(snapshot){
       const produtos = [];
       snapshot.forEach(function(doc){ produtos.push(doc.data()); });
       window._lojaProdutosCache = produtos;
@@ -4670,7 +4685,7 @@ function iniciarFirebase(tentativas){
       console.error('Erro ao sincronizar produtos da loja:', e);
     });
 
-    socialPostsCollection.orderBy('data', 'desc').limit(200).onSnapshot(function(snapshot){
+    socialPostsCollection.orderBy('data', 'desc').limit(80).onSnapshot(function(snapshot){
       const posts = [];
       snapshot.forEach(function(doc){ posts.push(doc.data()); });
       window._socialPostsCache = posts;
@@ -4732,7 +4747,7 @@ function iniciarFirebase(tentativas){
       console.error('Erro ao sincronizar comprovantes de pagamento:', e);
     });
 
-    localizacoesCollection.onSnapshot(function(snapshot){
+    if(LOCALIZACAO_AO_VIVO_ATIVA) localizacoesCollection.onSnapshot(function(snapshot){
       const localizacoes = [];
       snapshot.forEach(function(doc){ localizacoes.push(doc.data()); });
       window._localizacoesCache = localizacoes; // só em memória: é dado efêmero, não precisa pesar no localStorage
@@ -5684,7 +5699,7 @@ function popularProfessoresCheckinRapido(tentativas){
   const rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
 
   if(professores.length > 0){
-    select.innerHTML = '<option value="">Selecione o professor...</option>' + professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+    select.innerHTML = '<option value="">Selecione o professor...</option>' + professores.map(p => '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>').join('');
     return;
   }
 
@@ -7965,6 +7980,7 @@ function entrar(role){
   registrarAcessoConta(role, currentUser);
   aplicarPermissoes();
   iniciarPresencaOnline();
+  if(!LOCALIZACAO_AO_VIVO_ATIVA) tentarChamar(function(){ apagarLocalizacaoNaNuvem(identificadorUsuarioAtual()); });
   if(role === 'matriz') tentarChamar(function(){ verificarAvisoAlteracaoMaster(); });
   if(role === 'pai'){
     const homeBtn = document.querySelector('.tab[data-target="home"]');
@@ -8617,7 +8633,7 @@ function renderMeusProfessoresVinculados(){
     row.style.flexWrap = 'wrap';
     const span = document.createElement('span');
     const ehDaAula = c.daAula !== false;
-    span.innerHTML = c.nome + ' (usuário: ' + c.user + ')<br><span style="font-size:10.5px;color:' + (ehDaAula ? '#2E8B57' : 'var(--ink-soft)') + ';">' + (ehDaAula ? '✅ Dá aula própria' : '⬜ Não dá aula própria') + '</span>';
+    span.innerHTML = escapeHtml(c.nome) + ' (usuário: ' + escapeHtml(c.user) + ')<br><span style="font-size:10.5px;color:' + (ehDaAula ? '#2E8B57' : 'var(--ink-soft)') + ';">' + (ehDaAula ? '✅ Dá aula própria' : '⬜ Não dá aula própria') + '</span>';
     const acoes = document.createElement('div');
     acoes.style.cssText = 'display:flex;gap:8px;align-items:center;flex-shrink:0;';
     const daAulaBtn = document.createElement('button');
@@ -8735,7 +8751,7 @@ function popularSeletorGrupoParceiro(selectId){
   } else {
     sel.disabled = false;
     sel.innerHTML = '<option value="">Selecione o grupo...</option>' +
-      grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+      grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
     if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
   }
 }
@@ -8750,7 +8766,7 @@ function popularSeletorGrupoDoProfessorPrincipal(){
   const grupos = listarTodosGruposParceirosCadastrados();
   const atual = sel.value;
   sel.innerHTML = '<option value="">Sem grupo / digitar o mestre manualmente</option>' +
-    grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+    grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
   if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
 }
 
@@ -8922,7 +8938,7 @@ function renderLiberacaoEmMassa(){
     const grupos = listarTodosGruposParceirosCadastrados();
     const atual = grupoSel.value;
     grupoSel.innerHTML = '<option value="">Selecione o grupo...</option>' +
-      grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+      grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
     if(atual && grupoSel.querySelector('option[value="' + atual + '"]')) grupoSel.value = atual;
   }
   const semAcesso = obterNucleosSemAcesso();
@@ -9032,7 +9048,7 @@ function liberarAcessoEmMassa(){
     const resultado = document.getElementById('liberacaoEmMassaResultado');
     if(resultado){
       resultado.innerHTML = '<p class="card-label" style="margin:0 0 8px;">Acessos gerados — copie e envie pra cada professor:</p>' +
-        selecionadas.map(item => '<div style="padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:12.5px;"><b>' + item.nucleo + '</b>' + (item.professor ? ' (' + item.professor + ')' : '') + '<br>Usuário: <b>' + item.user + '</b> · Senha: <b>' + item.senha + '</b></div>').join('');
+        selecionadas.map(item => '<div style="padding:6px 0;border-bottom:1px solid #EFE6D2;font-size:12.5px;"><b>' + escapeHtml(item.nucleo) + '</b>' + (item.professor ? ' (' + escapeHtml(item.professor) + ')' : '') + '<br>Usuário: <b>' + escapeHtml(item.user) + '</b> · Senha: <b>' + item.senha + '</b></div>').join('');
     }
     if(!ok){
       alert('Os acessos foram salvos neste aparelho, mas NÃO sincronizaram com a nuvem agora (conexão instável) — os professores não vão conseguir entrar em outros aparelhos até sincronizar. Verifique a conexão e, se precisar, refaça essa mesma liberação.');
@@ -9801,7 +9817,7 @@ function renderHistoricoCompletoAluno(user, containerId, permitirEdicao){
   html += '<p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;">🎉 Eventos que participou (' + eventosParticipados.length + ')</p>';
   html += eventosParticipados.length === 0
     ? '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Nenhum evento com presença confirmada ainda.</p>'
-    : eventosParticipados.map(ev => '<p style="font-size:12.5px;color:var(--ink);margin:3px 0;">• ' + ev.titulo + ' — ' + (ev.data || '') + (ev.local ? ' · ' + ev.local : '') + '</p>').join('');
+    : eventosParticipados.map(ev => '<p style="font-size:12.5px;color:var(--ink);margin:3px 0;">• ' + escapeHtml(ev.titulo) + ' — ' + escapeHtml((ev.data || '')) + (ev.local ? ' · ' + escapeHtml(ev.local) : '') + '</p>').join('');
   html += '</div>';
 
   html += '<div class="card" style="margin-bottom:10px;">';
@@ -10760,7 +10776,7 @@ function renderVincularAlunoGrupoPerfil(){
     : 'Escolha quem do grupo passa a pagar mensalidade como seu aluno (fundadores do grupo não aparecem aqui).';
   const atual = select.value;
   select.innerHTML = '<option value="">Selecione quem vincular...</option>' +
-    candidatos.map(c => '<option value="' + c.user + '">' + c.nome + '</option>').join('');
+    candidatos.map(c => '<option value="' + escapeHtml(c.user) + '">' + escapeHtml(c.nome) + '</option>').join('');
   if(atual && select.querySelector('option[value="' + atual + '"]')) select.value = atual;
 }
 
@@ -11022,7 +11038,7 @@ function renderVinculacaoGrupoEmMassa(){
   const grupos = listarTodosGruposParceirosCadastrados();
   const atual = selectGrupo.value;
   selectGrupo.innerHTML = '<option value="">Selecione o grupo...</option>' +
-    grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+    grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
   if(atual && selectGrupo.querySelector('option[value="' + atual + '"]')) selectGrupo.value = atual;
 
   const contas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]')
@@ -11585,7 +11601,7 @@ function alternarEdicaoPerfilInterno(){
       const academiasContas = JSON.parse(localStorage.getItem('gingapass_academias_contas') || '[]');
       const minhaConta = academiasContas.find(c => c.user === currentUser);
       grupoSel.innerHTML = '<option value="">Sem grupo cadastrado</option>' +
-        grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+        grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
       if(minhaConta && minhaConta.grupoParceiroId && grupoSel.querySelector('option[value="' + minhaConta.grupoParceiroId + '"]')){
         grupoSel.value = minhaConta.grupoParceiroId;
         popularMestresDoGrupoSelecionado('perfilGrupoInput', 'perfilGrupoMestreInput');
@@ -11888,6 +11904,7 @@ function iniciarSlideshowMural(){
 
   if(fotos.length > 1){
     _muralSlideshowInterval = setInterval(function(){
+      if(document.hidden) return;
       _muralSlideshowIndex = (_muralSlideshowIndex + 1) % fotos.length;
       img.style.opacity = '0';
       setTimeout(function(){
@@ -12547,7 +12564,7 @@ function popularSelectAcademiasEvento(sufixo){
   let rede = JSON.parse(localStorage.getItem('gingapass_rede_academias') || '[]');
   rede = rede.filter(a => estaNoMeuGrupo(obterGrupoIdPorNomeProfessor(a.professor || a.nome)));
   sel.innerHTML = '<option value="">Selecione uma academia (opcional)...</option>' +
-    rede.map(a => '<option value="' + a.nome.replace(/"/g, '&quot;') + '">' + a.nome + (a.endereco ? ' — ' + a.endereco : '') + '</option>').join('');
+    rede.map(a => '<option value="' + a.nome.replace(/"/g, '&quot;') + '">' + escapeHtml(a.nome) + (a.endereco ? ' — ' + escapeHtml(a.endereco) : '') + '</option>').join('');
   if(valorAtual && sel.querySelector('option[value="' + valorAtual.replace(/"/g, '&quot;') + '"]')) sel.value = valorAtual;
 }
 
@@ -14828,6 +14845,7 @@ function iniciarPresencaOnline(){
   _presencaTimer = setInterval(enviarHeartbeatPresenca, PRESENCA_INTERVALO_MS);
   document.addEventListener('visibilitychange', _aoMudarVisibilidadePresenca);
   _presencaUiTimer = setInterval(function(){
+    if(document.hidden) return;
     if(typeof renderListaOnlineAgora === 'function') renderListaOnlineAgora();
     if(typeof renderSeletorAlunosChat === 'function') renderSeletorAlunosChat();
   }, 20000);
@@ -14981,6 +14999,10 @@ function alternarCompartilharLocalizacao(){
 }
 
 function iniciarCompartilharLocalizacao(){
+  if(!LOCALIZACAO_AO_VIVO_ATIVA){
+    alert('O compartilhamento de localização está temporariamente desativado enquanto reforçamos a privacidade do app.');
+    return;
+  }
   if(!navigator.geolocation){
     alert('Seu navegador não suporta localização.');
     return;
@@ -15151,6 +15173,7 @@ function alternarMapaLocalizacao(autorId){
 }
 
 setInterval(function(){
+  if(!LOCALIZACAO_AO_VIVO_ATIVA || document.hidden) return;
   if(typeof currentRole !== 'undefined' && currentRole && typeof renderLocalizacoesCompartilhadas === 'function'){
     renderLocalizacoesCompartilhadas();
   }
@@ -17034,7 +17057,7 @@ function renderFotosFeed(grupoIdForcado){
 
   if(_feedAutoTimer){ clearInterval(_feedAutoTimer); _feedAutoTimer = null; }
   if(fotos.length > 1){
-    _feedAutoTimer = setInterval(() => navegarFeedFotos(1), 10000);
+    _feedAutoTimer = setInterval(() => { if(!document.hidden) navegarFeedFotos(1); }, 10000);
   }
 
   const videos = lerVideosLocais()
@@ -17066,6 +17089,7 @@ function renderFotosFeed(grupoIdForcado){
     videoEl.src = video.url || video.src;
     videoEl.controls = true;
     videoEl.playsInline = true;
+    videoEl.preload = 'metadata';
     videoEl.style.cssText = 'width:100%;border-radius:12px;display:block;background:#000;';
     card.appendChild(videoEl);
 
@@ -18225,7 +18249,7 @@ function popularSelectGrupoBuscaSocial(){
   const grupos = listarTodosGruposParceirosCadastrados();
   const atual = sel.value;
   sel.innerHTML = '<option value="">Selecione um grupo...</option>' +
-    grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+    grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
   if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
 }
 
@@ -18367,7 +18391,7 @@ function renderPreferenciasSilencioSocial(){
   } else {
     if(gruposMutados.length > 0){
       html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 4px;font-weight:600;">Grupos silenciados</p>';
-      html += gruposMutados.map(g => '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:12.5px;color:var(--ink);">' + g.nome + '</span><button type="button" onclick="alternarSilenciarGrupoSocial(&quot;' + g.id + '&quot;, &quot;' + g.nome.replace(/"/g, '&quot;') + '&quot;)" style="border:none;background:none;color:#C22C75;font-size:11px;cursor:pointer;">Reativar</button></div>').join('');
+      html += gruposMutados.map(g => '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;"><span style="font-size:12.5px;color:var(--ink);">' + escapeHtml(g.nome) + '</span><button type="button" onclick="alternarSilenciarGrupoSocial(&quot;' + g.id + '&quot;, &quot;' + g.nome.replace(/"/g, '&quot;') + '&quot;)" style="border:none;background:none;color:#C22C75;font-size:11px;cursor:pointer;">Reativar</button></div>').join('');
     }
     if((mute.pessoas || []).length > 0){
       html += '<p style="font-size:11px;color:var(--ink-soft);margin:8px 0 4px;font-weight:600;">Pessoas silenciadas</p>';
@@ -18469,7 +18493,7 @@ function popularSelectEventoSocial(){
   const eventos = JSON.parse(localStorage.getItem('gingapass_eventos') || '[]').filter(ev => !eventoJaPassou(ev));
   const atual = sel.value;
   sel.innerHTML = '<option value="">Nenhum evento</option>' +
-    eventos.map(ev => '<option value="' + ev.codigoCheckin + '">' + ev.titulo + ' — ' + ev.data + '</option>').join('');
+    eventos.map(ev => '<option value="' + ev.codigoCheckin + '">' + escapeHtml(ev.titulo) + ' — ' + escapeHtml(ev.data) + '</option>').join('');
   if(atual && sel.querySelector('option[value="' + atual + '"]')) sel.value = atual;
 }
 
@@ -18755,7 +18779,7 @@ function iniciarSlideshowSocial(){
   const atualizarLegenda = (post) => {
     if(!legenda) return;
     const totalComentarios = (post.comentarios || []).length;
-    let html = '<b>' + ((post.autorHandle || '') + (post.autorNome ? ' · ' + post.autorNome : '')) + '</b>';
+    let html = '<b>' + escapeHtml((post.autorHandle || '') + (post.autorNome ? ' · ' + post.autorNome : '')) + '</b>';
     if(totalComentarios > 0){
       html += '<br><span style="font-weight:400;opacity:0.9;">💬 ' + totalComentarios + (totalComentarios === 1 ? ' comentário' : ' comentários') + '</span>';
     }
@@ -18768,6 +18792,7 @@ function iniciarSlideshowSocial(){
 
   if(posts.length > 1){
     _socialSlideshowInterval = setInterval(function(){
+      if(document.hidden) return;
       _socialSlideshowIndex = (_socialSlideshowIndex + 1) % posts.length;
       img.style.opacity = '0';
       setTimeout(function(){
@@ -18819,7 +18844,7 @@ function renderAtividadesHomeSocial(){
     if(c.tipo === 'desafio'){
       const d = c.item;
       return '<div class="_atividadeHomeRow" data-idx="' + i + '" data-kind="desafio" style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F1E7F7;cursor:pointer;">' +
-        '<span style="font-size:15px;flex-shrink:0;">🏆</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">Desafio: ' + d.titulo + '</b>' +
+        '<span style="font-size:15px;flex-shrink:0;">🏆</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">Desafio: ' + escapeHtml(d.titulo) + '</b>' +
         '<p style="font-size:10.5px;color:var(--ink-soft);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Por ' + (d.criadorHandle || d.criadorNome) + '</p></div></div>';
     }
     const p = c.item;
@@ -18827,7 +18852,7 @@ function renderAtividadesHomeSocial(){
     const snippet = p.texto ? (p.texto.length > 60 ? p.texto.slice(0, 60) + '…' : p.texto) : (p.tipo === 'foto' ? 'publicou uma foto' : 'publicou um vídeo');
     const comentCount = (p.comentarios || []).length;
     return '<div class="_atividadeHomeRow" data-idx="' + i + '" data-kind="post" style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F1E7F7;cursor:pointer;">' +
-      '<span style="font-size:15px;flex-shrink:0;">' + icone + '</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">' + (p.autorHandle || p.autorNome) + '</b>' +
+      '<span style="font-size:15px;flex-shrink:0;">' + icone + '</span><div style="min-width:0;flex:1;"><b style="font-size:12px;color:var(--navy-900);">' + escapeHtml(p.autorHandle || p.autorNome) + '</b>' +
       '<p style="font-size:11px;color:var(--ink);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + snippet + (comentCount > 0 ? ' · 💬 ' + comentCount : '') + '</p></div></div>';
   }).join('');
 
@@ -18896,6 +18921,7 @@ function criarCardPostSocial(post, meuId){
     videoEl.src = post.videoUrl;
     videoEl.controls = true;
     videoEl.playsInline = true;
+    videoEl.preload = 'metadata';
     videoEl.style.cssText = 'width:100%;border-radius:12px;display:block;background:#000;';
     card.appendChild(videoEl);
   }
@@ -18928,7 +18954,7 @@ function criarCardPostSocial(post, meuId){
       const eventoCard = document.createElement('div');
       eventoCard.className = 'social-evento-card';
       eventoCard.style.cursor = 'pointer';
-      eventoCard.innerHTML = '<span style="font-size:20px;">🎉</span><div style="flex:1;min-width:0;"><b style="font-size:12.5px;color:var(--navy-900);display:block;">' + ev.titulo + '</b><span style="font-size:11px;color:var(--ink-soft);">' + ev.data + (ev.local ? ' · ' + ev.local : '') + '</span></div>';
+      eventoCard.innerHTML = '<span style="font-size:20px;">🎉</span><div style="flex:1;min-width:0;"><b style="font-size:12.5px;color:var(--navy-900);display:block;">' + escapeHtml(ev.titulo) + '</b><span style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(ev.data) + (ev.local ? ' · ' + escapeHtml(ev.local) : '') + '</span></div>';
       eventoCard.onclick = () => { selecionarMenuMais('eventos', null); };
       card.appendChild(eventoCard);
     }
@@ -19252,7 +19278,7 @@ function renderPerfilSocialAberto(){
         const meuParticipante = (d.participantes || []).find(p => p.chaveConta === chaveConta);
         const pts = meuParticipante ? calcularPontosParticipanteDesafio(meuParticipante, d) : 0;
         const papel = d.criadorChave === chaveConta ? 'Criou' : 'Participou';
-        linha.innerHTML = '<b style="font-size:12.5px;color:var(--navy-900);">' + d.titulo + '</b><p style="font-size:11px;color:var(--ink-soft);margin:4px 0 0;">' + papel + (meuParticipante ? ' · ' + pts + ' pts' : '') + (desafioEncerrado(d) ? ' · encerrado' : ' · em andamento') + '</p>';
+        linha.innerHTML = '<b style="font-size:12.5px;color:var(--navy-900);">' + escapeHtml(d.titulo) + '</b><p style="font-size:11px;color:var(--ink-soft);margin:4px 0 0;">' + papel + (meuParticipante ? ' · ' + pts + ' pts' : '') + (desafioEncerrado(d) ? ' · encerrado' : ' · em andamento') + '</p>';
         boxDesafios.appendChild(linha);
       });
     }
@@ -19272,7 +19298,7 @@ function alternarPublicoDesafio(){
     if(selGrupo && selGrupo.options.length <= 1){
       const grupos = listarTodosGruposParceirosCadastrados();
       selGrupo.innerHTML = '<option value="">Selecione o grupo...</option>' +
-        grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+        grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
     }
   }
   if(valor === 'pessoas') tentarChamar(function(){ popularListaPessoasDesafio(); });
@@ -19303,7 +19329,7 @@ function popularListaPessoasDesafio(){
   if(filtroSel && filtroSel.options.length <= 1){
     const grupos = listarTodosGruposParceirosCadastrados();
     filtroSel.innerHTML = '<option value="">Filtrar por grupo (opcional)...</option>' +
-      grupos.map(g => '<option value="' + g.id + '">' + g.nome + '</option>').join('');
+      grupos.map(g => '<option value="' + g.id + '">' + escapeHtml(g.nome) + '</option>').join('');
   }
   const grupoFiltro = filtroSel ? filtroSel.value : '';
   const minhaChave = identificadorUsuarioAtual();
@@ -19620,9 +19646,9 @@ function _criarCardDesafioAtivo(d){
   const aindaNaoComecou = !desafioJaComecou(d);
 
   const publicoLabel = d.publico === 'todos' ? 'Todo mundo' : (d.publico === 'grupo' ? ('Grupo: ' + (d.grupoNome || '')) : 'Convidados');
-  let html = '<div class="card-label">🏆 ' + d.titulo + '</div>';
+  let html = '<div class="card-label">🏆 ' + escapeHtml(d.titulo) + '</div>';
   html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 6px;cursor:pointer;" id="_criadorDesafio_' + d.id + '">Por ' + (d.criadorHandle || d.criadorNome) + ' · ' + publicoLabel + '</p>';
-  if(d.descricao) html += '<p style="font-size:12.5px;color:var(--ink);margin:0 0 8px;white-space:pre-wrap;">' + d.descricao + '</p>';
+  if(d.descricao) html += '<p style="font-size:12.5px;color:var(--ink);margin:0 0 8px;white-space:pre-wrap;">' + escapeHtml(d.descricao) + '</p>';
   html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">📅 ' + d.dataInicio + ' até ' + d.dataFim + (aindaNaoComecou ? ' · ainda não começou' : '') + '</p>';
   html += '<p style="font-size:12px;color:var(--navy-900);margin:0 0 8px;"><b>' + participantes.length + '</b> ' + (participantes.length === 1 ? 'participante' : 'participantes') + '</p>';
   card.innerHTML = html;
@@ -19832,7 +19858,7 @@ function renderDesafiosSocial(){
         const participantes = (d.participantes || []).slice().sort((a, b) => calcularPontosParticipanteDesafio(b, d) - calcularPontosParticipanteDesafio(a, d));
         const card = document.createElement('div');
         card.className = 'social-card';
-        let html = '<div class="card-label">🏁 ' + d.titulo + '</div>';
+        let html = '<div class="card-label">🏁 ' + escapeHtml(d.titulo) + '</div>';
         html += '<p style="font-size:11px;color:var(--ink-soft);margin:0 0 8px;">Encerrado em ' + d.dataFim + ' · ' + participantes.length + (participantes.length === 1 ? ' participante' : ' participantes') + '</p>';
         const vencedorEnquete = _vencedorEnqueteDesafio(d);
         if(vencedorEnquete){
@@ -19844,7 +19870,7 @@ function renderDesafiosSocial(){
         if(participantes.length === 0){
           html += '<p style="font-size:12px;color:var(--ink-soft);margin:0;">Ninguém participou desse desafio.</p>';
         } else {
-          html += participantes.map(p => '<p style="font-size:12px;color:var(--ink);margin:2px 0;">' + p.nome + ' — <b>' + calcularPontosParticipanteDesafio(p, d) + ' pts</b></p>').join('');
+          html += participantes.map(p => '<p style="font-size:12px;color:var(--ink);margin:2px 0;">' + escapeHtml(p.nome) + ' — <b>' + calcularPontosParticipanteDesafio(p, d) + ' pts</b></p>').join('');
         }
         card.innerHTML = html;
         boxMural.appendChild(card);
@@ -20655,7 +20681,7 @@ function renderAlunos(){
         : c.tipoMensalidade === 'projeto'
         ? '<span style="display:inline-block;background:#D6E9F7;color:#1F5C8B;font-weight:700;font-size:11px;padding:3px 8px;border-radius:100px;margin-right:8px;">📋 PROJETO</span>'
         : '') +
-      '<span style="' + (atrasado ? 'color:#8B1E0F;font-weight:700;' : '') + '">' + c.nome + '</span>' +
+      '<span style="' + (atrasado ? 'color:#8B1E0F;font-weight:700;' : '') + '">' + escapeHtml(c.nome) + '</span>' +
       (c.semAcesso ? ' (sem acesso ao app)' : ' (usuário: ' + c.user + ')');
 
 
@@ -21061,7 +21087,7 @@ function renderVisitanteCheckin(idsMeusAlunos, todasContas, registro, sufixo){
   selectProf.className = 'admin-input';
   selectProf.id = 'checkinVisitanteProfessor' + sufixo;
   selectProf.innerHTML = '<option value="">Selecione o professor do visitante...</option>' +
-    professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+    professores.map(p => '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>').join('');
   selectProf.onchange = () => atualizarAlunosVisitantePorProfessor(sufixo);
   box.appendChild(selectProf);
 
@@ -24097,7 +24123,7 @@ function populaSelectsNucleoProfessor(){
     if(!sel) return;
     const atual = sel.value;
     sel.innerHTML = '<option value="">Selecione o professor...</option>' +
-      professores.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+      professores.map(p => '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>').join('');
     if(atual) sel.value = atual;
   });
 
@@ -24759,7 +24785,7 @@ function _popularMarcadoresAcademiasMapa(layerGroup, rede){
       const textoWhats = a.nome + ' — ' + a.endereco + (local ? ' (' + local + ')' : '') +
         '\nComo chegar: https://www.google.com/maps/dir/?api=1&destination=' + geo.lat + ',' + geo.lon;
       const linkWhats = 'https://wa.me/?text=' + encodeURIComponent(textoWhats);
-      marker.bindPopup('<b>' + a.nome + '</b>' + (local ? '<br>' + local : '') +
+      marker.bindPopup('<b>' + escapeHtml(a.nome) + '</b>' + (local ? '<br>' + escapeHtml(local) : '') +
         _textoUltimaConexaoAcademia(a) +
         '<br><a href="#" onclick="abrirPerfilAcademiaPublico(\'' + nomeEscapado + '\'); return false;">Ver perfil</a>' +
         '<br><a href="#" onclick="enviarPullAcademiaMapa(\'' + nomeEscapado + '\'); return false;">🖐️ Dar um toque</a>' +
@@ -25664,7 +25690,7 @@ function renderSeletorColegasChat(){
   });
   const atual = select.value;
   select.innerHTML = '<option value="">Selecione o colega...</option>' +
-    colegas.map(c => '<option value="' + c.user + '">' + (window._naoLidos.colega.has(c.user) ? '🔴 ' : '') + c.nome + (c.nucleo ? ' (' + c.nucleo + ')' : '') + '</option>').join('');
+    colegas.map(c => '<option value="' + escapeHtml(c.user) + '">' + (window._naoLidos.colega.has(c.user) ? '🔴 ' : '') + escapeHtml(c.nome) + (c.nucleo ? ' (' + escapeHtml(c.nucleo) + ')' : '') + '</option>').join('');
   if(atual) select.value = atual;
   if(colegas.length === 0){
     select.innerHTML = '<option value="">Nenhum colega encontrado com esse filtro</option>';
@@ -26011,7 +26037,7 @@ function renderSeletorAlunosChat(){
     return naoLidoA - naoLidoB;
   });
   select.innerHTML = '<option value="">Selecione o aluno...</option>' +
-    alunos.map(a => '<option value="' + a.user + '">' + (window._naoLidos.aluno.has(a.user) ? '🔴 ' : '') + (estaOnline('aluno:' + a.user) ? '🟢 ' : '⚪ ') + a.nome + '</option>').join('');
+    alunos.map(a => '<option value="' + escapeHtml(a.user) + '">' + (window._naoLidos.aluno.has(a.user) ? '🔴 ' : '') + (estaOnline('aluno:' + a.user) ? '🟢 ' : '⚪ ') + escapeHtml(a.nome) + '</option>').join('');
   if(atual) select.value = atual;
 }
 
