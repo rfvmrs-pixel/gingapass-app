@@ -3,10 +3,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GingaWay — App de treino</title>
-<link rel="manifest" href="https://rfvmrs-pixel.github.io/gingapass-app/manifest.json">
-<link rel="icon" href="https://rfvmrs-pixel.github.io/gingapass-app/icon-192-v2.png">
-<link rel="apple-touch-icon" href="https://rfvmrs-pixel.github.io/gingapass-app/icon-192-v2.png">
-<link rel="apple-touch-icon" sizes="512x512" href="https://rfvmrs-pixel.github.io/gingapass-app/icon-512-v2.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512-v2.png">
 <meta name="theme-color" content="#042C53">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -808,7 +808,7 @@
       <div class="input-wrap"><span class="input-ic">🔒</span><input id="loginPass" type="password" placeholder="Senha"></div>
       <button class="btn" id="loginEntrarBtn" onclick="fazerLogin()" type="button" style="opacity: 1;">Entrar</button>
       <p id="syncStatus" style="font-size: 11px; color: rgb(185, 203, 221); margin-top: 10px; display: none;">Sincronizando com a nuvem...</p>
-      <a href="https://rfvmrs-pixel.github.io/gingapass-app/?saiu=1786388121001#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
+      <a href="#" onclick="alternarRecuperarSenha();return false;" style="display:block;margin-top:14px;font-size:11.5px;color:#B9CBDD;text-decoration:underline;">Esqueci minha senha</a>
       <a href="?gingaway=1" style="display:block;margin-top:10px;font-size:11.5px;color:var(--amber-500);text-decoration:underline;">🥊 Quer treinar sem vínculo com um grupo? Vire Aluno GingaWay</a>
       <div id="setupMasterBox" style="display:none;margin-top:14px;width:100%;text-align:left;">
         <input id="setupMasterNome" placeholder="Seu nome" style="margin-bottom:10px;padding:12px 14px;border-radius:12px;border:none;font-size:16px;width:100%;">
@@ -8113,7 +8113,7 @@ function apagarFotosAntigas(){
 }
 
 function copiarLinkDemo(){
-  const link = 'https://rfvmrs-pixel.github.io/gingapass-app/?demo=1';
+  const link = location.origin + location.pathname.replace(/index\.html$/, '') + '?demo=1';
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(function(){
       alert('Link copiado!\n\n' + link + '\n\nManda por WhatsApp, e-mail, onde quiser.');
@@ -21829,7 +21829,7 @@ function renderQrHoje(sufixo){
   box.innerHTML = '';
   const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
   texto.textContent = 'Código (' + dataFormatada + ' — Prof. ' + professor + '): ' + codigo;
-  const baseCheckin = 'https://rfvmrs-pixel.github.io/gingapass-app/index.html';
+  const baseCheckin = location.origin + location.pathname.replace(/index\.html$/, '') + 'index.html';
   const payload = baseCheckin + '?ck=1&d=' + encodeURIComponent(data) + '&k=' + encodeURIComponent(codigo) + '&p=' + encodeURIComponent(chaveProf);
   gerarImagemQr(box, payload);
   if(fecharBtn) fecharBtn.style.display = 'inline-block';
