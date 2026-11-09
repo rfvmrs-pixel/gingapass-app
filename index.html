@@ -780,8 +780,8 @@
 })();
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
+<script defer crossorigin="anonymous" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script defer crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script defer crossorigin="anonymous" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script></head>
 <body>
 <div class="phone">
   <div class="notch"></div>
@@ -3083,8 +3083,8 @@
   </div>
 </div>
 
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script defer crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBY-di3U_GTkSrlfW18XIMS3KrvfFT0AGI",
@@ -8150,7 +8150,15 @@ function copiarLinkDemo(){
 window._errosRenderizacao = [];
 
 window.addEventListener('error', function(event){
-  window._errosRenderizacao.push('Erro: ' + event.message + ' (linha ' + event.lineno + ')');
+  // Nome do arquivo ajuda a saber se o erro é do app ou de uma biblioteca
+  // externa (Firebase, mapa, QR code).
+  let origem = '';
+  try{ origem = event.filename ? new URL(event.filename).pathname.split('/').pop() : ''; }catch(e){}
+  const msg = 'Erro: ' + event.message + ' (' + (origem || 'app') + ', linha ' + event.lineno + ')';
+  // Mesma mensagem repetida vira um contador, em vez de encher a lista.
+  window._contagemErros = window._contagemErros || {};
+  window._contagemErros[msg] = (window._contagemErros[msg] || 0) + 1;
+  if(window._contagemErros[msg] === 1) window._errosRenderizacao.push(msg);
   mostrarBannerErros();
 });
 
@@ -8172,7 +8180,8 @@ function mostrarBannerErros(){
     banner.style.cssText = 'position:fixed;bottom:70px;left:10px;right:10px;z-index:1002;background:#C0392B;color:#fff;padding:10px 12px;border-radius:10px;font-size:11px;max-height:120px;overflow-y:auto;';
     document.body.appendChild(banner);
   }
-  banner.innerHTML = '<b>Erros encontrados (manda print disso):</b><br>' + window._errosRenderizacao.map((m, i) => (i+1) + '. ' + m).join('<br>');
+  const contagem = window._contagemErros || {};
+  banner.innerHTML = '<b>Erros encontrados (manda print disso) · v1109b</b><br>' + window._errosRenderizacao.map((m, i) => (i+1) + '. ' + escapeHtml(m) + (contagem[m] > 1 ? ' ×' + contagem[m] : '')).join('<br>');
 }
 
 function aplicarPermissoes(){
