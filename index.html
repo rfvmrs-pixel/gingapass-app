@@ -4068,10 +4068,16 @@ function limitarFotosLocais(fotos){
 
 function salvarFotoNaNuvem(foto){
   if(modoDemo || !muralFotosCollection) return Promise.resolve(true);
+  // Guarda o motivo da falha pra mostrar na tela (sem isso, todo erro vira
+  // o mesmo "não sincronizou" e não dá pra saber se foi conexão, tamanho,
+  // permissão ou cota).
+  window._ultimoErroFotoNuvem = '';
+  const tamanho = JSON.stringify(foto).length;
   return muralFotosCollection.doc(foto.id).set(foto).then(function(){
     return true;
   }).catch(function(e){
     console.error('Erro ao salvar foto individual na nuvem:', e);
+    window._ultimoErroFotoNuvem = 'v1109 · ' + ((e && e.code) || 'erro') + ' · ' + Math.round(tamanho / 1024) + ' KB' + (e && e.message ? ' · ' + String(e.message).slice(0, 120) : '');
     return false;
   });
 }
@@ -15417,7 +15423,7 @@ function publicarColagem(){
     if(resultados.every(Boolean)){
       alert('Publicado no GingaFeed!');
     } else {
-      alert('Ficou salvo neste aparelho, mas NÃO sincronizou com a nuvem. Verifique a conexão e tente publicar de novo.');
+      alert('Ficou salvo neste aparelho, mas NÃO sincronizou com a nuvem. Verifique a conexão e tente publicar de novo.' + (window._ultimoErroFotoNuvem ? '\n\n(Detalhe técnico: ' + window._ultimoErroFotoNuvem + ')' : ''));
     }
   });
 }
