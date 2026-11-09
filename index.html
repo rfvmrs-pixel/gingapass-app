@@ -11734,6 +11734,35 @@ function comprimirImagem(arquivo, larguraMaxima, qualidade){
   });
 }
 
+// Garante que a foto (dataURL) fique abaixo de ~700KB, reduzindo tamanho e
+// qualidade em etapas se precisar. Retorna null se não conseguir (ex.: foto
+// HEIC que o navegador não decodifica e veio sem comprimir).
+const FOTO_TAMANHO_MAXIMO = 700000;
+function garantirFotoLeve(dataUrl){
+  if(!dataUrl) return Promise.resolve(null);
+  if(dataUrl.length <= FOTO_TAMANHO_MAXIMO) return Promise.resolve(dataUrl);
+  const etapas = [[800, 0.7], [700, 0.6], [600, 0.5]];
+  return new Promise(function(resolve){
+    const img = new Image();
+    img.onload = function(){
+      if(!img.width || !img.height){ resolve(null); return; }
+      for(const [larguraMax, qualidade] of etapas){
+        const largura = Math.min(img.width, larguraMax);
+        const altura = Math.round(img.height * (largura / img.width));
+        const canvas = document.createElement('canvas');
+        canvas.width = largura;
+        canvas.height = altura;
+        canvas.getContext('2d').drawImage(img, 0, 0, largura, altura);
+        const reduzida = canvas.toDataURL('image/jpeg', qualidade);
+        if(reduzida.length <= FOTO_TAMANHO_MAXIMO){ resolve(reduzida); return; }
+      }
+      resolve(null);
+    };
+    img.onerror = function(){ resolve(null); };
+    img.src = dataUrl;
+  });
+}
+
 function obterChavePerfil(){
   if(currentRole === 'aluno' || currentRole === 'academia'){
     return currentUser ? ('gingapass_perfil_' + currentUser) : null;
@@ -15329,13 +15358,27 @@ function publicarColagem(){
   const legendaInput = document.getElementById('colagemLegenda');
   const legenda = legendaInput ? legendaInput.value.trim() : '';
   const autor = obterNomeExibicaoAtual() || 'Associado';
+  const autorId = identificadorUsuarioAtual();
   const salvas = normalizarFotos();
-  const imagens = _colagemFotos.slice(0, 4);
-  const nova = {
+  const imagens = _colagemFotos.filter(Boolean).slice(0, 4);
+  if(imagens.length === 0){
+    alert('Não deu pra carregar essas fotos. Tente escolher de novo.');
+    return;
+  }
+  // Cada foto vira um documento PEQUENO e separado na nuvem (mesmo postId),
+  // igual ao publicarFotoComunidade. Antes as 1-4 fotos iam juntas num
+  // documento só (e a 1ª ia duplicada em `src`), o que estourava o limite de
+  // 1MB por documento do Firestore e dava "NÃO sincronizou com a nuvem".
+  const postId = imagens.length > 1 ? ('post_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)) : '';
+  const agora = Date.now();
+  const novas = imagens.map((src, i) => ({
     id: 'foto_' + Math.random().toString(36).slice(2, 10),
-    src: imagens[0], imagens, legenda, autor, autorId: identificadorUsuarioAtual(), autorRole: currentRole, data: Date.now(), likes: [], comentarios: []
-  };
-  const todasFotos = limitarFotosLocais([nova].concat(salvas));
+    src, imagens: [src],
+    postId, posicao: i,
+    legenda: i === 0 ? legenda : '',
+    autor, autorId, autorRole: currentRole, data: agora, likes: [], comentarios: []
+  }));
+  const todasFotos = limitarFotosLocais(novas.concat(salvas));
   salvarFotosLocais(todasFotos);
 
   _colagemFotos = [];
@@ -15347,8 +15390,8 @@ function publicarColagem(){
   renderFotosFeed();
   renderLimiteFotoSemanal();
   iniciarSlideshowMural();
-  salvarFotoNaNuvem(nova).then(function(ok){
-    if(ok){
+  Promise.all(novas.map(function(foto){ return salvarFotoNaNuvem(foto); })).then(function(resultados){
+    if(resultados.every(Boolean)){
       alert('Publicado no GingaFeed!');
     } else {
       alert('Ficou salvo neste aparelho, mas NÃO sincronizou com a nuvem. Verifique a conexão e tente publicar de novo.');
@@ -26703,14 +26746,13 @@ document.addEventListener('DOMContentLoaded', function(){
     fotoInputComunidade.addEventListener('change', function(e){
       fotosSelecionadasComunidade = [];
       const files = Array.from(e.target.files).slice(0, 4);
-      let loaded = 0;
       if(files.length === 0) return;
-      files.forEach(file => {
-        comprimirImagem(file, 900, 0.7).then(function(dataUrl){
-          fotosSelecionadasComunidade.push(dataUrl);
-          loaded++;
-          if(loaded === files.length) previewFotosComunidade();
-        });
+      Promise.all(files.map(file => comprimirImagem(file, 900, 0.7).then(garantirFotoLeve))).then(function(resultados){
+        fotosSelecionadasComunidade = resultados.filter(Boolean);
+        previewFotosComunidade();
+        if(fotosSelecionadasComunidade.length < resultados.length){
+          alert('Alguma foto não pôde ser usada (formato não suportado ou grande demais). Tente outra, ou use um print dela.');
+        }
       });
     });
   }
@@ -26723,13 +26765,19 @@ document.addEventListener('DOMContentLoaded', function(){
       const status = document.getElementById('colagemStatus');
       if(files.length === 0) return;
       if(status) status.textContent = 'Carregando fotos...';
-      let loaded = 0;
-      files.forEach(file => {
-        comprimirImagem(file, 900, 0.8).then(function(dataUrl){
-          _colagemFotos.push(dataUrl);
-          loaded++;
-          if(loaded === files.length) _atualizarPreviewCarrosselNovo();
-        });
+      // Mantém a ordem escolhida e garante que cada foto caiba com folga num
+      // documento da nuvem (limite de 1MB); foto que não deu pra reduzir
+      // (ex.: formato que o celular não abre) fica de fora com aviso, em vez
+      // de falhar só na hora de publicar.
+      Promise.all(files.map(file => comprimirImagem(file, 900, 0.8).then(garantirFotoLeve))).then(function(resultados){
+        _colagemFotos = resultados.filter(Boolean);
+        const recusadas = resultados.length - _colagemFotos.length;
+        _atualizarPreviewCarrosselNovo();
+        if(recusadas > 0){
+          alert(recusadas === 1
+            ? 'Uma das fotos não pôde ser usada (formato não suportado ou grande demais). Tente outra, ou tire um print dela e use o print.'
+            : recusadas + ' fotos não puderam ser usadas (formato não suportado ou grandes demais). Tente outras, ou use um print delas.');
+        }
       });
     });
   }
